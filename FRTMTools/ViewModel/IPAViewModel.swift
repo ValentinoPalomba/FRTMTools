@@ -1,28 +1,31 @@
 import SwiftUI
 import AppKit
+import FRTMCore
 
 class IPAViewModel: ObservableObject {
     @Published var analyses: [IPAAnalysis] = []
     @Published var isLoading = false
     @Published var compareMode = false
     @Published var selectedUUID = UUID()
-
-    init() {
-        self.analyses = Persistence.loadAnalyses()
+    @Dependency var persistenceManager: PersistenceManager
+    @Dependency var analyzer: Analyzer
+    func loadAnalyses() {
+        self.analyses = persistenceManager.loadAnalyses()
         if let first = self.analyses.first {
             self.selectedUUID = first.id
         }
     }
     
     func saveAnalyses() {
-        Persistence.saveAnalyses(analyses)
+        persistenceManager.saveAnalyses(analyses)
     }
 
     func analyzeIPAFile(_ url: URL) {
         isLoading = true
-        DispatchQueue.global().async {
-            if let analysis = analyzeIPA(at: url) {
-                DispatchQueue.main.async {
+        Task(priority: .userInitiated) { [weak self] in
+            guard let self else { return }
+            if let analysis = self.analyzer.analyze(at: url) {
+                await MainActor.run {
                     withAnimation {
                         self.analyses.append(analysis)
                         self.selectedUUID = analysis.id
@@ -31,7 +34,9 @@ class IPAViewModel: ObservableObject {
                     }
                 }
             } else {
-                DispatchQueue.main.async { self.isLoading = false }
+                await MainActor.run {
+                    self.isLoading = false
+                }
             }
         }
     }

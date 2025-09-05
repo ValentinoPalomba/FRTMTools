@@ -12,6 +12,7 @@
 		E6B3706A2E6886C6005F365C /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = E6B370692E6886C6005F365C /* MLXLMCommon */; };
 		E6B3706C2E6886C6005F365C /* MLXMNIST in Frameworks */ = {isa = PBXBuildFile; productRef = E6B3706B2E6886C6005F365C /* MLXMNIST */; };
 		E6B3706E2E6886C6005F365C /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = E6B3706D2E6886C6005F365C /* MLXVLM */; };
+		E6B372492E6AC55C005F365C /* FRTMCore in Frameworks */ = {isa = PBXBuildFile; productRef = E6B372482E6AC55C005F365C /* FRTMCore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,6 +49,7 @@
 				E6B3706C2E6886C6005F365C /* MLXMNIST in Frameworks */,
 				E6B370682E6886C6005F365C /* MLXLLM in Frameworks */,
 				E6B3706A2E6886C6005F365C /* MLXLMCommon in Frameworks */,
+				E6B372492E6AC55C005F365C /* FRTMCore in Frameworks */,
 				E6B370662E6886C6005F365C /* MLXEmbedders in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -96,6 +98,7 @@
 				E6B370692E6886C6005F365C /* MLXLMCommon */,
 				E6B3706B2E6886C6005F365C /* MLXMNIST */,
 				E6B3706D2E6886C6005F365C /* MLXVLM */,
+				E6B372482E6AC55C005F365C /* FRTMCore */,
 			);
 			productName = ipaAnalyzer;
 			productReference = E6EDE3D12E679CC300310565 /* FRTMTools.app */;
@@ -127,6 +130,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				E6B370642E6886C6005F365C /* XCRemoteSwiftPackageReference "mlx-swift-examples" */,
+				E6B372472E6AC55C005F365C /* XCRemoteSwiftPackageReference "FRTMCore" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E6EDE3D22E679CC300310565 /* Products */;
@@ -385,6 +389,14 @@
 				kind = branch;
 			};
 		};
+		E6B372472E6AC55C005F365C /* XCRemoteSwiftPackageReference "FRTMCore" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ValentinoPalomba/FRTMCore.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -412,6 +424,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E6B370642E6886C6005F365C /* XCRemoteSwiftPackageReference "mlx-swift-examples" */;
 			productName = MLXVLM;
+		};
+		E6B372482E6AC55C005F365C /* FRTMCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E6B372472E6AC55C005F365C /* XCRemoteSwiftPackageReference "FRTMCore" */;
+			productName = FRTMCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

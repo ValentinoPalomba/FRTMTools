@@ -1,6 +1,15 @@
 {
-  "originHash" : "2d84fb1683852b7d24cccdba5db9aaf76a2cd0d243dbc492eb9e10ce14db9d11",
+  "originHash" : "5c4209faab396332aa3683d8764f04fec666b45544a53dc3b72cd683d478ba35",
   "pins" : [
+    {
+      "identity" : "frtmcore",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ValentinoPalomba/FRTMCore.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "a65df45101033fc65f47bde7958739d9b8c54749"
+      }
+    },
     {
       "identity" : "gzipswift",
       "kind" : "remoteSourceControl",

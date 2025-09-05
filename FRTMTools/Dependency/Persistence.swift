@@ -1,6 +1,12 @@
 import Foundation
+import FRTMCore
+protocol PersistenceManager: AnyObject {
+    func loadAnalyses() -> [IPAAnalysis]
+    func saveAnalyses(_ analyses: [IPAAnalysis])
+}
 
-class Persistence {
+
+class CorePersistenceManager: PersistenceManager {
     private static var fileURL: URL {
         let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let appDirectory = directory.appendingPathComponent("FRTMTools")
@@ -10,9 +16,9 @@ class Persistence {
         return appDirectory.appendingPathComponent("analyses.json")
     }
 
-    static func loadAnalyses() -> [IPAAnalysis] {
+    func loadAnalyses() -> [IPAAnalysis] {
         do {
-            let data = try Data(contentsOf: fileURL)
+            let data = try Data(contentsOf: CorePersistenceManager.fileURL)
             let analyses = try JSONDecoder().decode([IPAAnalysis].self, from: data)
             return analyses
         } catch {
@@ -20,10 +26,10 @@ class Persistence {
         }
     }
 
-    static func saveAnalyses(_ analyses: [IPAAnalysis]) {
+    func saveAnalyses(_ analyses: [IPAAnalysis]) {
         do {
             let data = try JSONEncoder().encode(analyses)
-            try data.write(to: fileURL, options: .atomic)
+            try data.write(to: CorePersistenceManager.fileURL, options: .atomic)
         } catch {
             print("Failed to save analyses: \(error)")
         }

@@ -76,6 +76,9 @@ struct MainView: View {
                 }
             }
         }
+        .onAppear {
+            viewModel.loadAnalyses()
+        }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             for provider in providers {
                 _ = provider.loadObject(ofClass: URL.self) { url, _ in

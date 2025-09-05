@@ -9,9 +9,14 @@ import SwiftUI
 
 @main
 struct FRTMTools: App {
+    
+    init() {
+        DependencyRegister.register()
+    }
     var body: some Scene {
         WindowGroup {
             MainView()
         }
     }
 }
+
