@@ -90,11 +90,7 @@ struct DetailView: View {
                 // Collapsible sections
                 VStack(spacing: 12) {
                     ForEach(categories) { category in
-                        CollapsibleSection(
-                            category: category,
-                            action: {},
-                            expandedSections: $expandedSections
-                        )
+                       
                     }
                 }
                 .padding(.horizontal)

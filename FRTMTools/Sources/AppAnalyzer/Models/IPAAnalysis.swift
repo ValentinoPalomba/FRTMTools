@@ -38,37 +38,3 @@ struct IPAAnalysis: Identifiable, Codable {
     }
 }
 
-struct FileInfo: Identifiable, Codable {
-    let id: UUID
-    let name: String
-    let type: FileType
-    let size: Int64
-    let subItems: [FileInfo]?
-
-    init(id: UUID = UUID(), name: String, type: FileType, size: Int64, subItems: [FileInfo]? = nil) {
-        self.id = id
-        self.name = name
-        self.type = type
-        self.size = size
-        self.subItems = subItems
-    }
-}
-
-enum FileType: String, Codable {
-    case file
-    case directory
-    case app
-    case framework
-    case bundle
-    case assets
-    case binary
-    case plist
-    case lproj
-}
-
-struct FileDiff: Identifiable, Hashable {
-    let id = UUID()
-    let name: String
-    let size1: Int64
-    let size2: Int64
-}
