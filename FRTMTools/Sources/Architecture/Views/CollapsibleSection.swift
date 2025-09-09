@@ -35,9 +35,7 @@ struct CollapsibleSection: View {
                         Text(ByteCountFormatter.string(fromByteCount: category.totalSize, countStyle: .file))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                        Image(systemName: expandedSections.contains(category.id) ? "chevron.down" : "chevron.right")
-                            .foregroundColor(.accentColor)
-                            .imageScale(.small)
+                        Image(systemName: expandedSections.contains(category.id) ? "chevron.up" : "chevron.down")
                     }
                 }
                 .buttonStyle(.plain)
@@ -54,7 +52,8 @@ struct CollapsibleSection: View {
                 .buttonStyle(.plain)
             }
             .padding()
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color(NSColor.controlBackgroundColor)))
+            .background(Color(NSColor.controlBackgroundColor))
+            .contentShape(Rectangle())
             
             if expandedSections.contains(category.id) {
                 LazyVStack(spacing: 1) {
@@ -64,11 +63,11 @@ struct CollapsibleSection: View {
                     }
                 }
                 .padding(EdgeInsets(top: 0, leading: 12, bottom: 12, trailing: 12))
-                .background(Color(NSColor.windowBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .background(Color(NSColor.controlBackgroundColor))
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+        .cornerRadius(12)
         .transition(.move(edge: .top))
         .fileExporter(
             isPresented: $showExporter,

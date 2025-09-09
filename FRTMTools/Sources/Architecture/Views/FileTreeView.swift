@@ -10,7 +10,7 @@ struct FileTreeView: View {
                 LazyVStack(spacing: 5) {
                     ForEach(items) { item in
                         FileTreeView(file: item)
-                            .padding(.leading, 10)
+                            .padding(.horizontal, 10)
                     }
                 }
             } label: {
@@ -34,6 +34,7 @@ struct FileRow: View {
             Text(format(bytes: file.size))
                 .font(.system(.body, design: .monospaced))
         }
+        .padding(.vertical, 4)
     }
     
     private func icon(for type: FileType) -> String {

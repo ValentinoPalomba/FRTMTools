@@ -26,15 +26,18 @@ final class UnusedAssetsAnalyzer: Analyzer {
     
     // MARK: - Metodi pubblici
     func analyze(at url: URL) async throws -> UnusedAssetResult? {
-        configuration.sourcePaths.append(url.relativePath)
+        if !configuration.sourcePaths.contains(url.path) {
+            configuration.sourcePaths.append(url.path)
+        }
+        
         return try await Task(priority: .background) {
-            return try scanForUnusedAssetsSync()
+            return try scanForUnusedAssetsSync(projectURL: url)
         }.value
     }
     
     
     /// Scansione sincrona (per testing o uso specifico)
-    func scanForUnusedAssetsSync() throws -> UnusedAssetResult {
+    func scanForUnusedAssetsSync(projectURL: URL) throws -> UnusedAssetResult {
         let startTime = Date()
         
         // 1. Trova tutte le risorse grafiche
@@ -49,6 +52,8 @@ final class UnusedAssetsAnalyzer: Analyzer {
         let duration = Date().timeIntervalSince(startTime)
         
         return UnusedAssetResult(
+            projectPath: projectURL.path,
+            projectName: projectURL.lastPathComponent,
             unusedAssets: unusedAssets,
             totalUnusedSize: unusedAssets.reduce(0) { $0 + $1.size },
             totalAssetsScanned: allAssets.count,

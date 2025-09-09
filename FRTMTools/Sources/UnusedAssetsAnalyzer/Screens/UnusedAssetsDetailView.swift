@@ -1,77 +1,108 @@
 import SwiftUI
 import Charts
 
-// Make AssetInfo Identifiable for ForEach
-extension AssetInfo: Identifiable {
-    public var id: String { path }
-}
-
 struct UnusedAssetsDetailView: View {
     @StateObject private var viewModel = UnusedAssetsViewModel()
 
     var body: some View {
-        Group {
-            if viewModel.isLoading {
-                VStack(spacing: 10) {
-                    ProgressView()
-                    Text("Analyzing project...")
-                        .foregroundColor(.secondary)
-                }
-            } else if let result = viewModel.result {
-                // Show empty state if no unused assets are found
-                if result.unusedAssets.isEmpty {
-                    VStack(spacing: 20) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 60))
-                            .foregroundColor(.green)
-                        Text("No Unused Assets Found!")
-                            .font(.title)
-                        Text("Scanned \(result.totalAssetsScanned) assets in \(String(format: "%.2f", result.scanDuration))s and everything looks clean.")
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: 350)
-                        Button("Analyze Another Project", action: viewModel.selectProjectFolder)
-                            .controlSize(.large)
+        NavigationSplitView {
+            // Sidebar
+            VStack(spacing: 0) {
+                List(selection: $viewModel.selectedAnalysisID) {
+                    ForEach(viewModel.analyses) { analysis in
+                        NavigationLink(value: analysis.id) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("📦 \(analysis.projectName)")
+                                    .font(.headline)
+                                    .lineLimit(1)
+                                
+                                Text(analysis.projectPath)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+                            .padding()
+                        }
+                        .contextMenu {
+                            Button("Re-analyze") {
+                                viewModel.analyzeProject(at: URL(fileURLWithPath: analysis.projectPath), overwriting: analysis.id)
+                            }
+                            Button("Delete", role: .destructive) {
+                                viewModel.deleteAnalysis(analysis)
+                            }
+                        }
                     }
-                } else {
-                    AnalysisResultView(result: result)
                 }
+                .listStyle(.plain)
+                
+            }
+            .navigationTitle("Projects")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: viewModel.selectProjectFolder) {
+                        Label("Analyze Project", systemImage: "folder.badge.plus")
+                    }
+                    .disabled(viewModel.isLoading)
+                }
+            }
+            
+        } detail: {
+            if let result = viewModel.selectedAnalysis {
+                AnalysisResultView(result: result, viewModel: viewModel)
             } else {
+                // Empty state for when no analyses exist
                 VStack(spacing: 20) {
                     Image(systemName: "doc.text.magnifyingglass")
                         .font(.system(size: 60))
                         .foregroundColor(.secondary)
                     Text("Unused Assets Analyzer")
                         .font(.title)
-                    Text("Select a project folder to start analyzing for unused assets.")
+                    Text("Analyze a project to see the results here.")
                         .multilineTextAlignment(.center)
                         .foregroundColor(.secondary)
                         .frame(maxWidth: 300)
-                    Button("Select Project Folder", action: viewModel.selectProjectFolder)
+                    Button("Analyze Project Folder", action: viewModel.selectProjectFolder)
                         .controlSize(.large)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .navigationTitle("Unused Assets Analyzer")
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                Button(action: viewModel.selectProjectFolder) {
-                    Label("Analyze New Project", systemImage: "folder.badge.plus")
-                }
-            }
+        .onAppear {
+            viewModel.loadAnalyses()
         }
+        .loaderOverlay(
+            isPresented: $viewModel.isLoading,
+            content: {
+                LoaderView(
+                    style: .indeterminate,
+                    title: "Analyzing project...",
+                    subtitle: "Finding unused assets...",
+                    showsCancel: false,
+                    cancelAction: nil
+                )
+        })
         .errorAlert(error: $viewModel.error)
+        .alert(
+            "Analysis Exists",
+            isPresented: .constant(viewModel.analysisToOverwrite != nil),
+            presenting: viewModel.analysisToOverwrite
+        ) { analysis in
+            Button("Overwrite", action: viewModel.forceReanalyze)
+            Button("Cancel", role: .cancel, action: viewModel.cancelOverwrite)
+        } message: { analysis in
+            Text("An analysis for \(analysis.projectName) already exists. Do you want to overwrite it?")
+        }
     }
 }
 
-private struct AnalysisResultView: View {
+struct AnalysisResultView: View {
     let result: UnusedAssetResult
+    @ObservedObject var viewModel: UnusedAssetsViewModel
     
     @State private var showAISummary: Bool = false
     @State private var expandedAssetTypes: Set<String> = []
 
-    // This is the corrected grouping logic
     private var assetsByType: [AssetTypeGroup] {
         let grouped = Dictionary(grouping: result.unusedAssets, by: { $0.type })
         return grouped.map { type, assets in
@@ -82,117 +113,140 @@ private struct AnalysisResultView: View {
             )
         }.sorted { $0.totalSize > $1.totalSize }
     }
+    
+    @ViewBuilder
+    var topCardsView: some View {
+        LazyVGrid(columns: .init(repeating: .init(.flexible()), count: 4), spacing: 20) {
+            SummaryCard(
+                title: "🗑️ Unused Assets",
+                value: "\(result.unusedAssets.count)",
+                subtitle: "Items found"
+            )
+            SummaryCard(
+                title: "💾 Wasted Space",
+                value: ByteCountFormatter.string(
+                    fromByteCount: result.totalUnusedSize,
+                    countStyle: .file
+                ),
+                subtitle: "Total size"
+            )
+            SummaryCard(
+                title: "🔍 Assets Scanned",
+                value: "\(result.totalAssetsScanned)",
+                subtitle: "Total items"
+            )
+            SummaryCard(
+                title: "⏱️ Scan Duration",
+                value: "\(String(format: "%.2f", result.scanDuration))s",
+                subtitle: "Time taken"
+            )
+        }
+        .padding(.horizontal)
+    }
+    
+    
+    @ViewBuilder
+    var cakeChartView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Distribution by Type")
+                .font(.title3).bold()
+            
+            Chart(assetsByType) { assetGroup in
+                SectorMark(
+                    angle: .value("Size", assetGroup.totalSize),
+                    innerRadius: .ratio(0.55),
+                    angularInset: 1.5
+                )
+                .foregroundStyle(by: .value("Type", assetGroup.type.rawValue.uppercased()))
+                .annotation(position: .overlay) {
+                    let percentage = (Double(assetGroup.totalSize) / Double(result.totalUnusedSize)) * 100
+                    if percentage > 5 {
+                        Text("\(String(format: "%.0f", percentage))%")
+                            .font(.caption)
+                            .foregroundColor(.white)
+                            .bold()
+                    }
+                }
+            }
+            .frame(height: 240)
+            .chartLegend(position: .bottom, spacing: 12)
+        }
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
+        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+    }
+    
+    
+    @ViewBuilder
+    var topUnusedChartView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Largest Unused Assets")
+                .font(.title3).bold()
+            
+            Chart(topUnusedAssets(limit: 7)) { item in
+                BarMark(
+                    x: .value("Size", item.size),
+                    y: .value("Asset", item.name.truncating(to: 25))
+                )
+                .foregroundStyle(by: .value("Type", item.type.rawValue.uppercased()))
+            }
+            .frame(height: 240)
+            .chartLegend(.hidden)
+        }
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
+        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+    }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                
-                // Corrected Summary Cards
-                LazyVGrid(columns: .init(repeating: .init(.flexible()), count: 4), spacing: 20) {
-                    SummaryCard(
-                        title: "🗑️ Unused Assets",
-                        value: "\(result.unusedAssets.count)",
-                        subtitle: "Items found"
-                    )
-                    SummaryCard(
-                        title: "💾 Wasted Space",
-                        value: ByteCountFormatter.string(fromByteCount: result.totalUnusedSize, countStyle: .file),
-                        subtitle: "Total size"
-                    )
-                    SummaryCard(
-                        title: "🔍 Assets Scanned",
-                        value: "\(result.totalAssetsScanned)",
-                        subtitle: "Total items"
-                    )
-                    SummaryCard(
-                        title: "⏱️ Scan Duration",
-                        value: "\(String(format: "%.2f", result.scanDuration))s",
-                        subtitle: "Time taken"
-                    )
-                }
-                .padding(.horizontal)
-                
-                HStack(alignment: .top, spacing: 24) {
-                    if !assetsByType.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Distribution by Type")
-                                .font(.title3).bold()
-                            
-                            Chart(assetsByType) { assetGroup in
-                                SectorMark(
-                                    angle: .value("Size", assetGroup.totalSize),
-                                    innerRadius: .ratio(0.55),
-                                    angularInset: 1.5
-                                )
-                                .foregroundStyle(by: .value("Type", assetGroup.type.rawValue.uppercased()))
-                                .annotation(position: .overlay) {
-                                    let percentage = (Double(assetGroup.totalSize) / Double(result.totalUnusedSize)) * 100
-                                    if percentage > 5 {
-                                        Text("\(String(format: "%.0f", percentage))%")
-                                            .font(.caption)
-                                            .foregroundColor(.white)
-                                            .bold()
+            if result.unusedAssets.isEmpty {
+                EmptyResultsView(result: result, viewModel: viewModel)
+            } else {
+                VStack(spacing: 24) {
+                    topCardsView
+                    
+                    HStack(alignment: .top, spacing: 24) {
+                        if !assetsByType.isEmpty {
+                            cakeChartView
+                            topUnusedChartView
+                        }
+                         
+                    }
+                    .padding(.horizontal)
+                    
+                    VStack(spacing: 12) {
+                        Text("All Unused Assets")
+                            .font(.title3).bold()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        ForEach(assetsByType) { assetGroup in
+                            AssetCollapsibleSection(
+                                assetGroup: assetGroup,
+                                isExpanded: expandedAssetTypes.contains(assetGroup.id)
+                            ) {
+                                withAnimation(.easeInOut) {
+                                    if expandedAssetTypes.contains(assetGroup.id) {
+                                        expandedAssetTypes.remove(assetGroup.id)
+                                    } else {
+                                        expandedAssetTypes.insert(assetGroup.id)
                                     }
                                 }
                             }
-                            .frame(height: 240)
-                            .chartLegend(position: .bottom, spacing: 12)
                         }
-                        .padding()
-                        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-                        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
                     }
-                    
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Top 10 Largest Unused Assets")
-                            .font(.title3).bold()
-                        
-                        Chart(topUnusedAssets(limit: 10)) { item in
-                            BarMark(
-                                x: .value("Size", item.size),
-                                y: .value("Asset", item.name.truncating(to: 25))
-                            )
-                            .foregroundStyle(by: .value("Type", item.type.rawValue.uppercased()))
-                        }
-                        .chartYAxis { AxisMarks(preset: .aligned) }
-                        .frame(height: 240)
-                        .chartLegend(.hidden)
-                    }
-                    .padding()
-                    .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-                    .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+                    .padding(.horizontal)
                 }
-                .padding(.horizontal)
-                
-                VStack(spacing: 12) {
-                    Text("All Unused Assets")
-                        .font(.title3).bold()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    ForEach(assetsByType) { assetGroup in
-                        AssetCollapsibleSection(
-                            assetGroup: assetGroup,
-                            isExpanded: expandedAssetTypes.contains(assetGroup.id)
-                        ) {
-                            withAnimation(.easeInOut) {
-                                if expandedAssetTypes.contains(assetGroup.id) {
-                                    expandedAssetTypes.remove(assetGroup.id)
-                                } else {
-                                    expandedAssetTypes.insert(assetGroup.id)
-                                }
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal)
+                .padding(.vertical, 16)
             }
-            .padding(.vertical, 16)
         }
-        .navigationTitle("Unused Assets Analysis")
+        .navigationTitle(result.projectName)
         .toolbar {
             ToolbarItem(placement: .automatic) {
-                Button(action: { showAISummary = true }) {
-                    Label("AI Summary", systemImage: "sparkles")
+                Button(action: {
+                    viewModel.analyzeProject(at: URL(fileURLWithPath: result.projectPath), overwriting: result.id)
+                }) {
+                    Label("Re-analyze", systemImage: "arrow.clockwise")
                 }
             }
         }
@@ -202,35 +256,32 @@ private struct AnalysisResultView: View {
         return Array(result.unusedAssets.sorted(by: { $0.size > $1.size }).prefix(limit))
     }
     
-    // Corrected prompt generation
-    private func generateAnalysisSummaryPrompt(result: UnusedAssetResult) -> String {
-        var prompt = ""
-        
-        prompt += "Scan Duration: \(String(format: "%.2f", result.scanDuration)) seconds\n"
-        prompt += "Total Assets Scanned: \(result.totalAssetsScanned)\n"
-        prompt += "Total Wasted Space: \(ByteCountFormatter.string(fromByteCount: result.totalUnusedSize, countStyle: .file))\n"
-        prompt += "Total Unused Assets: \(result.unusedAssets.count)\n\n"
-        
-        prompt += "Breakdown by Type:\n"
-        for assetGroup in assetsByType {
-            let percentage = (Double(assetGroup.totalSize) / Double(result.totalUnusedSize)) * 100
-            prompt += "- \(assetGroup.type.rawValue.uppercased()): \(assetGroup.assets.count) items, \(ByteCountFormatter.string(fromByteCount: assetGroup.totalSize, countStyle: .file)) (\(String(format: "%.2f", percentage)))%\n"
-        }
-        
-        let topAssets = topUnusedAssets(limit: 10)
-        if !topAssets.isEmpty {
-            prompt += "\nTop 10 largest unused assets:\n"
-            for asset in topAssets {
-                prompt += "- \(asset.name): \(ByteCountFormatter.string(fromByteCount: asset.size, countStyle: .file))\n"
+    private struct EmptyResultsView: View {
+        let result: UnusedAssetResult
+        let viewModel: UnusedAssetsViewModel
+        var body: some View {
+            VStack(spacing: 20) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 60))
+                    .foregroundColor(.green)
+                Text("No Unused Assets Found!")
+                    .font(.title)
+                Text("Scanned \(result.totalAssetsScanned) assets in \(String(format: "%.2f", result.scanDuration))s and everything looks clean.")
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: 350)
+                Button("Re-analyze Project", action: {
+                    viewModel.analyzeProject(at: URL(fileURLWithPath: result.projectPath), overwriting: result.id)
+                })
+                    .controlSize(.large)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding()
         }
-        
-        return prompt
     }
 }
 
-// Corrected Collapsible Section
-private struct AssetCollapsibleSection: View {
+struct AssetCollapsibleSection: View {
     let assetGroup: AssetTypeGroup
     let isExpanded: Bool
     let action: () -> Void
@@ -259,13 +310,14 @@ private struct AssetCollapsibleSection: View {
                         HStack {
                             Image(systemName: asset.type.iconName)
                                 .foregroundColor(.secondary)
-                            Text(asset.path) // Using path for more detail
-                                .font(.caption)
+                                .frame(width: 20)
+                            Text(asset.path)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                             Spacer()
                             Text(ByteCountFormatter.string(fromByteCount: asset.size, countStyle: .file))
                                 .foregroundColor(.secondary)
+                                .font(.system(.body, design: .monospaced))
                         }
                         .padding(.horizontal)
                         Divider()
@@ -281,36 +333,7 @@ private struct AssetCollapsibleSection: View {
     }
 }
 
-// New helper struct for grouping
-private struct AssetTypeGroup: Identifiable {
-    var id: String { type.rawValue }
-    let type: AssetType
-    let assets: [AssetInfo]
-    let totalSize: Int64
-}
 
-// Corrected AssetType extension
-extension AssetType {
-    var iconName: String {
-        switch self {
-        case .png, .jpg, .jpeg, .gif, .heic, .webp, .svg: return "photo"
-        case .pdf: return "doc.text.fill"
-        }
-    }
-}
-
-// String truncation helper (already defined, but good to have here)
-extension String {
-    func truncating(to length: Int, trailing: String = "...") -> String {
-        if self.count > length {
-            return String(self.prefix(length)) + trailing
-        } else {
-            return self
-        }
-    }
-}
-
-// Corrected Error Alert
 fileprivate extension View {
     func errorAlert(error: Binding<UnusedAssetsError?>) -> some View {
         let isPresented = Binding(
@@ -323,11 +346,8 @@ fileprivate extension View {
             isPresented: isPresented,
             presenting: error.wrappedValue
         ) { _ in
-            Button("OK") {
-                error.wrappedValue = nil
-            }
+            Button("OK") { error.wrappedValue = nil }
         } message: { error in
-            // Use the model's errorDescription
             Text(error.errorDescription ?? "An unknown error occurred.")
         }
     }

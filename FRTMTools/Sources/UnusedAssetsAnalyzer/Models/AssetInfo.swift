@@ -7,9 +7,10 @@
 
 import Foundation
 // MARK: - Modelli di dati
-struct AssetInfo {
+struct AssetInfo: Codable, Hashable, Identifiable {
     let name: String
     let path: String
     let size: Int64
     let type: AssetType
+    public var id: String { path }
 }

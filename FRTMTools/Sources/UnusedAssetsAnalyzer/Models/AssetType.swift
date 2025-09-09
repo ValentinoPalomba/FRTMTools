@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum AssetType: String, CaseIterable {
+enum AssetType: String, Codable, CaseIterable {
     case png = "png"
     case jpg = "jpg"
     case jpeg = "jpeg"
@@ -25,6 +25,16 @@ enum AssetType: String, CaseIterable {
             return ["jpg", "jpeg"]
         default:
             return [self.rawValue]
+        }
+    }
+}
+
+// Corrected AssetType extension
+extension AssetType {
+    var iconName: String {
+        switch self {
+        case .png, .jpg, .jpeg, .gif, .heic, .webp, .svg: return "photo"
+        case .pdf: return "doc.text.fill"
         }
     }
 }
