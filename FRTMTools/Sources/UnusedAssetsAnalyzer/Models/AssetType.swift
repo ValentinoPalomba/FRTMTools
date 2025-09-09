@@ -16,6 +16,7 @@ enum AssetType: String, Codable, CaseIterable {
     case pdf = "pdf"
     case heic = "heic"
     case webp = "webp"
+    case imageSet = "imageset"
     
     var extensions: [String] {
         switch self {
@@ -33,7 +34,7 @@ enum AssetType: String, Codable, CaseIterable {
 extension AssetType {
     var iconName: String {
         switch self {
-        case .png, .jpg, .jpeg, .gif, .heic, .webp, .svg: return "photo"
+            case .png, .jpg, .jpeg, .gif, .heic, .webp, .svg, .imageSet: return "photo"
         case .pdf: return "doc.text.fill"
         }
     }
