@@ -1,56 +1,99 @@
 import SwiftUI
-import AppKit
 import FRTMCore
 
+@MainActor
 class UnusedAssetsViewModel: ObservableObject {
-    @Published var result: UnusedAssetResult?
+    @Published var analyses: [UnusedAssetResult] = []
+    @Published var selectedAnalysisID: UUID?
     @Published var isLoading = false
     @Published var error: UnusedAssetsError?
+    
+    @Published var analysisToOverwrite: UnusedAssetResult?
 
-    @Dependency var analyzer: any Analyzer<UnusedAssetResult>
+    @Dependency var persistenceManager: PersistenceManager
+    @Dependency var assetAnalyzer: any Analyzer<UnusedAssetResult>
+    
+    private let persistenceKey = "unused_assets_analyses"
 
-    func analyzeProject(at url: URL) {
-        isLoading = true
-        error = nil
-        Task(priority: .userInitiated) { [weak self] in
-            guard let self else { return }
-            do {
-                if let analysisResult = try await self.analyzer.analyze(at: url) {
-                    await MainActor.run {
-                        withAnimation {
-                            self.result = analysisResult
-                            self.isLoading = false
-                        }
-                    }
+    var selectedAnalysis: UnusedAssetResult? {
+        guard let selectedAnalysisID = selectedAnalysisID else {
+            return analyses.first
+        }
+        return analyses.first { $0.id == selectedAnalysisID }
+    }
+
+    func loadAnalyses() {
+        self.analyses = persistenceManager.load(key: persistenceKey)
+        if selectedAnalysisID == nil {
+            selectedAnalysisID = analyses.first?.id
+        }
+    }
+
+    func saveAnalyses() {
+        persistenceManager.save(analyses, key: persistenceKey)
+    }
+
+    func selectProjectFolder() {
+        let openPanel = NSOpenPanel()
+        openPanel.canChooseFiles = false
+        openPanel.canChooseDirectories = true
+        openPanel.allowsMultipleSelection = false
+        
+        if openPanel.runModal() == .OK {
+            if let url = openPanel.url {
+                if let existing = analyses.first(where: { $0.projectPath == url.path }) {
+                    analysisToOverwrite = existing
                 } else {
-                     await MainActor.run {
-                        self.isLoading = false
-                        // Optional: Set a specific error for no results
-                    }
-                }
-            } catch let anError as UnusedAssetsError {
-                await MainActor.run {
-                    self.error = anError
-                    self.isLoading = false
-                }
-            } catch {
-                await MainActor.run {
-                    self.error = .invalidConfiguration
-                    self.isLoading = false
+                    analyzeProject(at: url)
                 }
             }
         }
     }
+    
+    func forceReanalyze() {
+        guard let analysis = analysisToOverwrite else { return }
+        let url = URL(fileURLWithPath: analysis.projectPath)
+        analyzeProject(at: url, overwriting: analysis.id)
+        analysisToOverwrite = nil
+    }
+    
+    func cancelOverwrite() {
+        analysisToOverwrite = nil
+    }
 
-    func selectProjectFolder() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = false
-        panel.title = "Select a project folder"
-
-        if panel.runModal() == .OK, let url = panel.url {
-            analyzeProject(at: url)
+    func analyzeProject(at url: URL, overwriting: UUID? = nil) {
+        isLoading = true
+        error = nil
+        Task {
+            do {
+                if let analysisResult = try await assetAnalyzer.analyze(
+                    at: url
+                ) {
+                    DispatchQueue.main.async {
+                        if let overwritingID = overwriting, let index = self.analyses.firstIndex(where: { $0.id == overwritingID }) {
+                            self.analyses[index] = analysisResult
+                        } else {
+                            self.analyses.append(analysisResult)
+                        }
+                        self.selectedAnalysisID = analysisResult.id
+                        self.saveAnalyses()
+                        self.isLoading = false
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.error = UnusedAssetsError.invalidConfiguration
+                }
+            }
         }
+    }
+    
+    func deleteAnalysis(_ analysis: UnusedAssetResult) {
+        if selectedAnalysisID == analysis.id {
+            selectedAnalysisID = analyses.first(where: { $0.id != analysis.id })?.id
+        }
+        analyses.removeAll { $0.id == analysis.id }
+        saveAnalyses()
     }
 }

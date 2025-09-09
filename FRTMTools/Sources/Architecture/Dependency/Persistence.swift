@@ -1,39 +1,43 @@
-
 import Foundation
 import FRTMCore
 
 protocol PersistenceManager: AnyObject {
-    func loadAnalyses() -> [IPAAnalysis]
-    func saveAnalyses(_ analyses: [IPAAnalysis])
+    func load<T: Codable>(key: String) -> [T]
+    func save<T: Codable>(_ items: [T], key: String)
 }
 
 
 class CorePersistenceManager: PersistenceManager {
-    private static var fileURL: URL {
+    private func fileURL(for key: String) -> URL {
         let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let appDirectory = directory.appendingPathComponent("FRTMTools")
         if !FileManager.default.fileExists(atPath: appDirectory.path) {
             try? FileManager.default.createDirectory(at: appDirectory, withIntermediateDirectories: true)
         }
-        return appDirectory.appendingPathComponent("analyses.json")
+        return appDirectory.appendingPathComponent("\(key).json")
     }
 
-    func loadAnalyses() -> [IPAAnalysis] {
+    func load<T: Codable>(key: String) -> [T] {
+        let url = fileURL(for: key)
         do {
-            let data = try Data(contentsOf: CorePersistenceManager.fileURL)
-            let analyses = try JSONDecoder().decode([IPAAnalysis].self, from: data)
-            return analyses
+            let data = try Data(contentsOf: url)
+            let items = try JSONDecoder().decode([T].self, from: data)
+            return items
         } catch {
+            if (error as? CocoaError)?.code != .fileReadNoSuchFile {
+                 print("Failed to load items for key \(key): \(error)")
+            }
             return []
         }
     }
 
-    func saveAnalyses(_ analyses: [IPAAnalysis]) {
+    func save<T: Codable>(_ items: [T], key: String) {
+        let url = fileURL(for: key)
         do {
-            let data = try JSONEncoder().encode(analyses)
-            try data.write(to: CorePersistenceManager.fileURL, options: .atomic)
+            let data = try JSONEncoder().encode(items)
+            try data.write(to: url, options: .atomic)
         } catch {
-            print("Failed to save analyses: \(error)")
+            print("Failed to save items for key \(key): \(error)")
         }
     }
 }

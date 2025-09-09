@@ -146,18 +146,18 @@ struct ComparisonDetail: View {
             .padding(.vertical, 16)
         }
         .navigationTitle("Comparison 🆚")
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                Button(action: {
-                    showAISummary = true
-                }) {
-                    Label("AI Compare", systemImage: "sparkles")
-                }
-            }
-        }
-        .sheet(isPresented: $showAISummary) {
-            AIMagicView(input: generateComparisonSummaryPrompt(first: first, second: second), systemPrompt: ConstantsPrompt.ipaComparisonPrompt)
-        }
+//        .toolbar {
+//            ToolbarItem(placement: .automatic) {
+//                Button(action: {
+//                    showAISummary = true
+//                }) {
+//                    Label("AI Compare", systemImage: "sparkles")
+//                }
+//            }
+//        }
+//        .sheet(isPresented: $showAISummary) {
+//            AIMagicView(input: generateComparisonSummaryPrompt(first: first, second: second), systemPrompt: ConstantsPrompt.ipaComparisonPrompt)
+//        }
     }
     
     @State private var showAISummary: Bool = false

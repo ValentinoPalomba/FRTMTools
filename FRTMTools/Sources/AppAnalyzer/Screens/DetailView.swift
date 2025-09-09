@@ -90,7 +90,11 @@ struct DetailView: View {
                 // Collapsible sections
                 VStack(spacing: 12) {
                     ForEach(categories) { category in
-                       
+                        CollapsibleSection(
+                            category: category,
+                            action: {},
+                            expandedSections: $expandedSections
+                        )
                     }
                 }
                 .padding(.horizontal)
@@ -102,18 +106,18 @@ struct DetailView: View {
             .padding(.vertical, 16)
         }
         .navigationTitle(analysis.fileName)
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                Button(action: {
-                    showAISummary = true
-                }) {
-                    Label("AI Summary", systemImage: "sparkles")
-                }
-            }
-        }
-        .sheet(isPresented: $showAISummary) {
-            AIMagicView(input: generateAnalysisSummaryPrompt(analysis: analysis), systemPrompt: ConstantsPrompt.ipaAnalysisPrompt)
-        }
+//        .toolbar {
+//            ToolbarItem(placement: .automatic) {
+//                Button(action: {
+//                    showAISummary = true
+//                }) {
+//                    Label("AI Summary", systemImage: "sparkles")
+//                }
+//            }
+//        }
+//        .sheet(isPresented: $showAISummary) {
+//            AIMagicView(input: generateAnalysisSummaryPrompt(analysis: analysis), systemPrompt: ConstantsPrompt.ipaAnalysisPrompt)
+//        }
         .onChange(of: expandedSections) {
             updateSelectedCategory()
         }

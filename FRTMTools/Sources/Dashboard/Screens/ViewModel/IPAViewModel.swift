@@ -9,15 +9,18 @@ class IPAViewModel: ObservableObject {
     @Published var selectedUUID = UUID()
     @Dependency var persistenceManager: PersistenceManager
     @Dependency var analyzer: any Analyzer<IPAAnalysis>
+    
+    private let persistenceKey = "ipa_analyses"
+
     func loadAnalyses() {
-        self.analyses = persistenceManager.loadAnalyses()
+        self.analyses = persistenceManager.load(key: persistenceKey)
         if let first = self.analyses.first {
             self.selectedUUID = first.id
         }
     }
     
     func saveAnalyses() {
-        persistenceManager.saveAnalyses(analyses)
+        persistenceManager.save(analyses, key: persistenceKey)
     }
 
     func analyzeIPAFile(_ url: URL) {
