@@ -71,7 +71,7 @@ public struct LoaderView: View {
                         pulse = 1.04
                     }
                     withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
-                        sparklesPhase = 1
+                        sparklesPhase = 0.5
                     }
                 }
         }
@@ -107,7 +107,7 @@ public struct LoaderView: View {
             }
             .frame(width: 110)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .center, spacing: 6) {
                 if let title {
                     Text(title)
                         .font(.title3.weight(.semibold))
@@ -149,11 +149,6 @@ public struct LoaderView: View {
             }
             .padding(.vertical, 6)
             .frame(maxHeight: .infinity)
-            .padding(.trailing, 6)
-
-            // sparkles / motion accent
-            SparklesOverlay(phase: sparklesPhase)
-                .frame(width: 40)
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 12)

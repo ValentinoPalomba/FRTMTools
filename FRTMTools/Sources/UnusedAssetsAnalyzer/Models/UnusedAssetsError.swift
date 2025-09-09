@@ -12,6 +12,7 @@ enum UnusedAssetsError: Error {
     case sourcePathNotFound(String)
     case fileReadError(String)
     case invalidConfiguration
+    case invalidAssetCatalog(String)
     
     var errorDescription: String? {
         switch self {
@@ -23,6 +24,8 @@ enum UnusedAssetsError: Error {
             return "Errore lettura file: \(file)"
         case .invalidConfiguration:
             return "Configurazione non valida"
+        case .invalidAssetCatalog(let file):
+            return "File AssetCatalog non valido: \(file)"
         }
     }
 }
