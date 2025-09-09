@@ -8,7 +8,7 @@ class IPAViewModel: ObservableObject {
     @Published var compareMode = false
     @Published var selectedUUID = UUID()
     @Dependency var persistenceManager: PersistenceManager
-    @Dependency var analyzer: Analyzer
+    @Dependency var analyzer: any Analyzer<IPAAnalysis>
     func loadAnalyses() {
         self.analyses = persistenceManager.loadAnalyses()
         if let first = self.analyses.first {
@@ -24,7 +24,7 @@ class IPAViewModel: ObservableObject {
         isLoading = true
         Task(priority: .userInitiated) { [weak self] in
             guard let self else { return }
-            if let analysis = self.analyzer.analyze(at: url) {
+            if let analysis = try await self.analyzer.analyze(at: url) {
                 await MainActor.run {
                     withAnimation {
                         self.analyses.append(analysis)

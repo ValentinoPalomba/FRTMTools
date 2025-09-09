@@ -18,8 +18,13 @@ final class DependencyRegister {
             }
         
         CoreDependencyContainer.shared
-            .registerSingleton(Analyzer.self) {
+            .registerSingleton((any Analyzer<IPAAnalysis>).self) {
                 IPAAnalyzer()
+            }
+        
+        CoreDependencyContainer.shared
+            .registerSingleton((any Analyzer<UnusedAssetResult>).self) {
+                UnusedAssetsAnalyzer()
             }
     }
 }

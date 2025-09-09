@@ -2,17 +2,13 @@ import Foundation
 import AppKit
 import Cocoa
 
-// MARK: - Analyzer Functions
-protocol Analyzer {
-    func analyze(at url: URL) -> IPAAnalysis?
-}
 
 final class IPAAnalyzer: Analyzer {
-    func analyze(at url: URL) -> IPAAnalysis? {
+    func analyze(at url: URL) async throws -> IPAAnalysis? {
         return analyzeIPA(at: url)
     }
     
-    func analyzeIPA(at url: URL) -> IPAAnalysis? {
+    private func analyzeIPA(at url: URL) -> IPAAnalysis? {
         let fm = FileManager.default
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         

@@ -1,5 +1,7 @@
+
 import Foundation
 import FRTMCore
+
 protocol PersistenceManager: AnyObject {
     func loadAnalyses() -> [IPAAnalysis]
     func saveAnalyses(_ analyses: [IPAAnalysis])
