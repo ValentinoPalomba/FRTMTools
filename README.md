@@ -4,17 +4,27 @@
 
 FRTMTools is not just a tool; it's your secret weapon. A powerful macOS application forged for developers who want to look under the hood of their `.ipa` files. Get mind-blowing insights into your app's DNA, track down every byte, and discover optimization opportunities with an interface so beautiful, you'll want to leave it open all day.
 
-![FRTMTools Screenshot](AppScreenshot.png)
+## ✨ Key Features
 
-## 🔥 Features That Will Blow Your Mind
+### 📊 Deep IPA Analysis
+*Get a ridiculously detailed overview of your app's structure: binary, resources, frameworks, and more.*
+![IPA Analysis](AnalysisViiew.png)
 
-*   **📊 Deep IPA Analysis:** Get a ridiculously detailed overview of your app's structure. We're talking binary, resources, frameworks, assets, and bundles all laid out for you.
-*   **🗑️ Unused Assets Hunter:** Go on a treasure hunt for wasted space! Powered by the mighty **FengNiao**, this feature automatically scans your Xcode project to find forgotten assets (images, colors, etc.) that are bloating your app. Comes with beautiful charts and summaries.
-*   **📈 Visual Size Distribution:** See where the bytes are hiding with an interactive chart. Instantly spot the heavy hitters in your app's size.
-*   **🔝 Top File Spotter:** Immediately see the largest files within your frameworks. No more guessing, just facts to help you shrink your app.
-*   **↔️ The Ultimate IPA Diff Tool:** Analyze two app versions side-by-side. Know *exactly* what changed in file size and composition between builds. It's like a time machine for your app's size!
-*   **🌳 File Tree Explorer:** Navigate the entire contents of your unpacked `.ipa` in a classic, easy-to-use tree structure.
-*   **🎨 A Work of Art UI:** A sleek, modern interface built with the magic of SwiftUI.
+### ↔️ The Ultimate IPA Diff Tool
+*Analyze two app versions side-by-side. Know exactly what changed in file size and composition between builds.*
+![Compare View](CompareView.png)
+
+### 🗑️ Unused Assets Hunter
+*Find forgotten assets bloating your app. This feature scans your project to identify and help you remove unused resources.*
+![Unused Asset Hunter](UnusedAsset.png)
+
+
+## 🔥 More Features
+
+*   **📈 Visual Size Distribution:** See where the bytes are hiding with an interactive chart.
+*   **🔝 Top File Spotter:** Immediately see the largest files within your frameworks.
+*   **🌳 File Tree Explorer:** Navigate the entire contents of your unpacked `.ipa`.
+*   **🎨 A Work of Art UI:** A sleek, modern interface built with SwiftUI.
 
 ## 🚀 Get Started in a Flash
 
