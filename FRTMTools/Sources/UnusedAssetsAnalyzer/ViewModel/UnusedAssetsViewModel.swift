@@ -96,4 +96,19 @@ class UnusedAssetsViewModel: ObservableObject {
         analyses.removeAll { $0.id == analysis.id }
         saveAnalyses()
     }
+    
+    func deleteAsset(_ assetInfo: AssetInfo) -> AssetInfo? {
+        do {
+           let deletedFile = try UnusedAssetWrapper.deleteUnusedAssets(
+                assetInfo: [assetInfo]
+            ).first
+            
+            
+            return deletedFile
+            
+        } catch {
+            print(error)
+            return nil
+        }
+    }
 }
