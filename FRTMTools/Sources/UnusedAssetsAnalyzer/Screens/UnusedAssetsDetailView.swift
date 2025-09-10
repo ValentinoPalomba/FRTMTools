@@ -1,87 +1,53 @@
 import SwiftUI
 import Charts
 
-struct UnusedAssetsDetailView: View {
-    @StateObject private var viewModel = UnusedAssetsViewModel()
+struct UnusedAssetsContentView: View {
+    @ObservedObject var viewModel: UnusedAssetsViewModel
 
     var body: some View {
-        NavigationSplitView {
-            // Sidebar
-            VStack(spacing: 0) {
-                List(selection: $viewModel.selectedAnalysisID) {
-                    ForEach(viewModel.analyses) { analysis in
-                        NavigationLink(value: analysis.id) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("📦 \(analysis.projectName)")
-                                    .font(.headline)
-                                    .lineLimit(1)
-                                
-                                Text(analysis.projectPath)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                            }
-                            .padding()
+        // Sidebar
+        VStack(spacing: 0) {
+            List(selection: $viewModel.selectedAnalysisID) {
+                ForEach(viewModel.analyses) { analysis in
+                    NavigationLink(value: analysis.id) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("📦 \(analysis.projectName)")
+                                .font(.headline)
+                                .lineLimit(1)
+                            
+                            Text(analysis.projectPath)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
                         }
-                        .contextMenu {
-                            Button("Re-analyze") {
-                                viewModel.analyzeProject(at: URL(fileURLWithPath: analysis.projectPath), overwriting: analysis.id)
-                            }
-                            Button("Delete", role: .destructive) {
-                                viewModel.deleteAnalysis(analysis)
-                            }
+                        .padding()
+                    }
+                    .contextMenu {
+                        Button("Re-analyze") {
+                            viewModel.analyzeProject(at: URL(fileURLWithPath: analysis.projectPath), overwriting: analysis.id)
+                        }
+                        Button("Delete", role: .destructive) {
+                            viewModel.deleteAnalysis(analysis)
                         }
                     }
                 }
-                .listStyle(.plain)
-                
             }
-            .navigationTitle("Projects")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: viewModel.selectProjectFolder) {
-                        Label("Analyze Project", systemImage: "folder.badge.plus")
-                    }
-                    .disabled(viewModel.isLoading)
-                }
-            }
+            .listStyle(.plain)
             
-        } detail: {
-            if let result = viewModel.selectedAnalysis {
-                AnalysisResultView(result: result, viewModel: viewModel)
-            } else {
-                // Empty state for when no analyses exist
-                VStack(spacing: 20) {
-                    Image(systemName: "doc.text.magnifyingglass")
-                        .font(.system(size: 60))
-                        .foregroundColor(.secondary)
-                    Text("Unused Assets Analyzer")
-                        .font(.title)
-                    Text("Analyze a project to see the results here.")
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.secondary)
-                        .frame(maxWidth: 300)
-                    Button("Analyze Project Folder", action: viewModel.selectProjectFolder)
-                        .controlSize(.large)
+        }
+        .navigationTitle("Projects")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: viewModel.selectProjectFolder) {
+                    Label("Analyze Project", systemImage: "folder.badge.plus")
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .disabled(viewModel.isLoading)
             }
         }
         .onAppear {
             viewModel.loadAnalyses()
         }
-        .loaderOverlay(
-            isPresented: $viewModel.isLoading,
-            content: {
-                LoaderView(
-                    style: .indeterminate,
-                    title: "Analyzing project...",
-                    subtitle: "Finding unused assets...",
-                    showsCancel: false,
-                    cancelAction: nil
-                )
-        })
         .errorAlert(error: $viewModel.error)
         .alert(
             "Analysis Exists",
@@ -92,6 +58,32 @@ struct UnusedAssetsDetailView: View {
             Button("Cancel", role: .cancel, action: viewModel.cancelOverwrite)
         } message: { analysis in
             Text("An analysis for \(analysis.projectName) already exists. Do you want to overwrite it?")
+        }
+    }
+}
+
+struct UnusedAssetsResultView: View {
+    @ObservedObject var viewModel: UnusedAssetsViewModel
+
+    var body: some View {
+        if let result = viewModel.selectedAnalysis {
+            AnalysisResultView(result: result, viewModel: viewModel)
+        } else {
+            // Empty state for when no analyses exist
+            VStack(spacing: 20) {
+                Image(systemName: "doc.text.magnifyingglass")
+                    .font(.system(size: 60))
+                    .foregroundColor(.secondary)
+                Text("Unused Assets Analyzer")
+                    .font(.title)
+                Text("Analyze a project to see the results here.")
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: 300)
+                Button("Analyze Project Folder", action: viewModel.selectProjectFolder)
+                    .controlSize(.large)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
