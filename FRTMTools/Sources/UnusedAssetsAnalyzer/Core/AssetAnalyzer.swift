@@ -12,28 +12,15 @@ import FengNiaoKit
 
 final class UnusedAssetsAnalyzer: Analyzer {
     
-    // MARK: - Proprietà
-    private var configuration: DetectorConfiguration
-    
-    // MARK: - Inizializzazione
-    init(configuration: DetectorConfiguration = DetectorConfiguration()) {
-        self.configuration = configuration
-    }
-
     // MARK: - Metodi pubblici
     func analyze(at url: URL) async throws -> UnusedAssetResult? {
         let startTime = Date()
         
-        configuration.sourcePaths.removeAll()
-        if !configuration.sourcePaths.contains(url.path) {
-            configuration.sourcePaths.append(url.path)
-        }
-        
         let fengNiao = FengNiao(
-            projectPath: configuration.sourcePaths.first!,
+            projectPath: url.path(),
             excludedPaths: [],
             resourceExtensions: AssetType.allCases.map({ $0.rawValue }),
-            searchInFileExtensions: ["h", "m", "mm", "swift", "xib", "storyboard", "plist"]
+            searchInFileExtensions: ["h", "m", "mm", "swift", "xib", "storyboard", "plist", "json"]
         )
         
         let unusedAssets = try fengNiao.unusedFiles()
@@ -61,7 +48,7 @@ final class UnusedAssetsAnalyzer: Analyzer {
    
 
     private func mapToAssetInfo(_ fileInfo: FengNiaoKit.FileInfo) -> AssetInfo {
-        let ext = fileInfo.path.extension ?? "" // FengNiaoKit ti dà già l’estensione
+        let ext = fileInfo.path.extension ?? ""
         let type = AssetType(rawValue: ext.lowercased()) ?? .png
         
         return AssetInfo(
@@ -71,17 +58,6 @@ final class UnusedAssetsAnalyzer: Analyzer {
             type: type
         )
     }
-
-    
-
-
-    func fileExtension(from path: String) -> String? {
-        let url = URL(fileURLWithPath: path)
-        let ext = url.pathExtension
-        return ext.isEmpty ? nil : ext
-    }
-
-    
 }
 
 

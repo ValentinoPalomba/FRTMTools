@@ -18,7 +18,7 @@ struct DetailView: View {
                 // Grid overview
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
                     SummaryCard(
-                        title: "📦 File Size",
+                        title: "📱 Estimated install Size",
                         value: ByteCountFormatter.string(fromByteCount: analysis.totalSize, countStyle: .file),
                         subtitle: analysis.fileName
                     )
