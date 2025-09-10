@@ -37,7 +37,7 @@ struct MainView: View {
             case .securityScanner:
                 SecurityScannerContentView(viewModel: securityScannerViewModel)
             case .none:
-                Text("Select a tool from the sidebar.")
+                Text("Select an item to see details.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         } detail: {
