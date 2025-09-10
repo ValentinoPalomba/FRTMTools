@@ -23,7 +23,11 @@ final class UnusedAssetsAnalyzer: Analyzer {
             searchInFileExtensions: ["h", "m", "mm", "swift", "xib", "storyboard", "plist", "json"]
         )
         
-        let unusedAssets = try fengNiao.unusedFiles()
+        let unusedAssetWrapper: UnusedAssetWrapper = UnusedAssetWrapper(
+            fengNiao: fengNiao
+        )
+        
+        let unusedAssets = try unusedAssetWrapper.findUnusedAssets()
         let duration = Date().timeIntervalSince(startTime)
         
         
