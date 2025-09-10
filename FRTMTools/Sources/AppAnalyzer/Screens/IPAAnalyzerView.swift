@@ -59,16 +59,6 @@ struct IPAAnalyzerContentView: View {
         .onAppear {
             viewModel.loadAnalyses()
         }
-        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
-            for provider in providers {
-                _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                    if let url = url, url.pathExtension == "ipa" {
-                        viewModel.analyzeIPAFile(url)
-                    }
-                }
-            }
-            return true
-        }
     }
 }
 
@@ -93,6 +83,15 @@ struct IPAAnalyzerDetailView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+        }.onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            for provider in providers {
+                _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                    if let url = url, url.pathExtension == "ipa" {
+                        viewModel.analyzeIPAFile(url)
+                    }
+                }
+            }
+            return true
         }
     }
 }
