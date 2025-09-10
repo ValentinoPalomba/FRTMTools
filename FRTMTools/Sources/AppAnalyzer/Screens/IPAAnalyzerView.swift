@@ -56,17 +56,6 @@ struct IPAAnalyzerContentView: View {
                 }
             }
         }
-        .loaderOverlay(
-            isPresented: $viewModel.isLoading,
-            content: {
-                LoaderView(
-                    style: .indeterminate,
-                    title: "Analyzing IPA",
-                    subtitle: "This can take a few minutes…",
-                    showsCancel: false,
-                    cancelAction: nil
-                )
-        })
         .onAppear {
             viewModel.loadAnalyses()
         }
