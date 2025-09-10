@@ -48,17 +48,6 @@ struct UnusedAssetsContentView: View {
         .onAppear {
             viewModel.loadAnalyses()
         }
-        .loaderOverlay(
-            isPresented: $viewModel.isLoading,
-            content: {
-                LoaderView(
-                    style: .indeterminate,
-                    title: "Analyzing project...",
-                    subtitle: "Finding unused assets...",
-                    showsCancel: false,
-                    cancelAction: nil
-                )
-        })
         .errorAlert(error: $viewModel.error)
         .alert(
             "Analysis Exists",
