@@ -44,7 +44,7 @@ struct IPAAnalyzerContentView: View {
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {
-                    viewModel.selectIPAFile()
+                    viewModel.selectFile()
                 } label: {
                     Label("Add IPA", systemImage: "plus")
                 }
@@ -77,7 +77,7 @@ struct IPAAnalyzerDetailView: View {
                     Image(systemName: "square.and.arrow.down.on.square")
                         .font(.system(size: 60))
                         .foregroundColor(.secondary)
-                    Text("Drop or import an IPA file 📦")
+                    Text("Drop or import an .ipa/.app file 📦")
                         .font(.title3)
                         .foregroundColor(.secondary)
                 }
@@ -86,8 +86,8 @@ struct IPAAnalyzerDetailView: View {
         }.onDrop(of: [.fileURL], isTargeted: nil) { providers in
             for provider in providers {
                 _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                    if let url = url, url.pathExtension == "ipa" {
-                        viewModel.analyzeIPAFile(url)
+                    if let url = url, ["ipa", "app"].contains(url.pathExtension.lowercased()) {
+                        viewModel.analyzeFile(url)
                     }
                 }
             }
