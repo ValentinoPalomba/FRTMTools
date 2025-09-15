@@ -23,7 +23,7 @@ class IPAViewModel: ObservableObject {
         persistenceManager.save(analyses, key: persistenceKey)
     }
 
-    func analyzeIPAFile(_ url: URL) {
+    func analyzeFile(_ url: URL) {
         isLoading = true
         Task(priority: .userInitiated) { [weak self] in
             guard let self else { return }
@@ -53,15 +53,15 @@ class IPAViewModel: ObservableObject {
         withAnimation { selectedUUID = id }
     }
     
-    func selectIPAFile() {
+    func selectFile() {
         let panel = NSOpenPanel()
-        panel.allowedFileTypes = ["ipa"]
+        panel.allowedFileTypes = ["ipa", "app"]
         panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.title = "Select an IPA file"
+        panel.canChooseDirectories = true
+        panel.title = "Select an IPA or App file"
         
         if panel.runModal() == .OK, let url = panel.url {
-            analyzeIPAFile(url)
+            analyzeFile(url)
         }
     }
 }

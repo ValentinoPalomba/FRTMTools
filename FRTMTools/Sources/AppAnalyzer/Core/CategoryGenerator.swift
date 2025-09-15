@@ -1,61 +1,104 @@
 import Foundation
 
+enum CategoryType: String, CaseIterable {
+    case binary = "Binary"
+    case frameworks = "Frameworks"
+    case assets = "Assets"
+    case bundles = "Bundles"
+    case appClips = "AppClips"
+    case resources = "Resources"
+    
+    var displayName: String {
+        return self.rawValue
+    }
+}
+
 struct CategoryResult: Identifiable {
-    var id: String { name }
-    let name: String
+    var id: String { type.rawValue }
+    let type: CategoryType
     let totalSize: Int64
     let items: [FileInfo]
+    
+    var name: String {
+        return type.displayName
+    }
 }
 
 class CategoryGenerator {
     static func generateCategories(from rootFile: FileInfo) -> [CategoryResult] {
         guard let allFiles = rootFile.subItems else { return [] }
-
-        var categories: [CategoryResult] = []
+        
+        // Dizionario per raccogliere gli items per categoria
+        var categoryItems: [CategoryType: [FileInfo]] = [:]
         var remainingFiles = allFiles
-
-        // Binary
-        if let binary = allFiles.first(where: { $0.type == .binary }) {
-            categories.append(CategoryResult(name: "Binary", totalSize: binary.size, items: [binary]))
+        
+        // MARK: - macOS App Structure
+        
+        // Binaries
+        if let macOSFolder = allFiles.first(where: { $0.name == "MacOS" && $0.type == .directory }) {
+            let binaries = macOSFolder.subItems?.filter { $0.type == .binary } ?? []
+            if !binaries.isEmpty {
+                categoryItems[.binary] = binaries
+                remainingFiles.removeAll { $0.id == macOSFolder.id }
+            }
+        } else if let binary = allFiles.first(where: { $0.type == .binary }) { // iOS fallback
+            categoryItems[.binary] = [binary]
             remainingFiles.removeAll { $0.id == binary.id }
         }
-
+        
         // Frameworks
         if let frameworks = allFiles.first(where: { $0.name == "Frameworks" && $0.type == .directory }) {
-            categories.append(CategoryResult(name: "Frameworks", totalSize: frameworks.size, items: frameworks.subItems ?? []))
+            categoryItems[.frameworks] = frameworks.subItems ?? []
             remainingFiles.removeAll { $0.id == frameworks.id }
         }
-
-        // Assets
-        if let assets = allFiles.first(where: { $0.name == "Assets.car" }) {
-            categories.append(CategoryResult(name: "Assets", totalSize: assets.size, items: [assets]))
+        
+        // Resources folder
+        if let resourcesFolder = allFiles.first(where: { $0.name == "Resources" && $0.type == .directory }) {
+            var folderItems = resourcesFolder.subItems ?? []
+            
+            // Compiled Assets (gestiti separatamente)
+            if let assets = folderItems.first(where: { $0.name == "Assets.car" }) {
+                categoryItems[.assets] = [assets]
+                folderItems.removeAll { $0.id == assets.id }
+            }
+            
+            // Aggiungi i rimanenti items della cartella Resources
+            categoryItems[.resources, default: []].append(contentsOf: folderItems)
+            remainingFiles.removeAll { $0.id == resourcesFolder.id }
+        } else if let assets = allFiles.first(where: { $0.name == "Assets.car" }) { // iOS fallback
+            categoryItems[.assets] = [assets]
             remainingFiles.removeAll { $0.id == assets.id }
         }
         
         // Bundles
-        let bundles = allFiles.filter { $0.type == .bundle }
+        let bundles = remainingFiles.filter { $0.type == .bundle }
         if !bundles.isEmpty {
-            let totalSize = bundles.reduce(0) { $0 + $1.size }
-            categories.append(CategoryResult(name: "Bundles", totalSize: totalSize, items: bundles))
+            categoryItems[.bundles] = bundles
             remainingFiles.removeAll { file in bundles.contains { $0.id == file.id } }
         }
         
         // App Clips
-        if let appClips = allFiles.first(where: { $0.name == "AppClips" && $0.type == .directory }) {
-            categories.append(CategoryResult(name: "AppClips", totalSize: appClips.size, items: appClips.subItems ?? []))
+        if let appClips = remainingFiles.first(where: { $0.name == "AppClips" && $0.type == .directory }) {
+            categoryItems[.appClips] = appClips.subItems ?? []
             remainingFiles.removeAll { $0.id == appClips.id }
         }
-
-        // Other known folders to exclude from resources
-        let knownFolders = ["_CodeSignature", "SC_Info", "PlugIns", "Watch"]
+        
+        // Rimuovi cartelle conosciute
+        let knownFolders = ["_CodeSignature", "SC_Info", "PlugIns", "Watch", "Info.plist"]
         remainingFiles.removeAll { file in knownFolders.contains(file.name) }
-
-        // The rest is resources
+        
+        // Aggiungi i file rimanenti alla categoria Resources
         if !remainingFiles.isEmpty {
-            let totalSize = remainingFiles.reduce(0) { $0 + $1.size }
-            categories.append(CategoryResult(name: "Resources", totalSize: totalSize, items: remainingFiles))
+            categoryItems[.resources, default: []].append(contentsOf: remainingFiles)
         }
-
+        
+        // Converti il dizionario in array di CategoryResult
+        let categories = categoryItems.compactMap { (type, items) -> CategoryResult? in
+            guard !items.isEmpty else { return nil }
+            let totalSize = items.reduce(0) { $0 + $1.size }
+            return CategoryResult(type: type, totalSize: totalSize, items: items)
+        }
+        
         return categories.sorted { $0.totalSize > $1.totalSize }
     }
 }
