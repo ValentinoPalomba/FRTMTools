@@ -6,9 +6,11 @@ import AppKit
 struct IPAAnalysis: Identifiable, Codable {
     let id: UUID
     let fileName: String
+    var url: URL
     let rootFile: FileInfo
     let version: String?
     let buildNumber: String?
+    var installedSize: Int?
     private let imageData: Data?
     let isStripped: Bool
     let allowsArbitraryLoads: Bool
@@ -22,7 +24,7 @@ struct IPAAnalysis: Identifiable, Codable {
         return NSImage(data: data)
     }
 
-    init(id: UUID = UUID(), fileName: String, rootFile: FileInfo, image: NSImage?, version: String?, buildNumber: String?, isStripped: Bool, allowsArbitraryLoads: Bool) {
+    init(id: UUID = UUID(), url: URL, fileName: String, rootFile: FileInfo, image: NSImage?, version: String?, buildNumber: String?, isStripped: Bool, allowsArbitraryLoads: Bool, installedSize: Int? = nil) {
         self.id = id
         self.fileName = fileName
         self.rootFile = rootFile
@@ -31,10 +33,11 @@ struct IPAAnalysis: Identifiable, Codable {
         self.imageData = image?.tiffRepresentation
         self.isStripped = isStripped
         self.allowsArbitraryLoads = allowsArbitraryLoads
+        self.installedSize = installedSize
+        self.url = url
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, fileName, rootFile, version, buildNumber, imageData, isStripped, allowsArbitraryLoads
+        case id, fileName, url,rootFile, version, buildNumber, imageData, isStripped, allowsArbitraryLoads, installedSize
     }
 }
-

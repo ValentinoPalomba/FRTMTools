@@ -5,10 +5,13 @@ import FRTMCore
 class IPAViewModel: ObservableObject {
     @Published var analyses: [IPAAnalysis] = []
     @Published var isLoading = false
+    @Published var isSizeLoading = false
     @Published var compareMode = false
     @Published var selectedUUID = UUID()
+    @Published var sizeAnalysisProgress = ""
     @Dependency var persistenceManager: PersistenceManager
     @Dependency var analyzer: any Analyzer<IPAAnalysis>
+    var sizeAnalyzer: IPASizeAnalyzer = .init()
     
     private let persistenceKey = "ipa_analyses"
 
@@ -16,6 +19,34 @@ class IPAViewModel: ObservableObject {
         self.analyses = persistenceManager.load(key: persistenceKey)
         if let first = self.analyses.first {
             self.selectedUUID = first.id
+        }
+    }
+    
+    func analyzeSize() {
+        Task { @MainActor in 
+            guard var analysis = analyses.firstIndex(where: { $0.id == selectedUUID }) else {
+                return
+            }
+            DispatchQueue.main.async { [weak self] in
+                self?.isSizeLoading = true
+            }
+            do {
+                let sizeAnalysis = try await sizeAnalyzer.analyze(
+                    ipaPath: analyses[analysis].url.path()
+                ) { sizeAnalysisUpdate in
+                    DispatchQueue.main.async { [weak self] in
+                        self?.sizeAnalysisProgress = sizeAnalysisUpdate
+                    }
+                }
+                
+                analyses[analysis].installedSize = sizeAnalysis.sizeInMB
+                saveAnalyses()
+                DispatchQueue.main.async { [weak self] in
+                    self?.isSizeLoading = false
+                }
+            } catch {
+                print(error)
+            }
         }
     }
     
@@ -67,38 +98,3 @@ class IPAViewModel: ObservableObject {
 }
 
 
-struct ComparisonViewModel {
-    let analysis1: IPAAnalysis
-    let analysis2: IPAAnalysis
-
-    var fileDiffs: [FileDiff] {
-        var diffs: [FileDiff] = []
-        
-        let allFiles1 = Dictionary(uniqueKeysWithValues: flatten(file: analysis1.rootFile).map { ($0.name, $0.size) })
-        let allFiles2 = Dictionary(uniqueKeysWithValues: flatten(file: analysis2.rootFile).map { ($0.name, $0.size) })
-        
-        let allKeys = Set(allFiles1.keys).union(allFiles2.keys)
-        
-        for key in allKeys.sorted() {
-            let size1 = allFiles1[key] ?? 0
-            let size2 = allFiles2[key] ?? 0
-            if size1 != size2 {
-                diffs.append(FileDiff(name: key, size1: size1, size2: size2))
-            }
-        }
-        
-        return diffs
-    }
-    
-    private func flatten(file: FileInfo) -> [FileInfo] {
-        var files: [FileInfo] = []
-        if let subItems = file.subItems {
-            for subItem in subItems {
-                files.append(contentsOf: flatten(file: subItem))
-            }
-        } else {
-            files.append(file)
-        }
-        return files
-    }
-}
