@@ -8,6 +8,8 @@ class UnusedAssetsViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: UnusedAssetsError?
     
+    @Published var selectedAssets = Set<AssetInfo.ID>()
+    
     @Published var analysisToOverwrite: UnusedAssetResult?
 
     @Dependency var persistenceManager: PersistenceManager
@@ -97,22 +99,45 @@ class UnusedAssetsViewModel: ObservableObject {
         saveAnalyses()
     }
     
-    func deleteAsset(_ assetInfo: AssetInfo) {
-        do {
-            _ = try UnusedAssetWrapper.deleteUnusedAssets(assetInfo: [assetInfo])
-            
-            guard let selectedAnalysisID = self.selectedAnalysisID,
-                  let analysisIndex = analyses.firstIndex(where: { $0.id == selectedAnalysisID }) else { return }
+    func toggleAssetSelection(_ assetID: AssetInfo.ID) {
+        if selectedAssets.contains(assetID) {
+            selectedAssets.remove(assetID)
+        } else {
+            selectedAssets.insert(assetID)
+        }
+    }
 
-            var updatedAnalysis = analyses[analysisIndex]
-            updatedAnalysis.unusedAssets.removeAll { $0.id == assetInfo.id }
+    func toggleSelectAll(for group: AssetTypeGroup) {
+        let groupAssetIDs = Set(group.assets.map { $0.id })
+        let areAllSelected = groupAssetIDs.isSubset(of: selectedAssets)
+        
+        if areAllSelected {
+            selectedAssets.subtract(groupAssetIDs)
+        } else {
+            selectedAssets.formUnion(groupAssetIDs)
+        }
+    }
+
+    func deleteSelectedAssets() {
+        guard let selectedAnalysisID = self.selectedAnalysisID,
+              let analysisIndex = analyses.firstIndex(where: { $0.id == selectedAnalysisID }) else { return }
+
+        var updatedAnalysis = analyses[analysisIndex]
+        let assetsToDelete = updatedAnalysis.unusedAssets.filter { selectedAssets.contains($0.id) }
+        
+        guard !assetsToDelete.isEmpty else { return }
+
+        do {
+            _ = try UnusedAssetWrapper.deleteUnusedAssets(assetInfo: assetsToDelete)
+            
+            updatedAnalysis.unusedAssets.removeAll { selectedAssets.contains($0.id) }
             updatedAnalysis.totalUnusedSize = updatedAnalysis.unusedAssets.reduce(0) { $0 + $1.size }
             
             self.analyses[analysisIndex] = updatedAnalysis
+            self.selectedAssets.removeAll()
             
         } catch {
-            print("Failed to delete asset: \(error)")
-            // In a real app, you'd want to set an error property to show an alert.
+            print("Failed to delete assets: \(error)")
             // self.error = .failedToDelete(error)
         }
     }

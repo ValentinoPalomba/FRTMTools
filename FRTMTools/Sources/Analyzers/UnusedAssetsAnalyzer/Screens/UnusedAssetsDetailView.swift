@@ -3,7 +3,7 @@ import Charts
 
 struct UnusedAssetsContentView: View {
     @ObservedObject var viewModel: UnusedAssetsViewModel
-
+    
     var body: some View {
         // Sidebar
         VStack(spacing: 0) {
@@ -55,7 +55,7 @@ struct UnusedAssetsContentView: View {
 
 struct UnusedAssetsResultView: View {
     @ObservedObject var viewModel: UnusedAssetsViewModel
-
+    
     var body: some View {
         if let result = viewModel.selectedAnalysis {
             AnalysisResultView(result: result, viewModel: viewModel)
@@ -85,7 +85,8 @@ struct AnalysisResultView: View {
     
     @State private var showAISummary: Bool = false
     @State private var expandedAssetTypes: Set<String> = []
-
+    @State private var showDeleteConfirmation = false
+    
     private var assetsByType: [AssetTypeGroup] {
         let grouped = Dictionary(grouping: result.unusedAssets, by: { $0.type })
         return grouped.map { type, assets in
@@ -180,7 +181,7 @@ struct AnalysisResultView: View {
         .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
         .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
     }
-
+    
     var body: some View {
         ScrollView {
             if result.unusedAssets.isEmpty {
@@ -194,7 +195,7 @@ struct AnalysisResultView: View {
                             cakeChartView
                             topUnusedChartView
                         }
-                         
+                        
                     }
                     .padding(.horizontal)
                     
@@ -202,26 +203,54 @@ struct AnalysisResultView: View {
                         Text("All Unused Assets")
                             .font(.title3).bold()
                             .frame(maxWidth: .infinity, alignment: .leading)
-
+                        
                         ForEach(assetsByType) { assetGroup in
                             AssetCollapsibleSection(
                                 assetGroup: assetGroup,
                                 isExpanded: expandedAssetTypes.contains(assetGroup.id),
-                                viewModel: viewModel
-                            ) {
-                                withAnimation(.easeInOut) {
-                                    if expandedAssetTypes.contains(assetGroup.id) {
-                                        expandedAssetTypes.remove(assetGroup.id)
-                                    } else {
-                                        expandedAssetTypes.insert(assetGroup.id)
+                                action: {
+                                    withAnimation(.easeInOut) {
+                                        if expandedAssetTypes.contains(assetGroup.id) {
+                                            expandedAssetTypes.remove(assetGroup.id)
+                                        } else {
+                                            expandedAssetTypes.insert(assetGroup.id)
+                                        }
                                     }
-                                }
-                            }
+                                },
+                                viewModel: viewModel
+                            )
                         }
                     }
                     .padding(.horizontal)
+                    .padding(.bottom, 80)
                 }
                 .padding(.vertical, 16)
+            }
+        }.overlay {
+            if !viewModel.selectedAssets.isEmpty {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Text("\(viewModel.selectedAssets.count) asset\(viewModel.selectedAssets.count > 1 ? "s" : "") selected")
+                            .font(.headline)
+                        Spacer()
+                        Button(role: .destructive) {
+                            showDeleteConfirmation = true
+                        } label: {
+                            Label("Delete Selected", systemImage: "trash")
+                        }
+                        .controlSize(.large)
+                    
+                    }
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(16)
+                    .shadow(radius: 8)
+                    .padding()
+                    .padding(.horizontal, 32)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                .animation(.spring(), value: viewModel.selectedAssets.isEmpty)
             }
         }
         .navigationTitle(result.projectName)
@@ -241,8 +270,14 @@ struct AnalysisResultView: View {
                 .disabled(viewModel.isLoading)
             }
         }
+        .alert("Delete \(viewModel.selectedAssets.count) assets?", isPresented: $showDeleteConfirmation) {
+            Button("Delete", role: .destructive, action: viewModel.deleteSelectedAssets)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This action cannot be undone.")
+        }
     }
-
+    
     private func topUnusedAssets(limit: Int) -> [AssetInfo] {
         return Array(result.unusedAssets.sorted(by: { $0.size > $1.size }).prefix(limit))
     }
@@ -264,7 +299,7 @@ struct AnalysisResultView: View {
                 Button("Re-analyze Project", action: {
                     viewModel.analyzeProject(at: URL(fileURLWithPath: result.projectPath), overwriting: result.id)
                 })
-                    .controlSize(.large)
+                .controlSize(.large)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding()
@@ -275,32 +310,54 @@ struct AnalysisResultView: View {
 struct AssetCollapsibleSection: View {
     let assetGroup: AssetTypeGroup
     let isExpanded: Bool
-    var viewModel: UnusedAssetsViewModel
     let action: () -> Void
+    @ObservedObject var viewModel: UnusedAssetsViewModel
     
-
+    private var areAllAssetsInGroupSelected: Bool {
+        let groupAssetIDs = Set(assetGroup.assets.map { $0.id })
+        return groupAssetIDs.isSubset(of: viewModel.selectedAssets)
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
-            Button(action: action) {
-                HStack {
+            HStack {
+                Toggle(isOn: Binding(
+                    get: { areAllAssetsInGroupSelected },
+                    set: { _ in viewModel.toggleSelectAll(for: assetGroup) }
+                )) {
                     Text(assetGroup.type.rawValue.uppercased())
                         .font(.headline)
-                    Spacer()
-                    Text("\(assetGroup.assets.count) items - \(ByteCountFormatter.string(fromByteCount: assetGroup.totalSize, countStyle: .file))")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                 }
-                .padding()
-                .background(Color(NSColor.controlBackgroundColor))
-                .contentShape(Rectangle())
+                .toggleStyle(.checkbox)
+                
+                Spacer()
+                
+                Button(action: action) {
+                    HStack {
+                        Text("\(assetGroup.assets.count) items - \(ByteCountFormatter.string(fromByteCount: assetGroup.totalSize, countStyle: .file))")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    }
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
-
+            .padding()
+            .background(Color(NSColor.controlBackgroundColor))
+            .contentShape(Rectangle())
+            
             if isExpanded {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     ForEach(assetGroup.assets.sorted(by: { $0.size > $1.size })) { asset in
                         HStack {
+                            Toggle(isOn: Binding(
+                                get: { viewModel.selectedAssets.contains(asset.id) },
+                                set: { _ in viewModel.toggleAssetSelection(asset.id) }
+                            )) {
+                                // No label needed here
+                            }
+                            .toggleStyle(.checkbox)
+                            
                             Image(systemName: asset.type.iconName)
                                 .foregroundColor(.secondary)
                                 .frame(width: 20)
@@ -313,11 +370,6 @@ struct AssetCollapsibleSection: View {
                                 .font(.system(.body, design: .monospaced))
                         }
                         .padding(.horizontal)
-                        .contextMenu {
-                            Button("Delete", role: .destructive) {
-                                viewModel.deleteAsset(asset)
-                            }
-                        }
                         Divider()
                     }
                 }
