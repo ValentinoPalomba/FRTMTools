@@ -36,15 +36,6 @@ struct UnusedAssetsContentView: View {
             .listStyle(.plain)
             
         }
-        .navigationTitle("Projects")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: viewModel.selectProjectFolder) {
-                    Label("Analyze Project", systemImage: "folder.badge.plus")
-                }
-                .disabled(viewModel.isLoading)
-            }
-        }
         .onAppear {
             viewModel.loadAnalyses()
         }
@@ -215,7 +206,8 @@ struct AnalysisResultView: View {
                         ForEach(assetsByType) { assetGroup in
                             AssetCollapsibleSection(
                                 assetGroup: assetGroup,
-                                isExpanded: expandedAssetTypes.contains(assetGroup.id)
+                                isExpanded: expandedAssetTypes.contains(assetGroup.id),
+                                viewModel: viewModel
                             ) {
                                 withAnimation(.easeInOut) {
                                     if expandedAssetTypes.contains(assetGroup.id) {
@@ -240,6 +232,13 @@ struct AnalysisResultView: View {
                 }) {
                     Label("Re-analyze", systemImage: "arrow.clockwise")
                 }
+            }
+            
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: viewModel.selectProjectFolder) {
+                    Label("Analyze Project", systemImage: "folder.badge.plus")
+                }
+                .disabled(viewModel.isLoading)
             }
         }
     }
@@ -276,7 +275,9 @@ struct AnalysisResultView: View {
 struct AssetCollapsibleSection: View {
     let assetGroup: AssetTypeGroup
     let isExpanded: Bool
+    var viewModel: UnusedAssetsViewModel
     let action: () -> Void
+    
 
     var body: some View {
         VStack(spacing: 0) {
@@ -312,6 +313,11 @@ struct AssetCollapsibleSection: View {
                                 .font(.system(.body, design: .monospaced))
                         }
                         .padding(.horizontal)
+                        .contextMenu {
+                            Button("Delete", role: .destructive) {
+                                viewModel.deleteAsset(asset)
+                            }
+                        }
                         Divider()
                     }
                 }

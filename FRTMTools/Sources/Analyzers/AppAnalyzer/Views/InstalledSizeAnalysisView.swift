@@ -6,8 +6,8 @@ struct InstalledSizeAnalysisView: View {
     
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Installed App Size")
+        VStack(alignment: .leading, spacing: 16) {
+            Text("📱 Installed App Size")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             
@@ -30,9 +30,13 @@ struct InstalledSizeAnalysisView: View {
                     viewModel.analyzeSize()
                 }) {
                     Text("Analyze Size")
-                        .frame(maxWidth: .infinity)
+                        .font(.subheadline)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
                 }
-                .controlSize(.regular)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+
             }
         }
         .padding()

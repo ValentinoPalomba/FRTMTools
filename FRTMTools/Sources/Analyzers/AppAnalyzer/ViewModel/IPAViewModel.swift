@@ -3,12 +3,14 @@ import AppKit
 import FRTMCore
 
 class IPAViewModel: ObservableObject {
+    
     @Published var analyses: [IPAAnalysis] = []
     @Published var isLoading = false
     @Published var isSizeLoading = false
     @Published var compareMode = false
     @Published var selectedUUID = UUID()
     @Published var sizeAnalysisProgress = ""
+    
     @Dependency var persistenceManager: PersistenceManager
     @Dependency var analyzer: any Analyzer<IPAAnalysis>
     var sizeAnalyzer: IPASizeAnalyzer = .init()
