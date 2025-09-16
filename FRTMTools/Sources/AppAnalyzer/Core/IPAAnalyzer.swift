@@ -37,7 +37,7 @@ final class IPAAnalyzer: Analyzer {
             
             // 4. Extract additional info
             let (version, build) = extractVersionInfo(from: appBundleURL)
-            let icon = extractAppIcon(fromIPA: url)
+            let icon = extractAppIcon(from: appBundleURL)
             let allowsArbitraryLoads = checkAllowsArbitraryLoads(from: appBundleURL)
             
             var isStripped = false
@@ -153,45 +153,24 @@ final class IPAAnalyzer: Analyzer {
         
         return total
     }
-
-    func extractAppIcon(fromIPA url: URL) -> NSImage? {
-        let fm = FileManager.default
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent(UUID().uuidString)
-        
+    
+    private func extractAppIcon(from appBundleURL: URL) -> NSImage? {
         do {
-            try fm.createDirectory(at: tempDir, withIntermediateDirectories: true)
-            
-            // 1. Unzip
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-            process.arguments = [url.path, "-d", tempDir.path]
-            try process.run()
-            process.waitUntilExit()
-            
-            // 2. Trova la .app
-            let payloadURL = tempDir.appendingPathComponent("Payload")
-            guard let appFolder = try fm.contentsOfDirectory(at: payloadURL, includingPropertiesForKeys: nil)
-                .first(where: { $0.pathExtension == "app" }) else {
-                return nil
+            let appContents = try FileManager.default.contentsOfDirectory(at: appBundleURL, includingPropertiesForKeys: nil)
+            let iconCandidates = appContents.filter {
+                $0.lastPathComponent.lowercased().hasPrefix("appicon") &&
+                $0.pathExtension.lowercased() == "png"
             }
             
-            // 3. Cerca i file che iniziano per "AppIcon"
-            let appContents = try fm.contentsOfDirectory(at: appFolder, includingPropertiesForKeys: nil)
-            let iconCandidates = appContents.filter { $0.lastPathComponent.lowercased().hasPrefix("appicon") && $0.pathExtension.lowercased() == "png" }
-            
-            // 4. Prendi l’icona più grande (di solito @3x)
             if let bestIcon = iconCandidates.sorted(by: { $0.lastPathComponent.count > $1.lastPathComponent.count }).first {
                 return NSImage(contentsOf: bestIcon)
             }
-            
         } catch {
             print("Errore estrazione icona: \(error)")
         }
-        
         return nil
     }
-
+    
 
     private func extractInfoPlist(from appBundleURL: URL) -> [String: Any]? {
         let plistURL = appBundleURL.appendingPathComponent("Info.plist")
