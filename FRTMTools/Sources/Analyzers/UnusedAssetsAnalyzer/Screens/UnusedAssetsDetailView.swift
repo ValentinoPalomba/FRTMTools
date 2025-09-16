@@ -271,6 +271,13 @@ struct AnalysisResultView: View {
                 .help("Analyze new project")
                 .disabled(viewModel.isLoading)
             }
+            
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: viewModel.selectProjectFolder) {
+                    Label("Analyze Project", systemImage: "folder.badge.plus")
+                }
+                .disabled(viewModel.isLoading)
+            }
         }
         .alert("Delete \(viewModel.selectedAssets.count) assets?", isPresented: $showDeleteConfirmation) {
             Button("Delete", role: .destructive, action: viewModel.deleteSelectedAssets)
@@ -312,6 +319,7 @@ struct AnalysisResultView: View {
 struct AssetCollapsibleSection: View {
     let assetGroup: AssetTypeGroup
     let isExpanded: Bool
+    var viewModel: UnusedAssetsViewModel
     let action: () -> Void
     @ObservedObject var viewModel: UnusedAssetsViewModel
     
@@ -372,6 +380,11 @@ struct AssetCollapsibleSection: View {
                                 .font(.system(.body, design: .monospaced))
                         }
                         .padding(.horizontal)
+                        .contextMenu {
+                            Button("Delete", role: .destructive) {
+                                viewModel.deleteAsset(asset)
+                            }
+                        }
                         Divider()
                     }
                 }
