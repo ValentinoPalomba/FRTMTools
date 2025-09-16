@@ -154,6 +154,7 @@ public final class IPASizeAnalyzer {
         return text.range(of: pattern, options: .regularExpression).map { String(text[$0]) }
     }
 
+    @discardableResult
     private func shell(cmd: String, args: [String]) async throws -> String {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: cmd)

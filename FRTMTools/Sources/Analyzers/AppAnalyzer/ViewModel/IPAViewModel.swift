@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 import FRTMCore
 
 class IPAViewModel: ObservableObject {
@@ -24,7 +25,7 @@ class IPAViewModel: ObservableObject {
     
     func analyzeSize() {
         Task { @MainActor in 
-            guard var analysis = analyses.firstIndex(where: { $0.id == selectedUUID }) else {
+            guard let analysis = analyses.firstIndex(where: { $0.id == selectedUUID }) else {
                 return
             }
             DispatchQueue.main.async { [weak self] in
@@ -86,7 +87,17 @@ class IPAViewModel: ObservableObject {
     
     func selectFile() {
         let panel = NSOpenPanel()
-        panel.allowedFileTypes = ["ipa", "app"]
+        
+        var contentTypes: [UTType] = []
+        if let ipaType = UTType(filenameExtension: "ipa") {
+            contentTypes.append(ipaType)
+        }
+        if let appType = UTType(filenameExtension: "app") {
+            contentTypes.append(appType)
+        }
+        contentTypes.append(.applicationBundle)
+        panel.allowedContentTypes = contentTypes
+        
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = true
         panel.title = "Select an IPA or App file"
@@ -96,5 +107,3 @@ class IPAViewModel: ObservableObject {
         }
     }
 }
-
-
