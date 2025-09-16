@@ -101,7 +101,6 @@ class AIViewModel: ObservableObject {
                     case .chunk(let chunk):
                         if let index = messages.firstIndex(where: { $0.id == assistantMessageId }) {
                             messages[index].content.append(chunk)
-                            print("VALELOG message updated \(messages[index].content)")
                         }
                     case .toolOutput(let toolName, let arguments, let output):
                         let formattedContent = """

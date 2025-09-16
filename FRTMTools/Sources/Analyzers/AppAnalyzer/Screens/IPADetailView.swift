@@ -6,6 +6,7 @@ struct DetailView: View {
     
     @State private var expandedSections: Set<String> = []
     @State private var selectedCategoryName: String? = nil
+    @ObservedObject var ipaViewModel: IPAViewModel
 
     private var categories: [CategoryResult] {
         return CategoryGenerator.generateCategories(from: analysis.rootFile)
@@ -18,9 +19,14 @@ struct DetailView: View {
                 // Grid overview
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
                     SummaryCard(
-                        title: "📱 Estimated install Size",
+                        title: "📦 Uncompressed Size",
                         value: ByteCountFormatter.string(fromByteCount: analysis.totalSize, countStyle: .file),
                         subtitle: analysis.fileName
+                    )
+                    
+                    InstalledSizeAnalysisView(
+                        viewModel: ipaViewModel,
+                        analysis: analysis
                     )
                     
                     SummaryCard(

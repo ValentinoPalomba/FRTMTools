@@ -71,7 +71,7 @@ struct IPAAnalyzerDetailView: View {
             if viewModel.compareMode {
                 CompareView(analyses: viewModel.analyses)
             } else if let selected = viewModel.analyses.first(where: { $0.id == viewModel.selectedUUID }) ?? viewModel.analyses.first {
-                DetailView(analysis: selected)
+                DetailView(analysis: selected, ipaViewModel: viewModel)
             } else {
                 VStack(spacing: 12) {
                     Image(systemName: "square.and.arrow.down.on.square")

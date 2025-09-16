@@ -6,10 +6,12 @@ struct MainView: View {
     
     @StateObject private var ipaViewModel = IPAViewModel()
     @StateObject private var unusedAssetsViewModel = UnusedAssetsViewModel()
+    @StateObject private var securityScannerViewModel = SecurityScannerViewModel()
     
     enum Tool: String, Hashable, Identifiable {
         case ipaAnalyzer = "IPA Analyzer"
         case unusedAssets = "Unused Assets Analyzer"
+        case securityScanner = "Security Scanner"
 
         var id: String { rawValue }
     }
@@ -21,6 +23,8 @@ struct MainView: View {
                     .tag(Tool.ipaAnalyzer)
                 Label("Unused Assets Analyzer", systemImage: "trash")
                     .tag(Tool.unusedAssets)
+                Label("Security Scanner", systemImage: "shield.lefthalf.filled")
+                    .tag(Tool.securityScanner)
             }
             .listStyle(.sidebar)
             .navigationTitle("FRTM Tools")
@@ -30,6 +34,8 @@ struct MainView: View {
                 IPAAnalyzerContentView(viewModel: ipaViewModel)
             case .unusedAssets:
                 UnusedAssetsContentView(viewModel: unusedAssetsViewModel)
+            case .securityScanner:
+                SecurityScannerContentView(viewModel: securityScannerViewModel)
             case .none:
                 Text("Select a tool from the sidebar.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -40,6 +46,8 @@ struct MainView: View {
                 IPAAnalyzerDetailView(viewModel: ipaViewModel)
             case .unusedAssets:
                 UnusedAssetsResultView(viewModel: unusedAssetsViewModel)
+            case .securityScanner:
+                    SecurityScannerResultView(viewModel: securityScannerViewModel)
             case .none:
                 Text("Select an item to see details.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -63,6 +71,17 @@ struct MainView: View {
                     style: .indeterminate,
                     title: "Analyzing project...",
                     subtitle: "Finding unused assets...",
+                    showsCancel: false,
+                    cancelAction: nil
+                )
+        })
+        .loaderOverlay(
+            isPresented: $securityScannerViewModel.isLoading,
+            content: {
+                LoaderView(
+                    style: .indeterminate,
+                    title: "Scanning project...",
+                    subtitle: "Searching for secrets...",
                     showsCancel: false,
                     cancelAction: nil
                 )

@@ -51,7 +51,9 @@ final class IPAAnalyzer: Analyzer {
     func analyze(at url: URL) async throws -> IPAAnalysis? {
         switch url.pathExtension.lowercased() {
         case "ipa":
-            return analyzeIPA(at: url)
+                var analysis = analyzeIPA(at: url)
+                analysis?.url = url
+                return analysis
         case "app":
             return performAnalysisOnAppBundle(appBundleURL: url, originalFileName: url.lastPathComponent)
         default:
@@ -108,6 +110,7 @@ final class IPAAnalyzer: Analyzer {
         }
         
         return IPAAnalysis(
+            url: layout.appURL,
             fileName: originalFileName,
             rootFile: rootFile,
             image: icon,
