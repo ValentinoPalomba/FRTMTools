@@ -68,7 +68,6 @@ struct CollapsibleSection: View {
             }
         }
         .cornerRadius(12)
-        .transition(.move(edge: .top))
         .fileExporter(
             isPresented: $showExporter,
             document: CSVDocument(url: exportURL),

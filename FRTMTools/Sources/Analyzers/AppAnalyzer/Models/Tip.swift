@@ -4,6 +4,7 @@ struct Tip: Identifiable {
     let id = UUID()
     let text: String
     let category: TipCategory
+    var subTips: [Tip] = []
 }
 
 enum TipCategory: String {

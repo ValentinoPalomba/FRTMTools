@@ -7,9 +7,24 @@ struct DetailView: View {
     @State private var expandedSections: Set<String> = []
     @State private var selectedCategoryName: String? = nil
     @ObservedObject var ipaViewModel: IPAViewModel
+    @State private var searchText = ""
 
     private var categories: [CategoryResult] {
         return CategoryGenerator.generateCategories(from: analysis.rootFile)
+    }
+
+    private var filteredCategories: [CategoryResult] {
+        if searchText.isEmpty {
+            return categories
+        }
+        
+        return categories.compactMap { category in
+            let filteredItems = category.items.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+            if filteredItems.isEmpty {
+                return nil
+            }
+            return CategoryResult(type: category.type, totalSize: filteredItems.reduce(0) { $0 + $1.size }, items: filteredItems)
+        }
     }
 
     var body: some View {
@@ -95,7 +110,7 @@ struct DetailView: View {
                 
                 // Collapsible sections
                 VStack(spacing: 12) {
-                    ForEach(categories) { category in
+                    ForEach(filteredCategories) { category in
                         CollapsibleSection(
                             category: category,
                             action: {},
@@ -111,6 +126,7 @@ struct DetailView: View {
             }
             .padding(.vertical, 16)
         }
+        .searchable(text: $searchText, prompt: "Search files...")
         .navigationTitle(analysis.fileName)
 //        .toolbar {
 //            ToolbarItem(placement: .automatic) {

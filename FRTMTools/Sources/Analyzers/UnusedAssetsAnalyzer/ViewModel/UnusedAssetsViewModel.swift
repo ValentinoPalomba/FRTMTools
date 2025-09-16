@@ -97,18 +97,23 @@ class UnusedAssetsViewModel: ObservableObject {
         saveAnalyses()
     }
     
-    func deleteAsset(_ assetInfo: AssetInfo) -> AssetInfo? {
+    func deleteAsset(_ assetInfo: AssetInfo) {
         do {
-           let deletedFile = try UnusedAssetWrapper.deleteUnusedAssets(
-                assetInfo: [assetInfo]
-            ).first
+            _ = try UnusedAssetWrapper.deleteUnusedAssets(assetInfo: [assetInfo])
             
+            guard let selectedAnalysisID = self.selectedAnalysisID,
+                  let analysisIndex = analyses.firstIndex(where: { $0.id == selectedAnalysisID }) else { return }
+
+            var updatedAnalysis = analyses[analysisIndex]
+            updatedAnalysis.unusedAssets.removeAll { $0.id == assetInfo.id }
+            updatedAnalysis.totalUnusedSize = updatedAnalysis.unusedAssets.reduce(0) { $0 + $1.size }
             
-            return deletedFile
+            self.analyses[analysisIndex] = updatedAnalysis
             
         } catch {
-            print(error)
-            return nil
+            print("Failed to delete asset: \(error)")
+            // In a real app, you'd want to set an error property to show an alert.
+            // self.error = .failedToDelete(error)
         }
     }
 }

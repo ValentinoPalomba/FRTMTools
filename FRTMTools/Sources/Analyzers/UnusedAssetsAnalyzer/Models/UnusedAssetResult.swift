@@ -7,8 +7,8 @@ struct UnusedAssetResult: Codable, Identifiable {
     let projectPath: String
     let projectName: String
     
-    let unusedAssets: [AssetInfo]
-    let totalUnusedSize: Int64
+    var unusedAssets: [AssetInfo]
+    var totalUnusedSize: Int64
     let totalAssetsScanned: Int
     let scanDuration: TimeInterval
     
