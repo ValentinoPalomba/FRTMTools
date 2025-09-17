@@ -1370,112 +1370,112 @@
   },
   "ConstValues": [
     {
-      "filePath": "\/Users\/u474504\/git\/cartools\/cartooldt\/CoreSVG.swift",
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreSVG.swift",
       "kind": "IntegerLiteral",
       "offset": 294,
       "length": 2,
       "value": "-2"
     },
     {
-      "filePath": "\/Users\/u474504\/git\/cartools\/cartooldt\/CoreSVG.swift",
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreSVG.swift",
       "kind": "StringLiteral",
       "offset": 320,
       "length": 26,
       "value": "\"CGSVGDocumentWriteToData\""
     },
     {
-      "filePath": "\/Users\/u474504\/git\/cartools\/cartooldt\/CoreSVG.swift",
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreSVG.swift",
       "kind": "IntegerLiteral",
       "offset": 713,
       "length": 2,
       "value": "-2"
     },
     {
-      "filePath": "\/Users\/u474504\/git\/cartools\/cartooldt\/CoreSVG.swift",
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreSVG.swift",
       "kind": "StringLiteral",
       "offset": 739,
       "length": 25,
       "value": "\"CGSVGDocumentWriteToURL\""
     },
     {
-      "filePath": "\/Users\/u474504\/git\/cartools\/cartooldt\/CoreSVG.swift",
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreSVG.swift",
       "kind": "IntegerLiteral",
       "offset": 1120,
       "length": 2,
       "value": "-2"
     },
     {
-      "filePath": "\/Users\/u474504\/git\/cartools\/cartooldt\/CoreSVG.swift",
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreSVG.swift",
       "kind": "StringLiteral",
       "offset": 1146,
       "length": 26,
       "value": "\"CGContextDrawSVGDocument\""
     },
     {
-      "filePath": "\/Users\/u474504\/git\/cartools\/cartooldt\/CoreSVG.swift",
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreSVG.swift",
       "kind": "IntegerLiteral",
       "offset": 1509,
       "length": 2,
       "value": "-2"
     },
     {
-      "filePath": "\/Users\/u474504\/git\/cartools\/cartooldt\/CoreSVG.swift",
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreSVG.swift",
       "kind": "StringLiteral",
       "offset": 1535,
       "length": 28,
       "value": "\"CGSVGDocumentGetCanvasSize\""
     },
     {
-      "filePath": "\/Users\/u474504\/git\/cartools\/cartooldt\/CocoaExt.swift",
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CocoaExt.swift",
       "kind": "BooleanLiteral",
       "offset": 231,
       "length": 5,
       "value": "false"
     },
     {
-      "filePath": "\/Users\/u474504\/git\/cartools\/cartooldt\/CoreUIExt.swift",
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreUIExt.swift",
       "kind": "IntegerLiteral",
       "offset": 247,
       "length": 1,
       "value": "0"
     },
     {
-      "filePath": "\/Users\/u474504\/git\/cartools\/cartooldt\/CoreUIExt.swift",
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreUIExt.swift",
       "kind": "IntegerLiteral",
       "offset": 262,
       "length": 8,
       "value": "1"
     },
     {
-      "filePath": "\/Users\/u474504\/git\/cartools\/cartooldt\/CoreUIExt.swift",
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreUIExt.swift",
       "kind": "IntegerLiteral",
       "offset": 284,
       "length": 7,
       "value": "2"
     },
     {
-      "filePath": "\/Users\/u474504\/git\/cartools\/cartooldt\/CoreUIExt.swift",
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreUIExt.swift",
       "kind": "IntegerLiteral",
       "offset": 305,
       "length": 8,
       "value": "3"
     },
     {
-      "filePath": "\/Users\/u474504\/git\/cartools\/cartooldt\/CoreUIExt.swift",
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreUIExt.swift",
       "kind": "IntegerLiteral",
       "offset": 327,
       "length": 8,
       "value": "4"
     },
     {
-      "filePath": "\/Users\/u474504\/git\/cartools\/cartooldt\/CoreUIExt.swift",
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreUIExt.swift",
       "kind": "IntegerLiteral",
       "offset": 349,
       "length": 13,
       "value": "5"
     },
     {
-      "filePath": "\/Users\/u474504\/git\/cartools\/cartooldt\/CoreUIExt.swift",
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreUIExt.swift",
       "kind": "IntegerLiteral",
       "offset": 383,
       "length": 2,

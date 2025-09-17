@@ -43,25 +43,9 @@
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		BA061D1D2E7AF605009C3CD8 /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			attributesByRelativePath = {
-				CartoolKit.framework = (CodeSignOnCopy, RemoveHeadersOnCopy, );
-			};
-			buildPhase = E6E5F1252E7AE54F000919D5 /* Embed Frameworks */;
-			membershipExceptions = (
-				CartoolKit.framework,
-			);
-		};
-/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E6E5F1332E7AE90E000919D5 /* ExternalFrameworks */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				BA061D1D2E7AF605009C3CD8 /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */,
-			);
 			path = ExternalFrameworks;
 			sourceTree = "<group>";
 		};
@@ -334,6 +318,8 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/FRTMTools",
 					"$(PROJECT_DIR)/ExternalFrameworks",
+					"$(PROJECT_DIR)/Frameworks",
+					"$(PROJECT_DIR)/PrivateFrameworks",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FRTMTools/Info.plist;
@@ -361,7 +347,12 @@
 				SUPPORTED_PLATFORMS = macosx;
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/PrivateFrameworks/CoreThemeDefinition.framework $(SRCROOT)/PrivateFrameworks/CoreUI.framework/";
 				SWIFT_VERSION = 5.0;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks",
+				);
 				XROS_DEPLOYMENT_TARGET = 2.1;
 			};
 			name = Debug;
@@ -382,6 +373,8 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/FRTMTools",
 					"$(PROJECT_DIR)/ExternalFrameworks",
+					"$(PROJECT_DIR)/Frameworks",
+					"$(PROJECT_DIR)/PrivateFrameworks",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FRTMTools/Info.plist;
@@ -409,7 +402,12 @@
 				SUPPORTED_PLATFORMS = macosx;
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/PrivateFrameworks/CoreThemeDefinition.framework $(SRCROOT)/PrivateFrameworks/CoreUI.framework/";
 				SWIFT_VERSION = 5.0;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks",
+				);
 				XROS_DEPLOYMENT_TARGET = 2.1;
 			};
 			name = Release;
