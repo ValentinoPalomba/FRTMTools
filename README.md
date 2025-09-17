@@ -31,6 +31,12 @@ FRTMTools is a powerful macOS application designed for developers to dive deep i
 
 Contributions are welcome! If you have ideas for new features or improvements, feel free to open an issue or submit a pull request.
 
+## 👥 Contributors
+
+A huge thank you to all the amazing people who contributed to this project:  
+
+- [@Davide Fiorino](https://github.com/DaveFiorino) 🚀
+
 ---
 
 *Made with ❤️ for the iOS developer community.*
