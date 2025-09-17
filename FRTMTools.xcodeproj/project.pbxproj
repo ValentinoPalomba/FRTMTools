@@ -44,7 +44,7 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		E6E5F3512E7AF18E000919D5 /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */ = {
+		BA061D1D2E7AF605009C3CD8 /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */ = {
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
 			attributesByRelativePath = {
 				CartoolKit.framework = (CodeSignOnCopy, RemoveHeadersOnCopy, );
@@ -60,7 +60,7 @@
 		E6E5F1332E7AE90E000919D5 /* ExternalFrameworks */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				E6E5F3512E7AF18E000919D5 /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */,
+				BA061D1D2E7AF605009C3CD8 /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */,
 			);
 			path = ExternalFrameworks;
 			sourceTree = "<group>";

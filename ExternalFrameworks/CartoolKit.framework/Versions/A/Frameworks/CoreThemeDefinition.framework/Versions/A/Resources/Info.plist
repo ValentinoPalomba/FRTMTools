@@ -3,44 +3,46 @@
 <plist version="1.0">
 <dict>
 	<key>BuildMachineOSBuild</key>
-	<string>24G90</string>
+	<string>23A344014</string>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
+	<string>English</string>
 	<key>CFBundleExecutable</key>
-	<string>CartoolKit</string>
+	<string>CoreThemeDefinition</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.showxdxu.dt.CartoolKit</string>
+	<string>com.apple.CoreThemeDefinition</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>CartoolKit</string>
+	<string>CoreThemeDefinition</string>
 	<key>CFBundlePackageType</key>
 	<string>FMWK</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>2.0</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
 	<key>CFBundleSupportedPlatforms</key>
 	<array>
 		<string>MacOSX</string>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>611</string>
 	<key>DTCompiler</key>
 	<string>com.apple.compilers.llvm.clang.1_0</string>
 	<key>DTPlatformBuild</key>
-	<string>24B75</string>
+	<string></string>
 	<key>DTPlatformName</key>
 	<string>macosx</string>
 	<key>DTPlatformVersion</key>
-	<string>15.1</string>
+	<string>15.6</string>
 	<key>DTSDKBuild</key>
-	<string>24B75</string>
+	<string>24G78</string>
 	<key>DTSDKName</key>
-	<string>macosx15.1</string>
+	<string>macosx15.6.internal</string>
 	<key>DTXcode</key>
-	<string>1610</string>
+	<string>1630</string>
 	<key>DTXcodeBuild</key>
-	<string>16B40</string>
+	<string>16E6052g</string>
 	<key>LSMinimumSystemVersion</key>
-	<string>11.0</string>
+	<string>15.6</string>
 </dict>
 </plist>
