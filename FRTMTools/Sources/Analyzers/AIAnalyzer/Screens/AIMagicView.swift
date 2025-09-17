@@ -1,4 +1,3 @@
-
 //
 //  AIMagicView.swift
 //  AppUtils
@@ -84,7 +83,9 @@ struct AIMagicView: View {
         }
         .task {
             await viewModel.loadModel { progress in
-                self.observableProgress = .init(progress: progress)
+                DispatchQueue.main.async {
+                    self.observableProgress = .init(progress: progress)
+                }
             }
             viewModel.setPrompt(systemPrompt)
             await viewModel.respondToUserInput(input)
@@ -171,3 +172,4 @@ struct FoundationProgressView: View {
         }
     }
 }
+

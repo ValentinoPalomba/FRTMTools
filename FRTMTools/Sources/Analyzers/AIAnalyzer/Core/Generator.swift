@@ -9,6 +9,7 @@ import Foundation
 import MLX
 import MLXLMCommon
 import os
+import CoreGraphics
 
 // Define the new output item type for the stream
 public enum GeneratorOutputItem {
@@ -70,10 +71,10 @@ private class Generator {
     }
 
     func generate() async throws -> String {
-        func generate(context: ModelContext) async throws -> String {
+        @Sendable func generate(context: ModelContext) async throws -> String {
             // prepare the input -- first the structured messages,
             // next the tokens
-            let userInput = await UserInput(
+            let userInput = UserInput(
                 chat: messages,
                 processing: processing,
                 additionalContext: ["enable_thinking": false]
@@ -100,7 +101,7 @@ private class Generator {
 
         switch model {
         case .container(let container):
-            return try await container.perform { context in
+            return try await container.perform { @Sendable context in
                 try await generate(context: context)
             }
         case .context(let context):
@@ -109,7 +110,7 @@ private class Generator {
     }
 
     func stream() -> AsyncThrowingStream<GeneratorOutputItem, Error> { // Changed return type
-        func stream(
+        @Sendable func stream(
             context: ModelContext,
             continuation: AsyncThrowingStream<GeneratorOutputItem, Error>.Continuation // Changed continuation type
         ) async {
@@ -165,11 +166,11 @@ private class Generator {
             }
         }
 
-        return AsyncThrowingStream { continuation in
-            Task { [model, continuation] in
+        return AsyncThrowingStream { @Sendable continuation in
+            Task { @Sendable [model, continuation] in
                 switch model {
                 case .container(let container):
-                    await container.perform { context in
+                    await container.perform { @Sendable context in
                         await stream(context: context, continuation: continuation)
                     }
                 case .context(let context):
@@ -295,3 +296,4 @@ public class GeneratorSession {
         self.generator.messages.append(.system(prompt))
     }
 }
+
