@@ -44,7 +44,7 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		BA061DA62E7AFABE009C3CD8 /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */ = {
+		E6E5F5032E7AFD52000919D5 /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */ = {
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
 			attributesByRelativePath = {
 				CartoolKit.framework = (CodeSignOnCopy, RemoveHeadersOnCopy, );
@@ -60,7 +60,7 @@
 		E6E5F1332E7AE90E000919D5 /* ExternalFrameworks */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				BA061DA62E7AFABE009C3CD8 /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */,
+				E6E5F5032E7AFD52000919D5 /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */,
 			);
 			path = ExternalFrameworks;
 			sourceTree = "<group>";
@@ -334,7 +334,6 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/FRTMTools",
 					"$(PROJECT_DIR)/ExternalFrameworks",
-					"$(PROJECT_DIR)/Frameworks",
 					"$(PROJECT_DIR)/PrivateFrameworks",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
@@ -389,7 +388,6 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/FRTMTools",
 					"$(PROJECT_DIR)/ExternalFrameworks",
-					"$(PROJECT_DIR)/Frameworks",
 					"$(PROJECT_DIR)/PrivateFrameworks",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
