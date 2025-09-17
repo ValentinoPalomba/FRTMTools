@@ -21,10 +21,34 @@ struct InstalledSizeAnalysisView: View {
                         .lineLimit(1)
                 }
             } else if let size = analysis.installedSize {
-                Text("\(size) MB")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
+                VStack(alignment: .leading, spacing: 10) {
+                    // Total installed size
+                    Text("\(size.total) MB")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+
+                    // Breakdown
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("• App Binaries")
+                            Spacer()
+                            Text("\(size.binaries) MB")
+                        }
+                        HStack {
+                            Text("• Frameworks")
+                            Spacer()
+                            Text("\(size.frameworks) MB")
+                        }
+                        HStack {
+                            Text("• Other Resources")
+                            Spacer()
+                            Text("\(size.resources) MB")
+                        }
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                }
             } else {
                 Button(action: {
                     viewModel.analyzeSize()
@@ -45,3 +69,4 @@ struct InstalledSizeAnalysisView: View {
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
 }
+
