@@ -1,0 +1,76 @@
+// swift-interface-format-version: 1.0
+// swift-compiler-version: Apple Swift version 6.0.2 effective-5.10 (swiftlang-6.0.2.1.2 clang-1600.0.26.4)
+// swift-module-flags: -target arm64-apple-macos11.0 -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -enable-bare-slash-regex -module-name CartoolKit
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface
+@_exported import CartoolKit
+import Cocoa
+import CoreFoundation
+import CoreGraphics
+import CoreUI
+import Foundation
+import Swift
+import UniformTypeIdentifiers
+import _Concurrency
+import _StringProcessing
+import _SwiftConcurrencyShims
+public class Reader<T> where T : CartoolKit.Rendition {
+  public typealias CompletionHandler = (Swift.Result<[T], any Swift.Error>) -> Swift.Void
+  public init(_ car: CartoolKit.Car) throws
+  @discardableResult
+  public func read(_ completion: CartoolKit.Reader<T>.CompletionHandler?) -> Self
+  public func read() throws -> [T]
+  @objc deinit
+}
+@_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers public class LazyRendition : CartoolKit.Rendition {
+  public var unsafeCreatedNSImage: AppKit.NSImage? {
+    get
+    set
+  }
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class Rendition {
+  public var fileName: Swift.String {
+    get
+  }
+  public var internalName: Swift.String {
+    get
+  }
+  public var renditionClass: Swift.String {
+    get
+  }
+  final public let renditionName: Swift.String
+  public var scale: Swift.Int {
+    get
+  }
+  public var isVector: Swift.Bool {
+    get
+  }
+  public var isPDF: Swift.Bool {
+    get
+  }
+  public var isLinkingToPDF: Swift.Bool {
+    get
+  }
+  public var isSVG: Swift.Bool {
+    get
+  }
+  public var isLinkingToSVG: Swift.Bool {
+    get
+  }
+  public func unsafeCreateImage() -> CoreGraphics.CGImage?
+  public func unsafeCreateImageRep() -> AppKit.NSBitmapImageRep?
+  @discardableResult
+  public func writeTo(_ providedURL: Foundation.URL, options: Foundation.Data.WritingOptions = [.atomicWrite]) throws -> Foundation.URL
+  @objc deinit
+}
+extension AppKit.NSBitmapImageRep {
+  public func data(using fileType: AppKit.NSBitmapImageRep.FileType = .png, properties: [AppKit.NSBitmapImageRep.PropertyKey : Any] = [.interlaced : false]) -> Foundation.Data?
+}
+public struct Car {
+  public var url: Foundation.URL
+  public init(_ url: Foundation.URL)
+}
+public enum CarError {
+  case notFound(_: Swift.String)
+  public static let domain: Swift.String
+}
