@@ -16,6 +16,19 @@
 		E6B372492E6AC55C005F365C /* FRTMCore in Frameworks */ = {isa = PBXBuildFile; productRef = E6B372482E6AC55C005F365C /* FRTMCore */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		E6E5F1252E7AE54F000919D5 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		E6EDE3D12E679CC300310565 /* FRTMTools.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FRTMTools.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -30,7 +43,28 @@
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		E6E5F1362E7AE90E000919D5 /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			attributesByRelativePath = {
+				CartoolKit.framework = (CodeSignOnCopy, RemoveHeadersOnCopy, );
+			};
+			buildPhase = E6E5F1252E7AE54F000919D5 /* Embed Frameworks */;
+			membershipExceptions = (
+				CartoolKit.framework,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		E6E5F1332E7AE90E000919D5 /* ExternalFrameworks */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E6E5F1362E7AE90E000919D5 /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */,
+			);
+			path = ExternalFrameworks;
+			sourceTree = "<group>";
+		};
 		E6EDE3D32E679CC400310565 /* FRTMTools */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -63,6 +97,7 @@
 			isa = PBXGroup;
 			children = (
 				E6EDE3D32E679CC400310565 /* FRTMTools */,
+				E6E5F1332E7AE90E000919D5 /* ExternalFrameworks */,
 				E6EDE3D22E679CC300310565 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -85,12 +120,14 @@
 				E6EDE3CD2E679CC300310565 /* Sources */,
 				E6EDE3CE2E679CC300310565 /* Frameworks */,
 				E6EDE3CF2E679CC300310565 /* Resources */,
+				E6E5F1252E7AE54F000919D5 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				E6E5F1332E7AE90E000919D5 /* ExternalFrameworks */,
 				E6EDE3D32E679CC400310565 /* FRTMTools */,
 			);
 			name = FRTMTools;
@@ -293,6 +330,11 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/FRTMTools",
+					"$(PROJECT_DIR)/ExternalFrameworks",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FRTMTools/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FRTMTools;
@@ -336,6 +378,11 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/FRTMTools",
+					"$(PROJECT_DIR)/ExternalFrameworks",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FRTMTools/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FRTMTools;

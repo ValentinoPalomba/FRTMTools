@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import Cocoa
+import CartoolKit
 
 // MARK: - Layout
 
@@ -149,6 +150,35 @@ final class IPAAnalyzer: Analyzer {
         } else {
             subItems = nil
         }
+        
+        if url.pathExtension.lowercased() == "car" {
+            do {
+                let reader: Reader<LazyRendition> = try Reader(.init(url))
+                let renditions = try reader.read()
+
+                let subItems = renditions.map { rendition -> FileInfo in
+                    let fileName = rendition.fileName
+                    let tmpURL = try? rendition.writeTo(.temporaryDirectory)
+                    let size = tmpURL != nil ? allocatedSize(of: tmpURL!) : 0
+                    return FileInfo(
+                        name: fileName,
+                        type: .assets,
+                        size: size,
+                        subItems: nil
+                    )
+                }
+
+                return FileInfo(
+                    name: url.lastPathComponent,
+                    type: .assets,
+                    size: allocatedSize(of: url),
+                    subItems: subItems
+                )
+            } catch {
+                print("Error parsing .car: \(error)")
+            }
+        }
+
         
         let size = allocatedSize(of: url)
         let type = fileType(for: url, layout: layout)
