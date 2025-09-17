@@ -56,7 +56,9 @@ class IPAViewModel: ObservableObject {
     }
 
     func analyzeFile(_ url: URL) {
-        isLoading = true
+        Task { @MainActor in
+            isLoading = true
+        }
         Task(priority: .userInitiated) { [weak self] in
             guard let self else { return }
             if let analysis = try await self.analyzer.analyze(at: url) {
