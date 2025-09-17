@@ -1,5 +1,3 @@
-
-
 import Foundation
 
 struct SecurityScanner {
@@ -35,7 +33,8 @@ struct SecurityScanner {
             return SecurityScanResult(projectPath: directory.path, findings: [])
         }
         
-        for case let fileURL as URL in enumerator {
+        while let next = enumerator.nextObject() {
+            guard let fileURL = next as? URL else { continue }
             do {
                 let isRegularFile = try fileURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile ?? false
                 if !isRegularFile { continue }
