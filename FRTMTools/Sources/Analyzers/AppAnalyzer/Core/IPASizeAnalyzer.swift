@@ -45,7 +45,10 @@ public final class IPASizeAnalyzer {
 
     /// Esegue l'intero processo di analisi in modo asincrono.
     public func analyze(ipaPath: String, progress: (String) -> Void) async throws -> IPASizeAnalysisResult {
-        guard FileManager.default.fileExists(atPath: ipaPath) else {
+        // Normalize ipaPath to handle percent-encoding (e.g., spaces) and tildes
+        let normalizedIPAPath = sanitizePath(ipaPath)
+
+        guard FileManager.default.fileExists(atPath: normalizedIPAPath) else {
             throw IPASizeError.invalidIPAPath
         }
         
@@ -58,7 +61,7 @@ public final class IPASizeAnalyzer {
         let tempDir = createTempDirectory()
         defer { try? FileManager.default.removeItem(at: tempDir) }
         
-        let appPath = try await unzipAndFindApp(ipaPath: ipaPath, in: tempDir, log: progress)
+        let appPath = try await unzipAndFindApp(ipaPath: normalizedIPAPath, in: tempDir, log: progress)
         
         // 3. Installa l'app
         progress("📲 Installing the app...")
@@ -142,6 +145,24 @@ public final class IPASizeAnalyzer {
     }
 
     // MARK: - Helpers
+
+    /// Returns a sanitized filesystem path by percent-decoding and expanding tildes.
+    private func sanitizePath(_ path: String) -> String {
+        // If it's a file URL string, try to parse it as a URL first
+        if let url = URL(string: path), url.scheme != nil {
+            if url.isFileURL {
+                return url.path
+            }
+        }
+        // Percent-decode common encodings (e.g., spaces as %20)
+        let decoded = path.removingPercentEncoding ?? path
+        // Expand tilde to home directory if present
+        if decoded.hasPrefix("~") {
+            let expanded = (decoded as NSString).expandingTildeInPath
+            return expanded
+        }
+        return decoded
+    }
     
     private func createTempDirectory() -> URL {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
