@@ -43,9 +43,25 @@
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		BA061DA62E7AFABE009C3CD8 /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			attributesByRelativePath = {
+				CartoolKit.framework = (CodeSignOnCopy, RemoveHeadersOnCopy, );
+			};
+			buildPhase = E6E5F1252E7AE54F000919D5 /* Embed Frameworks */;
+			membershipExceptions = (
+				CartoolKit.framework,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E6E5F1332E7AE90E000919D5 /* ExternalFrameworks */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				BA061DA62E7AFABE009C3CD8 /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */,
+			);
 			path = ExternalFrameworks;
 			sourceTree = "<group>";
 		};
