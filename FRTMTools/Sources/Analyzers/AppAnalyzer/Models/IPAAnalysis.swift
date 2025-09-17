@@ -10,7 +10,13 @@ struct IPAAnalysis: Identifiable, Codable {
     let rootFile: FileInfo
     let version: String?
     let buildNumber: String?
-    var installedSize: Int?
+    struct InstalledSize: Codable {
+        let total: Int
+        let binaries: Int
+        let frameworks: Int
+        let resources: Int
+    }
+    var installedSize: InstalledSize?
     private let imageData: Data?
     let isStripped: Bool
     let allowsArbitraryLoads: Bool
@@ -24,7 +30,7 @@ struct IPAAnalysis: Identifiable, Codable {
         return NSImage(data: data)
     }
 
-    init(id: UUID = UUID(), url: URL, fileName: String, rootFile: FileInfo, image: NSImage?, version: String?, buildNumber: String?, isStripped: Bool, allowsArbitraryLoads: Bool, installedSize: Int? = nil) {
+    init(id: UUID = UUID(), url: URL, fileName: String, rootFile: FileInfo, image: NSImage?, version: String?, buildNumber: String?, isStripped: Bool, allowsArbitraryLoads: Bool, installedSize: InstalledSize? = nil) {
         self.id = id
         self.fileName = fileName
         self.rootFile = rootFile
