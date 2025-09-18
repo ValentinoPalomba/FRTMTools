@@ -48,6 +48,7 @@ struct IPAAnalyzerContentView: View {
                 } label: {
                     Label("Add IPA", systemImage: "plus")
                 }
+                .help("New Analysis")
                 
                 if !viewModel.analyses.isEmpty {
                     Button(viewModel.compareMode ? "Done" : "Compare") {

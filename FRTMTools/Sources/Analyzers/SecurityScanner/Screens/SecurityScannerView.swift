@@ -46,8 +46,9 @@ struct SecurityScannerContentView: View {
                 Button {
                     viewModel.selectFolderAndScan()
                 } label: {
-                    Label("Scan Folder", systemImage: "folder.badge.plus")
+                    Label("Scan Project", systemImage: "folder.badge.plus")
                 }
+                .help("Scan new project")
             }
         }
         .onAppear {
