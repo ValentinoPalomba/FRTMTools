@@ -261,12 +261,14 @@ struct AnalysisResultView: View {
                 }) {
                     Label("Re-analyze", systemImage: "arrow.clockwise")
                 }
+                .help("Re-analyze project")
             }
             
             ToolbarItem(placement: .primaryAction) {
                 Button(action: viewModel.selectProjectFolder) {
                     Label("Analyze Project", systemImage: "folder.badge.plus")
                 }
+                .help("Analyze new project")
                 .disabled(viewModel.isLoading)
             }
         }
@@ -402,3 +404,4 @@ fileprivate extension View {
         }
     }
 }
+
