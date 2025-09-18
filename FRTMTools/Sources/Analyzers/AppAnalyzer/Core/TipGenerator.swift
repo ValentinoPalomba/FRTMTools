@@ -43,7 +43,7 @@ class TipGenerator {
         // 4. Binary not stripped
         if !analysis.isStripped {
             tips.append(Tip(
-                text: "The binary is not stripped of symbols. Stripping reduces binary size and makes reverse-engineering more difficult.",
+                text: "The binary is not fully stripped of symbols. Stripping reduces binary size and makes reverse-engineering more difficult.",
                 category: .warning
             ))
         }
