@@ -25,6 +25,8 @@ class IPAViewModel: ObservableObject {
         }
     }
     
+    
+    
     func analyzeSize() {
         Task { @MainActor in 
             guard let analysis = analyses.firstIndex(where: { $0.id == selectedUUID }) else {
@@ -42,7 +44,13 @@ class IPAViewModel: ObservableObject {
                     }
                 }
                 
-                analyses[analysis].installedSize = sizeAnalysis.sizeInMB
+                analyses[analysis].installedSize = IPAAnalysis.InstalledSize(
+                    total: sizeAnalysis.sizeInMB,
+                    binaries: sizeAnalysis.appBinariesInMB,
+                    frameworks: sizeAnalysis.frameworksInMB,
+                    resources: sizeAnalysis.resourcesInMB
+                )
+                
                 saveAnalyses()
                 DispatchQueue.main.async { [weak self] in
                     self?.isSizeLoading = false

@@ -1,4 +1,3 @@
-
 import Foundation
 
 // MARK: - Tipi di Dati Pubblici
@@ -7,6 +6,12 @@ import Foundation
 public struct IPASizeAnalysisResult {
     public let appName: String
     public let sizeInMB: Int
+    /// Size of the main executable and binaries directly in the app bundle (MB)
+    public let appBinariesInMB: Int
+    /// Size of embedded frameworks and dynamic libraries (MB)
+    public let frameworksInMB: Int
+    /// Size of resources (assets, nibs, storyboards, localized content, etc.) (MB)
+    public let resourcesInMB: Int
 }
 
 /// Errori specifici che possono essere lanciati durante l'analisi.
@@ -45,9 +50,7 @@ public final class IPASizeAnalyzer {
 
     /// Esegue l'intero processo di analisi in modo asincrono.
     public func analyze(ipaPath: String, progress: (String) -> Void) async throws -> IPASizeAnalysisResult {
-        // Normalize ipaPath to handle percent-encoding (e.g., spaces) and tildes
         let normalizedIPAPath = sanitizePath(ipaPath)
-
         guard FileManager.default.fileExists(atPath: normalizedIPAPath) else {
             throw IPASizeError.invalidIPAPath
         }
@@ -140,8 +143,87 @@ public final class IPASizeAnalyzer {
         guard let sizeMBString = duOutput.components(separatedBy: .whitespaces).first, let sizeMB = Int(sizeMBString) else {
             throw IPASizeError.couldNotParseAppSize
         }
+
+        // Compute breakdown by walking the installed bundle
+        let (binariesMB, frameworksMB, resourcesMB) = try calculateBreakdown(at: installedAppPath)
         
-        return IPASizeAnalysisResult(appName: appName, sizeInMB: sizeMB)
+        return IPASizeAnalysisResult(
+            appName: appName,
+            sizeInMB: sizeMB,
+            appBinariesInMB: binariesMB,
+            frameworksInMB: frameworksMB,
+            resourcesInMB: resourcesMB
+        )
+    }
+
+    /// Walks the installed .app bundle and calculates a coarse-grained size breakdown in MB.
+    /// - Parameter installedAppPath: Full path to the installed .app directory.
+    /// - Returns: Tuple with (binariesMB, frameworksMB, resourcesMB)
+    private func calculateBreakdown(at installedAppPath: String) throws -> (Int, Int, Int) {
+        // We will categorize files into three buckets:
+        // - Binaries: Mach-O executables in the app root and PlugIns (excluding Frameworks)
+        // - Frameworks: Everything under Frameworks/*.framework and *.dylib in Frameworks
+        // - Resources: Everything else in the .app bundle
+        // We compute sizes in bytes and convert to MB at the end (rounding down like `du -m`).
+        let fm = FileManager.default
+        let rootURL = URL(fileURLWithPath: installedAppPath, isDirectory: true)
+
+        var binariesBytes: UInt64 = 0
+        var frameworksBytes: UInt64 = 0
+        var resourcesBytes: UInt64 = 0
+
+        // Helper to add file size
+        func addFileSize(of url: URL, to bucket: inout UInt64) {
+            if let attrs = try? fm.attributesOfItem(atPath: url.path), let fileSize = attrs[.size] as? UInt64 {
+                bucket &+= fileSize
+            }
+        }
+
+        // Determine if a URL is within a given subpath
+        func isDescendant(of parent: URL, url: URL) -> Bool {
+            let parentPath = parent.standardizedFileURL.path
+            let urlPath = url.standardizedFileURL.path
+            return urlPath.hasPrefix(parentPath)
+        }
+
+        // Common locations
+        let frameworksDir = rootURL.appendingPathComponent("Frameworks", isDirectory: true)
+        let pluginsDir = rootURL.appendingPathComponent("PlugIns", isDirectory: true)
+
+        // Enumerate everything inside the .app bundle
+        if let enumerator = fm.enumerator(at: rootURL, includingPropertiesForKeys: [.isDirectoryKey, .isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey], options: [.skipsHiddenFiles]) {
+            for case let fileURL as URL in enumerator {
+                // Skip directories; we only measure files
+                let resourceValues = try? fileURL.resourceValues(forKeys: [.isDirectoryKey, .isRegularFileKey])
+                if resourceValues?.isDirectory == true { continue }
+                guard resourceValues?.isRegularFile == true else { continue }
+
+                // Frameworks bucket: anything under Frameworks/
+                if fm.fileExists(atPath: frameworksDir.path) && isDescendant(of: frameworksDir, url: fileURL) {
+                    addFileSize(of: fileURL, to: &frameworksBytes)
+                    continue
+                }
+
+                // Binaries bucket: potential Mach-O files in the root of .app and within PlugIns/*/*.appex
+                // Heuristic: treat files with no extension or with known binary extensions as binaries when in specific locations.
+                let ext = fileURL.pathExtension.lowercased()
+                let isInRoot = fileURL.deletingLastPathComponent().path == rootURL.path
+                let isInPlugIns = isDescendant(of: pluginsDir, url: fileURL)
+                let looksLikeBinary = ext.isEmpty || ["dylib", "so", "bundle"].contains(ext)
+
+                if (isInRoot || isInPlugIns) && looksLikeBinary {
+                    addFileSize(of: fileURL, to: &binariesBytes)
+                    continue
+                }
+
+                // Everything else is considered resources
+                addFileSize(of: fileURL, to: &resourcesBytes)
+            }
+        }
+
+        // Convert bytes to MB (floor)
+        let toMB: (UInt64) -> Int = { bytes in Int(bytes / (1024 * 1024)) }
+        return (toMB(binariesBytes), toMB(frameworksBytes), toMB(resourcesBytes))
     }
 
     // MARK: - Helpers
