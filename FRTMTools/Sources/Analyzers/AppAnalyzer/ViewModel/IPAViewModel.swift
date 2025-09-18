@@ -11,12 +11,19 @@ class IPAViewModel: ObservableObject {
     @Published var compareMode = false
     @Published var selectedUUID = UUID()
     @Published var sizeAnalysisProgress = ""
+    @Published var sizeAnalysisAlert: AlertContent?
     
     @Dependency var persistenceManager: PersistenceManager
     @Dependency var analyzer: any Analyzer<IPAAnalysis>
     var sizeAnalyzer: IPASizeAnalyzer = .init()
     
     private let persistenceKey = "ipa_analyses"
+
+    struct AlertContent: Identifiable {
+        let id = UUID()
+        let title: String
+        let message: String
+    }
 
     func loadAnalyses() {
         self.analyses = persistenceManager.load(key: persistenceKey)
@@ -28,13 +35,12 @@ class IPAViewModel: ObservableObject {
     
     
     func analyzeSize() {
-        Task { @MainActor in 
+        Task { @MainActor in
             guard let analysis = analyses.firstIndex(where: { $0.id == selectedUUID }) else {
                 return
             }
-            DispatchQueue.main.async { [weak self] in
-                self?.isSizeLoading = true
-            }
+            isSizeLoading = true
+            sizeAnalysisProgress = ""
             do {
                 let sizeAnalysis = try await sizeAnalyzer.analyze(
                     ipaPath: analyses[analysis].url.path()
@@ -52,11 +58,19 @@ class IPAViewModel: ObservableObject {
                 )
                 
                 saveAnalyses()
-                DispatchQueue.main.async { [weak self] in
-                    self?.isSizeLoading = false
-                }
+                isSizeLoading = false
             } catch {
-                print(error)
+                let message: String
+                if let localizedError = error as? LocalizedError, let description = localizedError.errorDescription, !description.isEmpty {
+                    message = description
+                } else {
+                    message = error.localizedDescription
+                }
+                sizeAnalysisAlert = AlertContent(
+                    title: "Size Analysis Failed",
+                    message: message
+                )
+                isSizeLoading = false
             }
         }
     }
