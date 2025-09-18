@@ -9,6 +9,17 @@ struct DetailView: View {
     @ObservedObject var ipaViewModel: IPAViewModel
     @State private var searchText = ""
 
+    private let categoryColorScale: [String: Color] = [
+        "Resources": .green,
+        "Frameworks": .blue,
+        "Binary": .red,
+        "Assets": .purple,
+        "Bundles": .orange
+    ]
+
+    private var categoryColorDomain: [String] { Array(categoryColorScale.keys) }
+    private var categoryColorRange: [Color] { categoryColorDomain.compactMap { categoryColorScale[$0] } }
+
     private var categories: [CategoryResult] {
         return CategoryGenerator.generateCategories(from: analysis.rootFile)
     }
@@ -76,6 +87,10 @@ struct DetailView: View {
                                         .bold()
                                 }
                             }
+                            .chartForegroundStyleScale(
+                                domain: categoryColorDomain,
+                                range: categoryColorRange
+                            )
                             .frame(height: 240)
                             .chartLegend(position: .bottom, spacing: 12)
                         }
@@ -95,7 +110,7 @@ struct DetailView: View {
                                     x: .value("Size", item.size),
                                     y: .value("File", item.name)
                                 )
-                                .foregroundStyle(by: .value("File", item.name))
+                                .foregroundStyle(categoryColorScale[selectedCategoryName] ?? .accentColor)
                             }
                             .frame(height: 240)
                             .chartLegend(.hidden)
