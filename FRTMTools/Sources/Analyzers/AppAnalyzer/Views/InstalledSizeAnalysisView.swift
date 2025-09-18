@@ -67,6 +67,12 @@ struct InstalledSizeAnalysisView: View {
         .frame(maxWidth: .infinity, minHeight: 100, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .alert(item: $viewModel.sizeAnalysisAlert) { alert in
+            Alert(
+                title: Text(alert.title),
+                message: Text(alert.message),
+                dismissButton: .default(Text("OK"))
+            )
+        }
     }
 }
-

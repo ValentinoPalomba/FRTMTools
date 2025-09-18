@@ -36,7 +36,7 @@ public enum IPASizeError: LocalizedError {
         case .couldNotParseAppSize:
             return "Could not parse the command output to calculate the app size."
         case .shellCommandFailed(let command, let exitCode, let message):
-            return "The shell command '\(command)' failed with code \(exitCode): \(message)"
+            return "The shell command '\(command)'\n\nfailed with code \(exitCode): \(message)"
         }
     }
 }
