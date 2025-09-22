@@ -109,7 +109,7 @@ class DeadCodeViewModel: ObservableObject {
         let grouped = Dictionary(grouping: filtered, by: { $0.kind })
         self.resultsByKind = grouped.map { kind, results in
             DeadCodeGroup(kind: kind, results: results)
-        }.sorted { $0.results.count > $1.results.count }.sorted { $0.id > $1.id }
+        }.sorted { $0.results.count > $1.results.count }
     }
     
     // MARK: - Scanning Logic

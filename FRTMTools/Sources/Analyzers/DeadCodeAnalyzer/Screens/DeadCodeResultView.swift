@@ -200,24 +200,20 @@ struct DeadCodeCollapsibleSection: View {
     }
     
     
+
     func openInXcode(location: String) {
         let components = location.split(separator: ":")
         guard components.count >= 2 else { return }
+
         let path = String(components[0])
-        
         guard let line = Int(components[1]) else { return }
-        
-        guard var urlComponents = URLComponents(string: "xcode://open") else { return }
-        urlComponents.queryItems = [
-            URLQueryItem(name: "file", value: path),
-            URLQueryItem(name: "line", value: String(line))
-        ]
-        
-        if let url = urlComponents.url {
-            NSWorkspace.shared.open(url)
-        }
-        
+
+        let task = Process()
+        task.launchPath = "/usr/bin/xed"
+        task.arguments = ["-l", "\(line)", path]
+        try? task.run()
     }
+
 }
 
 struct DeadCodeGroup: Identifiable {

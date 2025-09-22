@@ -8,6 +8,7 @@ import Indexer
 import SourceGraph
 import ProjectDrivers
 import Logger
+
 class DeadCodeScanner {
     private let configuration: Configuration
     private let logger: Logger
