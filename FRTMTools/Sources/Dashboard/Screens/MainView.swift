@@ -7,12 +7,13 @@ struct MainView: View {
     @StateObject private var ipaViewModel = IPAViewModel()
     @StateObject private var unusedAssetsViewModel = UnusedAssetsViewModel()
     @StateObject private var securityScannerViewModel = SecurityScannerViewModel()
+    @StateObject private var deadCodeViewModel = DeadCodeViewModel()
     
     enum Tool: String, Hashable, Identifiable {
         case ipaAnalyzer = "IPA Analyzer"
         case unusedAssets = "Unused Assets Analyzer"
         case securityScanner = "Security Scanner"
-
+        case deadCodeSanner = "Dead Code Sanner"
         var id: String { rawValue }
     }
 
@@ -25,6 +26,8 @@ struct MainView: View {
                     .tag(Tool.unusedAssets)
                 Label("Security Scanner", systemImage: "shield.lefthalf.filled")
                     .tag(Tool.securityScanner)
+                Label("Dead Code Scanner", systemImage: "shield.lefthalf.filled")
+                    .tag(Tool.deadCodeSanner)
             }
             .listStyle(.sidebar)
             .navigationTitle("FRTM Tools")
@@ -36,6 +39,8 @@ struct MainView: View {
                 UnusedAssetsContentView(viewModel: unusedAssetsViewModel)
             case .securityScanner:
                 SecurityScannerContentView(viewModel: securityScannerViewModel)
+            case .deadCodeSanner:
+                DeadCodeContentView(viewModel: deadCodeViewModel)
             case .none:
                 Text("Select an item to see details.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -48,6 +53,8 @@ struct MainView: View {
                 UnusedAssetsResultView(viewModel: unusedAssetsViewModel)
             case .securityScanner:
                     SecurityScannerResultView(viewModel: securityScannerViewModel)
+            case .deadCodeSanner:
+                    DeadCodeResultView(viewModel: deadCodeViewModel)
             case .none:
                 Text("Select an item to see details.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -71,6 +78,17 @@ struct MainView: View {
                     style: .indeterminate,
                     title: "Analyzing project...",
                     subtitle: "Finding unused assets...",
+                    showsCancel: false,
+                    cancelAction: nil
+                )
+        })
+        .loaderOverlay(
+            isPresented: $deadCodeViewModel.isLoading,
+            content: {
+                LoaderView(
+                    style: .indeterminate,
+                    title: "Analyzing project...",
+                    subtitle: "Finding dead code...",
                     showsCancel: false,
                     cancelAction: nil
                 )
