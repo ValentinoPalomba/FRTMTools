@@ -7,14 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		E67072D42E812823004869AB /* PeripheryKit in Frameworks */ = {isa = PBXBuildFile; productRef = E67072D32E812823004869AB /* PeripheryKit */; };
-		E67072D62E812823004869AB /* ProjectDrivers in Frameworks */ = {isa = PBXBuildFile; productRef = E67072D52E812823004869AB /* ProjectDrivers */; };
+		E67072FE2E813001004869AB /* PeripheryKit in Frameworks */ = {isa = PBXBuildFile; productRef = E67072FD2E813001004869AB /* PeripheryKit */; };
+		E67073002E813001004869AB /* ProjectDrivers in Frameworks */ = {isa = PBXBuildFile; productRef = E67072FF2E813001004869AB /* ProjectDrivers */; };
 		E6AE4BF82E707B4200C1F2F8 /* FengNiaoKit in Frameworks */ = {isa = PBXBuildFile; productRef = E6AE4BF72E707B4200C1F2F8 /* FengNiaoKit */; };
-		E6B370662E6886C6005F365C /* MLXEmbedders in Frameworks */ = {isa = PBXBuildFile; productRef = E6B370652E6886C6005F365C /* MLXEmbedders */; };
-		E6B370682E6886C6005F365C /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = E6B370672E6886C6005F365C /* MLXLLM */; };
-		E6B3706A2E6886C6005F365C /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = E6B370692E6886C6005F365C /* MLXLMCommon */; };
-		E6B3706C2E6886C6005F365C /* MLXMNIST in Frameworks */ = {isa = PBXBuildFile; productRef = E6B3706B2E6886C6005F365C /* MLXMNIST */; };
-		E6B3706E2E6886C6005F365C /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = E6B3706D2E6886C6005F365C /* MLXVLM */; };
 		E6B372492E6AC55C005F365C /* FRTMCore in Frameworks */ = {isa = PBXBuildFile; productRef = E6B372482E6AC55C005F365C /* FRTMCore */; };
 /* End PBXBuildFile section */
 
@@ -32,7 +27,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		E67072D02E8127BE004869AB /* Network.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Network.framework; path = System/Library/Frameworks/Network.framework; sourceTree = SDKROOT; };
 		E6EDE3D12E679CC300310565 /* FRTMTools.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FRTMTools.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -83,35 +77,21 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E6B3706E2E6886C6005F365C /* MLXVLM in Frameworks */,
-				E6B3706C2E6886C6005F365C /* MLXMNIST in Frameworks */,
-				E6B370682E6886C6005F365C /* MLXLLM in Frameworks */,
-				E67072D42E812823004869AB /* PeripheryKit in Frameworks */,
+				E67072FE2E813001004869AB /* PeripheryKit in Frameworks */,
 				E6AE4BF82E707B4200C1F2F8 /* FengNiaoKit in Frameworks */,
-				E67072D62E812823004869AB /* ProjectDrivers in Frameworks */,
-				E6B3706A2E6886C6005F365C /* MLXLMCommon in Frameworks */,
+				E67073002E813001004869AB /* ProjectDrivers in Frameworks */,
 				E6B372492E6AC55C005F365C /* FRTMCore in Frameworks */,
-				E6B370662E6886C6005F365C /* MLXEmbedders in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		E67072CF2E8127BE004869AB /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				E67072D02E8127BE004869AB /* Network.framework */,
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
 		E6EDE3C82E679CC300310565 = {
 			isa = PBXGroup;
 			children = (
 				E6EDE3D32E679CC400310565 /* FRTMTools */,
 				E6E5F1332E7AE90E000919D5 /* ExternalFrameworks */,
-				E67072CF2E8127BE004869AB /* Frameworks */,
 				E6EDE3D22E679CC300310565 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -146,15 +126,10 @@
 			);
 			name = FRTMTools;
 			packageProductDependencies = (
-				E6B370652E6886C6005F365C /* MLXEmbedders */,
-				E6B370672E6886C6005F365C /* MLXLLM */,
-				E6B370692E6886C6005F365C /* MLXLMCommon */,
-				E6B3706B2E6886C6005F365C /* MLXMNIST */,
-				E6B3706D2E6886C6005F365C /* MLXVLM */,
 				E6B372482E6AC55C005F365C /* FRTMCore */,
 				E6AE4BF72E707B4200C1F2F8 /* FengNiaoKit */,
-				E67072D32E812823004869AB /* PeripheryKit */,
-				E67072D52E812823004869AB /* ProjectDrivers */,
+				E67072FD2E813001004869AB /* PeripheryKit */,
+				E67072FF2E813001004869AB /* ProjectDrivers */,
 			);
 			productName = ipaAnalyzer;
 			productReference = E6EDE3D12E679CC300310565 /* FRTMTools.app */;
@@ -185,10 +160,9 @@
 			mainGroup = E6EDE3C82E679CC300310565;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				E6B370642E6886C6005F365C /* XCRemoteSwiftPackageReference "mlx-swift-examples" */,
 				E6B372472E6AC55C005F365C /* XCRemoteSwiftPackageReference "FRTMCore" */,
 				E6AE4BF62E707B4200C1F2F8 /* XCRemoteSwiftPackageReference "FengNiao" */,
-				E67072D22E812823004869AB /* XCRemoteSwiftPackageReference "frtm_periphery" */,
+				E67072FC2E813001004869AB /* XCRemoteSwiftPackageReference "frtm_periphery" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E6EDE3D22E679CC300310565 /* Products */;
@@ -277,7 +251,7 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = macosx15.1;
+				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -332,7 +306,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				SDKROOT = macosx15.1;
+				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;
@@ -469,7 +443,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		E67072D22E812823004869AB /* XCRemoteSwiftPackageReference "frtm_periphery" */ = {
+		E67072FC2E813001004869AB /* XCRemoteSwiftPackageReference "frtm_periphery" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ValentinoPalomba/frtm_periphery.git";
 			requirement = {
@@ -485,14 +459,6 @@
 				kind = branch;
 			};
 		};
-		E6B370642E6886C6005F365C /* XCRemoteSwiftPackageReference "mlx-swift-examples" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ml-explore/mlx-swift-examples.git";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
 		E6B372472E6AC55C005F365C /* XCRemoteSwiftPackageReference "FRTMCore" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ValentinoPalomba/FRTMCore.git";
@@ -504,45 +470,20 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		E67072D32E812823004869AB /* PeripheryKit */ = {
+		E67072FD2E813001004869AB /* PeripheryKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E67072D22E812823004869AB /* XCRemoteSwiftPackageReference "frtm_periphery" */;
+			package = E67072FC2E813001004869AB /* XCRemoteSwiftPackageReference "frtm_periphery" */;
 			productName = PeripheryKit;
 		};
-		E67072D52E812823004869AB /* ProjectDrivers */ = {
+		E67072FF2E813001004869AB /* ProjectDrivers */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E67072D22E812823004869AB /* XCRemoteSwiftPackageReference "frtm_periphery" */;
+			package = E67072FC2E813001004869AB /* XCRemoteSwiftPackageReference "frtm_periphery" */;
 			productName = ProjectDrivers;
 		};
 		E6AE4BF72E707B4200C1F2F8 /* FengNiaoKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = E6AE4BF62E707B4200C1F2F8 /* XCRemoteSwiftPackageReference "FengNiao" */;
 			productName = FengNiaoKit;
-		};
-		E6B370652E6886C6005F365C /* MLXEmbedders */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E6B370642E6886C6005F365C /* XCRemoteSwiftPackageReference "mlx-swift-examples" */;
-			productName = MLXEmbedders;
-		};
-		E6B370672E6886C6005F365C /* MLXLLM */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E6B370642E6886C6005F365C /* XCRemoteSwiftPackageReference "mlx-swift-examples" */;
-			productName = MLXLLM;
-		};
-		E6B370692E6886C6005F365C /* MLXLMCommon */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E6B370642E6886C6005F365C /* XCRemoteSwiftPackageReference "mlx-swift-examples" */;
-			productName = MLXLMCommon;
-		};
-		E6B3706B2E6886C6005F365C /* MLXMNIST */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E6B370642E6886C6005F365C /* XCRemoteSwiftPackageReference "mlx-swift-examples" */;
-			productName = MLXMNIST;
-		};
-		E6B3706D2E6886C6005F365C /* MLXVLM */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E6B370642E6886C6005F365C /* XCRemoteSwiftPackageReference "mlx-swift-examples" */;
-			productName = MLXVLM;
 		};
 		E6B372482E6AC55C005F365C /* FRTMCore */ = {
 			isa = XCSwiftPackageProductDependency;
