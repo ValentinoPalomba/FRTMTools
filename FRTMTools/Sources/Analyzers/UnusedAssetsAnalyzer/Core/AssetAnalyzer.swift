@@ -18,7 +18,7 @@ final class UnusedAssetsAnalyzer: Analyzer {
         
         let fengNiao = FengNiao(
             projectPath: url.path(),
-            excludedPaths: [],
+            excludedPaths: ["Pods"],
             resourceExtensions: AssetType.allCases.map({ $0.rawValue }),
             searchInFileExtensions: ["h", "m", "mm", "swift", "xib", "storyboard", "plist", "json"]
         )
