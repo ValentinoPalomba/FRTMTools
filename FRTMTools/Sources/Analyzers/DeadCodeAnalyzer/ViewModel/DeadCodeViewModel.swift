@@ -49,6 +49,9 @@ class DeadCodeViewModel: ObservableObject {
     @Published var filteredResults: [SerializableDeadCodeResult] = []
     @Published var resultsByKind: [DeadCodeGroup] = []
     
+    // Sequence token to ensure only the most recent async update applies
+    private var updateSequence: Int = 0
+    
     // Schemes for a selected project before scanning
     @Published var schemes: [String] = []
     @Published var selectedScheme: String?
@@ -92,24 +95,36 @@ class DeadCodeViewModel: ObservableObject {
 
     // MARK: - Data Processing
     private func updateFilteredAndGroupedResults() {
-        guard let results = selectedAnalysis?.results else {
-            self.filteredResults = []
-            self.resultsByKind = []
-            return
+        // Bump sequence to invalidate any in-flight assignments
+        updateSequence &+= 1
+        let currentSequence = updateSequence
+
+        // Compute new values synchronously
+        let newFilteredResults: [SerializableDeadCodeResult]
+        let newResultsByKind: [DeadCodeGroup]
+
+        if let results = selectedAnalysis?.results {
+            let filtered = results.filter { result in
+                selectedKinds.contains(result.kind) &&
+                selectedAccessibilities.contains(where: { result.accessibility == $0.rawValue })
+            }
+            newFilteredResults = filtered
+
+            let grouped = Dictionary(grouping: filtered, by: { $0.kind })
+            newResultsByKind = grouped.map { kind, results in
+                DeadCodeGroup(kind: kind, results: results)
+            }.sorted { $0.results.count > $1.results.count }
+        } else {
+            newFilteredResults = []
+            newResultsByKind = []
         }
 
-        let filtered = results.filter { result in
-            selectedKinds.contains(result.kind) &&
-            selectedAccessibilities
-                .contains(where: {
-                    result.accessibility == $0.rawValue })
+        // Defer publishing to avoid changing @Published properties during view updates
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, self.updateSequence == currentSequence else { return }
+            self.filteredResults = newFilteredResults
+            self.resultsByKind = newResultsByKind
         }
-        self.filteredResults = filtered
-
-        let grouped = Dictionary(grouping: filtered, by: { $0.kind })
-        self.resultsByKind = grouped.map { kind, results in
-            DeadCodeGroup(kind: kind, results: results)
-        }.sorted { $0.results.count > $1.results.count }
     }
     
     // MARK: - Scanning Logic
