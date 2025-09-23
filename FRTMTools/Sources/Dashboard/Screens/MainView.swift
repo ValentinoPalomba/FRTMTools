@@ -26,7 +26,7 @@ struct MainView: View {
                     .tag(Tool.unusedAssets)
                 Label("Security Scanner", systemImage: "shield.lefthalf.filled")
                     .tag(Tool.securityScanner)
-                Label("Dead Code Scanner", systemImage: "shield.lefthalf.filled")
+                Label("Dead Code Scanner", systemImage: "text.magnifyingglass")
                     .tag(Tool.deadCodeSanner)
             }
             .listStyle(.sidebar)
