@@ -16,19 +16,22 @@ class DeadCodeScanner {
 
     init() {
         self.configuration = Configuration()
-        self.logger = Logger(verbose: false)
+        self.logger = Logger(verbose: true)
         self.shell = Shell(logger: self.logger)
         configuration.excludeTests = true
         configuration.retainPublic = false
-        configuration.indexExclude = ["Pods"]
+        configuration.indexExclude = ["**/Pods/**"]
         configuration.excludeTargets = ["Pods"]
-        configuration.indexExcludeMatchers = [.init(pattern: "Pods-.*")]
+        configuration.reportExclude = ["**/Pods/**"]
+        configuration.apply(\.$excludeTests, true)
+        configuration.apply(\.$excludeTargets, ["Pods"])
+        configuration.apply(\.$indexExclude, ["**/Pods/**"])
+        configuration.apply(\.$reportExclude, ["**/Pods/**"])
+        configuration.buildArguments
+        configuration.buildFilenameMatchers()
     }
     
     func listSchemes(for projectPath: URL) throws -> [String] {
-        
-        
-        
         if projectPath.pathExtension == "xcodeproj" {
             let project = try XcodeProject(
                 path: .makeAbsolute(projectPath.path()),
