@@ -18,6 +18,11 @@ FRTMTools is not just a tool; it's your secret weapon. A powerful macOS applicat
 *Find forgotten assets bloating your app. This feature scans your project to identify and help you remove unused resources.*
 ![Unused Asset Hunter](UnusedAsset.png)
 
+### 💀 Dead Code Scanner
+*Hunt down and eliminate unused code. This powerful scanner analyzes your source files to find dead code, helping you clean up your project and reduce its size.*
+
+### 🛡️ Security Scanner
+*Proactively scan your application for common security vulnerabilities. Get a detailed report of potential risks and take action to secure your app before it ships.*
 
 ## 🔥 More Features
 
@@ -36,6 +41,7 @@ FRTMTools is not just a tool; it's your secret weapon. A powerful macOS applicat
 
 *   **Swift & SwiftUI:** Forged with modern Apple technologies for a buttery-smooth experience on macOS.
 *   **Combine:** For a reactive and declarative data flow that just works.
+*   **Periphery:** Leverages a fork of the powerful [Periphery](https://github.com/peripheryapp/periphery) tool for high-precision dead code analysis.
 
 ## 👥 Contributors
 
