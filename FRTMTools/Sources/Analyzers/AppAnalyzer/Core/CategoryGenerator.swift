@@ -102,3 +102,6 @@ class CategoryGenerator {
         return categories.sorted { $0.totalSize > $1.totalSize }
     }
 }
+
+
+
