@@ -132,4 +132,24 @@ class IPAViewModel: ObservableObject {
             analyzeFile(url)
         }
     }
+    
+    func revealAnalysesJSONInFinder() {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let appDirectory = appSupport.appendingPathComponent("FRTMTools")
+        let jsonURL = appDirectory.appendingPathComponent("\(persistenceKey).json")
+
+        if !FileManager.default.fileExists(atPath: appDirectory.path) {
+            try? FileManager.default.createDirectory(at: appDirectory, withIntermediateDirectories: true)
+        }
+
+        if !FileManager.default.fileExists(atPath: jsonURL.path) {
+            print("[DEBUG] ipa_analyses.json not found")
+        }
+
+        if FileManager.default.fileExists(atPath: jsonURL.path) {
+            NSWorkspace.shared.activateFileViewerSelecting([jsonURL])
+        } else {
+            NSWorkspace.shared.activateFileViewerSelecting([appDirectory])
+        }
+    }
 }
