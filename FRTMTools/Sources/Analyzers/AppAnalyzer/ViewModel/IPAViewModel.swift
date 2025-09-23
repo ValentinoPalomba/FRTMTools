@@ -26,13 +26,26 @@ class IPAViewModel: ObservableObject {
     }
 
     func loadAnalyses() {
-        self.analyses = persistenceManager.load(key: persistenceKey)
+        ensureAnalysesDirectoryExists()
+
+        let fm = FileManager.default
+        let dir = analysesDirectoryURL
+        var loaded: [IPAAnalysis] = []
+
+        if let files = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) {
+            for file in files where file.pathExtension.lowercased() == "json" {
+                if let data = try? Data(contentsOf: file), let item = try? JSONDecoder().decode(IPAAnalysis.self, from: data) {
+                    loaded.append(item)
+                }
+            }
+        }
+
+        self.analyses = loaded
+
         if let first = self.analyses.first {
             self.selectedUUID = first.id
         }
     }
-    
-    
     
     func analyzeSize() {
         Task { @MainActor in
@@ -76,7 +89,14 @@ class IPAViewModel: ObservableObject {
     }
     
     func saveAnalyses() {
-        persistenceManager.save(analyses, key: persistenceKey)
+        ensureAnalysesDirectoryExists()
+
+        let fm = FileManager.default
+        let ids = Set(analyses.map { $0.id.uuidString })
+
+        for analysis in analyses {
+            saveAnalysis(analysis)
+        }
     }
 
     func analyzeFile(_ url: URL) {
@@ -103,8 +123,17 @@ class IPAViewModel: ObservableObject {
     }
     
     func deleteAnalysis(at offsets: IndexSet) {
+        let fm = FileManager.default
+        let toDelete = offsets.map { analyses[$0] }
+
+        // Remove files from disk
+        for analysis in toDelete {
+            let url = fileURL(forAnalysisID: analysis.id)
+            try? fm.removeItem(at: url)
+        }
+
+        // Remove from memory
         analyses.remove(atOffsets: offsets)
-        saveAnalyses()
     }
 
     func toggleSelection(_ id: UUID) {
@@ -134,22 +163,65 @@ class IPAViewModel: ObservableObject {
     }
     
     func revealAnalysesJSONInFinder() {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let appDirectory = appSupport.appendingPathComponent("FRTMTools")
-        let jsonURL = appDirectory.appendingPathComponent("\(persistenceKey).json")
+        if let selected = analyses.first(where: { $0.id == selectedUUID }) {
+            revealAnalysisJSONInFinder(selected.id)
+            return
+        }
+        ensureAnalysesDirectoryExists()
+        NSWorkspace.shared.activateFileViewerSelecting([analysesDirectoryURL])
+    }
+    
+    
+    // MARK: - Persistence helpers
 
-        if !FileManager.default.fileExists(atPath: appDirectory.path) {
-            try? FileManager.default.createDirectory(at: appDirectory, withIntermediateDirectories: true)
+    private var appSupportDirectory: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+    }
+
+    private var appDirectory: URL {
+        appSupportDirectory.appendingPathComponent("FRTMTools", isDirectory: true)
+    }
+
+    private var analysesDirectoryURL: URL {
+        appDirectory.appendingPathComponent(persistenceKey, isDirectory: true)
+    }
+
+    private func ensureAnalysesDirectoryExists() {
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: appDirectory.path) {
+            try? fm.createDirectory(at: appDirectory, withIntermediateDirectories: true)
+        }
+        if !fm.fileExists(atPath: analysesDirectoryURL.path) {
+            try? fm.createDirectory(at: analysesDirectoryURL, withIntermediateDirectories: true)
+        }
+    }
+
+    private func fileURL(forAnalysisID id: UUID) -> URL {
+        analysesDirectoryURL.appendingPathComponent("\(id.uuidString).json")
+    }
+
+    private func saveAnalysis(_ analysis: IPAAnalysis) {
+        ensureAnalysesDirectoryExists()
+        let url = fileURL(forAnalysisID: analysis.id)
+        if let data = try? JSONEncoder().encode(analysis) {
+            try? data.write(to: url, options: .atomic)
+        }
+    }
+
+    func revealAnalysisJSONInFinder(_ id: UUID) {
+        ensureAnalysesDirectoryExists()
+        let url = fileURL(forAnalysisID: id)
+
+        if !FileManager.default.fileExists(atPath: url.path), let analysis = analyses.first(where: { $0.id == id }) {
+            // Create the file on demand if missing
+            saveAnalysis(analysis)
         }
 
-        if !FileManager.default.fileExists(atPath: jsonURL.path) {
-            print("[DEBUG] ipa_analyses.json not found")
-        }
-
-        if FileManager.default.fileExists(atPath: jsonURL.path) {
-            NSWorkspace.shared.activateFileViewerSelecting([jsonURL])
+        if FileManager.default.fileExists(atPath: url.path) {
+            NSWorkspace.shared.activateFileViewerSelecting([url])
         } else {
-            NSWorkspace.shared.activateFileViewerSelecting([appDirectory])
+            NSWorkspace.shared.activateFileViewerSelecting([analysesDirectoryURL])
         }
     }
 }
+
