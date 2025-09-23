@@ -18,9 +18,17 @@ class DeadCodeScanner {
         self.configuration = Configuration()
         self.logger = Logger(verbose: false)
         self.shell = Shell(logger: self.logger)
+        configuration.excludeTests = true
+        configuration.retainPublic = false
+        configuration.indexExclude = ["Pods"]
+        configuration.excludeTargets = ["Pods"]
+        configuration.indexExcludeMatchers = [.init(pattern: "Pods-.*")]
     }
     
     func listSchemes(for projectPath: URL) throws -> [String] {
+        
+        
+        
         if projectPath.pathExtension == "xcodeproj" {
             let project = try XcodeProject(
                 path: .makeAbsolute(projectPath.path()),
@@ -46,7 +54,7 @@ class DeadCodeScanner {
             )
             
             let schemes = try project.schemes(additionalArguments: [])
-            return Array(schemes)
+            return Array(schemes).sorted()
         }
         
         throw NSError(domain: "NO SCHEMES", code: 001)
@@ -55,11 +63,6 @@ class DeadCodeScanner {
     func scan(projectPath: String, scheme: String) throws -> [ScanResult] {
         configuration.skipBuild = false
         configuration.schemes = [scheme]
-        configuration.excludeTests = true
-        configuration.retainPublic = false
-        configuration.indexExclude = ["Pods"]
-        configuration.excludeTargets = ["Pods"]
-        configuration.indexExcludeMatchers = [.init(pattern: "Pods-.*")]
         
         let driver = try XcodeProjectDriver(
             projectPath: .makeAbsolute(projectPath),
