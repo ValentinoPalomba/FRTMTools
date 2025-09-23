@@ -319,7 +319,6 @@ struct AnalysisResultView: View {
 struct AssetCollapsibleSection: View {
     let assetGroup: AssetTypeGroup
     let isExpanded: Bool
-    var viewModel: UnusedAssetsViewModel
     let action: () -> Void
     @ObservedObject var viewModel: UnusedAssetsViewModel
     
@@ -380,11 +379,6 @@ struct AssetCollapsibleSection: View {
                                 .font(.system(.body, design: .monospaced))
                         }
                         .padding(.horizontal)
-                        .contextMenu {
-                            Button("Delete", role: .destructive) {
-                                viewModel.deleteAsset(asset)
-                            }
-                        }
                         Divider()
                     }
                 }
