@@ -55,6 +55,11 @@ class DeadCodeScanner {
     func scan(projectPath: String, scheme: String) throws -> [ScanResult] {
         configuration.skipBuild = false
         configuration.schemes = [scheme]
+        configuration.excludeTests = true
+        configuration.retainPublic = false
+        configuration.indexExclude = ["Pods"]
+        configuration.excludeTargets = ["Pods"]
+        configuration.indexExcludeMatchers = [.init(pattern: "Pods-.*")]
         
         let driver = try XcodeProjectDriver(
             projectPath: .makeAbsolute(projectPath),
