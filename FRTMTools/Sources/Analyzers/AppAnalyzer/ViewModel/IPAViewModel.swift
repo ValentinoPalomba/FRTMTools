@@ -3,7 +3,8 @@ import AppKit
 import UniformTypeIdentifiers
 import FRTMCore
 
-class IPAViewModel: ObservableObject {
+@MainActor
+final class IPAViewModel: ObservableObject {
     
     @Published var analyses: [IPAAnalysis] = []
     @Published var isLoading = false
@@ -15,7 +16,6 @@ class IPAViewModel: ObservableObject {
     
     @Dependency var persistenceManager: PersistenceManager
     @Dependency var analyzer: any Analyzer<IPAAnalysis>
-    var sizeAnalyzer: IPASizeAnalyzer = .init()
     
     private let persistenceKey = "ipa_analyses"
 
@@ -55,11 +55,11 @@ class IPAViewModel: ObservableObject {
             isSizeLoading = true
             sizeAnalysisProgress = ""
             do {
-                let sizeAnalysis = try await sizeAnalyzer.analyze(
+                let sizeAnalysis = try await IPASizeAnalyzer().analyze(
                     ipaPath: analyses[analysis].url.path()
-                ) { sizeAnalysisUpdate in
-                    DispatchQueue.main.async { [weak self] in
-                        self?.sizeAnalysisProgress = sizeAnalysisUpdate
+                ) { @Sendable sizeAnalysisUpdate in
+                    Task { @MainActor in
+                        self.sizeAnalysisProgress = sizeAnalysisUpdate
                     }
                 }
                 
@@ -91,9 +91,6 @@ class IPAViewModel: ObservableObject {
     func saveAnalyses() {
         ensureAnalysesDirectoryExists()
 
-        let fm = FileManager.default
-        let ids = Set(analyses.map { $0.id.uuidString })
-
         for analysis in analyses {
             saveAnalysis(analysis)
         }
@@ -102,22 +99,27 @@ class IPAViewModel: ObservableObject {
     func analyzeFile(_ url: URL) {
         Task { @MainActor in
             isLoading = true
-        }
-        Task(priority: .userInitiated) { [weak self] in
-            guard let self else { return }
-            if let analysis = try await self.analyzer.analyze(at: url) {
-                await MainActor.run {
+            do {
+                if let analysis = try await analyzer.analyze(at: url) {
                     withAnimation {
-                        self.analyses.append(analysis)
-                        self.selectedUUID = analysis.id
-                        self.isLoading = false
-                        self.saveAnalyses() // Save after adding
+                        analyses.append(analysis)
+                        selectedUUID = analysis.id
+                        saveAnalyses()
+                        isLoading = false
                     }
                 }
-            } else {
-                await MainActor.run {
-                    self.isLoading = false
+            } catch {
+                let message: String
+                if let localizedError = error as? LocalizedError, let description = localizedError.errorDescription, !description.isEmpty {
+                    message = description
+                } else {
+                    message = error.localizedDescription
                 }
+                sizeAnalysisAlert = AlertContent(
+                    title: "App analysis Failed",
+                    message: message
+                )
+                isLoading = false
             }
         }
     }
