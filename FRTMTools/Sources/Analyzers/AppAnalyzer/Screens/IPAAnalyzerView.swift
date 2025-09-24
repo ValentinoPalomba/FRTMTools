@@ -32,6 +32,11 @@ struct IPAAnalyzerContentView: View {
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
+                            Button {
+                                viewModel.revealAnalysesJSONInFinder()
+                            } label: {
+                                Label("Show in Finder", systemImage: "folder")
+                            }
                         }
                         .animation(.spring(), value: viewModel.selectedUUID)
                 }
@@ -96,3 +101,4 @@ struct IPAAnalyzerDetailView: View {
         }
     }
 }
+

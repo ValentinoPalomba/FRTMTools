@@ -24,10 +24,10 @@ struct UnusedAssetsContentView: View {
                         .padding()
                     }
                     .contextMenu {
-                        Button("Re-analyze") {
+                        Button("Re-analyze", systemImage: "arrow.clockwise") {
                             viewModel.analyzeProject(at: URL(fileURLWithPath: analysis.projectPath), overwriting: analysis.id)
                         }
-                        Button("Delete", role: .destructive) {
+                        Button("Delete", systemImage: "trash", role: .destructive) {
                             viewModel.deleteAnalysis(analysis)
                         }
                     }
@@ -305,9 +305,9 @@ struct AnalysisResultView: View {
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: 350)
-                Button("Re-analyze Project", action: {
+                Button("Re-analyze Project", systemImage: "arrow.clockwise") {
                     viewModel.analyzeProject(at: URL(fileURLWithPath: result.projectPath), overwriting: result.id)
-                })
+                }
                 .controlSize(.large)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
