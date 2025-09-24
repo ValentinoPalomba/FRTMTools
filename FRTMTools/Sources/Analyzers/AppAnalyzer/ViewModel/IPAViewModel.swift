@@ -18,6 +18,12 @@ final class IPAViewModel: ObservableObject {
     @Dependency var persistenceManager: PersistenceManager
     @Dependency var analyzer: any Analyzer<IPAAnalysis>
     
+    // Off-main persistence actor for file I/O
+    private lazy var fileStore = IPAFileStore(
+        appDirectory: appDirectory,
+        analysesDirectoryURL: analysesDirectoryURL
+    )
+    
     private let persistenceKey = "ipa_analyses"
 
     var groupedAnalyses: [String: [IPAAnalysis]] {
@@ -42,24 +48,16 @@ final class IPAViewModel: ObservableObject {
     }
 
     func loadAnalyses() {
-        ensureAnalysesDirectoryExists()
-
-        let fm = FileManager.default
-        let dir = analysesDirectoryURL
-        var loaded: [IPAAnalysis] = []
-
-        if let files = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) {
-            for file in files where file.pathExtension.lowercased() == "json" {
-                if let data = try? Data(contentsOf: file), let item = try? JSONDecoder().decode(IPAAnalysis.self, from: data) {
-                    loaded.append(item)
+        Task { @MainActor in
+            do {
+                let loaded = try await fileStore.loadAnalyses()
+                self.analyses = loaded
+                if let first = self.analyses.first {
+                    self.selectedUUID = first.id
                 }
+            } catch {
+                print("Failed to load analyses: \(error)")
             }
-        }
-
-        self.analyses = loaded
-
-        if let first = self.analyses.first {
-            self.selectedUUID = first.id
         }
     }
     
@@ -70,6 +68,7 @@ final class IPAViewModel: ObservableObject {
             }
             isSizeLoading = true
             sizeAnalysisProgress = ""
+            defer { isSizeLoading = false }
             do {
                 let sizeAnalysis = try await IPASizeAnalyzer().analyze(
                     ipaPath: analyses[analysis].url.path()
@@ -78,16 +77,15 @@ final class IPAViewModel: ObservableObject {
                         self.sizeAnalysisProgress = sizeAnalysisUpdate
                     }
                 }
-                
+
                 analyses[analysis].installedSize = IPAAnalysis.InstalledSize(
                     total: sizeAnalysis.sizeInMB,
                     binaries: sizeAnalysis.appBinariesInMB,
                     frameworks: sizeAnalysis.frameworksInMB,
                     resources: sizeAnalysis.resourcesInMB
                 )
-                
-                saveAnalyses()
-                isSizeLoading = false
+
+                try await fileStore.saveAnalyses(self.analyses)
             } catch {
                 let message: String
                 if let localizedError = error as? LocalizedError, let description = localizedError.errorDescription, !description.isEmpty {
@@ -99,30 +97,31 @@ final class IPAViewModel: ObservableObject {
                     title: "Size Analysis Failed",
                     message: message
                 )
-                isSizeLoading = false
             }
         }
     }
     
     func saveAnalyses() {
-        ensureAnalysesDirectoryExists()
-
-        for analysis in analyses {
-            saveAnalysis(analysis)
+        Task { @MainActor in
+            do {
+                try await fileStore.saveAnalyses(self.analyses)
+            } catch {
+                print("Failed to save analyses: \(error)")
+            }
         }
     }
 
     func analyzeFile(_ url: URL) {
         Task { @MainActor in
             isLoading = true
+            defer { isLoading = false }
             do {
                 if let analysis = try await analyzer.analyze(at: url) {
                     withAnimation {
                         analyses.append(analysis)
                         selectedUUID = analysis.id
-                        saveAnalyses()
-                        isLoading = false
                     }
+                    try await fileStore.saveAnalyses(self.analyses)
                 }
             } catch {
                 let message: String
@@ -132,26 +131,22 @@ final class IPAViewModel: ObservableObject {
                     message = error.localizedDescription
                 }
                 sizeAnalysisAlert = AlertContent(
-                    title: "App analysis Failed",
+                    title: "App Analysis Failed",
                     message: message
                 )
-                isLoading = false
             }
         }
     }
     
     func deleteAnalysis(at offsets: IndexSet) {
-        let fm = FileManager.default
         let toDelete = offsets.map { analyses[$0] }
 
-        // Remove files from disk
-        for analysis in toDelete {
-            let url = fileURL(forAnalysisID: analysis.id)
-            try? fm.removeItem(at: url)
+        Task { @MainActor in
+            for analysis in toDelete {
+                try? await fileStore.deleteAnalysis(id: analysis.id)
+            }
+            analyses.remove(atOffsets: offsets)
         }
-
-        // Remove from memory
-        analyses.remove(atOffsets: offsets)
     }
 
     func toggleSelection(_ id: UUID) {
@@ -242,4 +237,3 @@ final class IPAViewModel: ObservableObject {
         }
     }
 }
-

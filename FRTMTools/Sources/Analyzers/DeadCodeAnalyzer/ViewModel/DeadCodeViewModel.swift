@@ -119,8 +119,8 @@ class DeadCodeViewModel: ObservableObject {
         }
 
         // Defer publishing to avoid changing @Published properties during view updates
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self, self.updateSequence == currentSequence else { return }
+        Task { @MainActor in
+            guard self.updateSequence == currentSequence else { return }
             self.filteredResults = newFilteredResults
             self.resultsByKind = newResultsByKind
         }
@@ -180,7 +180,7 @@ class DeadCodeViewModel: ObservableObject {
     
     private func loadSchemes(for projectURL: URL) {
         isLoadingSchemes = true
-        Task.detached(priority: .userInitiated) {
+        Task(priority: .userInitiated) {
             do {
                 let schemes = try DeadCodeScanner().listSchemes(for: projectURL)
                 await MainActor.run {
@@ -210,7 +210,7 @@ class DeadCodeViewModel: ObservableObject {
         let projectPath = projectURL.path
         let selectedScheme = scheme
 
-        Task.detached(priority: .userInitiated) {
+        Task(priority: .userInitiated) {
             do {
                 let startTime = Date().timeIntervalSince1970
                 let scanResults = try DeadCodeScanner().scan(
