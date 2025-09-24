@@ -99,6 +99,7 @@ final class IPAAnalyzer: Analyzer {
         
         // Metadata
         let plist = extractInfoPlist(from: layout)
+        let execName = plist?["CFBundleExecutable"] as? String ?? layout.appURL.deletingPathExtension().lastPathComponent
         let version = plist?["CFBundleShortVersionString"] as? String
         let build = plist?["CFBundleVersion"] as? String
         let allowsArbitraryLoads = (plist?["NSAppTransportSecurity"] as? [String: Any])?["NSAllowsArbitraryLoads"] as? Bool ?? false
@@ -113,6 +114,7 @@ final class IPAAnalyzer: Analyzer {
         return IPAAnalysis(
             url: layout.appURL,
             fileName: originalFileName,
+            executableName: execName,
             rootFile: rootFile,
             image: icon,
             version: version,
