@@ -27,7 +27,6 @@ class DeadCodeScanner {
         configuration.apply(\.$excludeTargets, ["Pods"])
         configuration.apply(\.$indexExclude, ["**/Pods/**"])
         configuration.apply(\.$reportExclude, ["**/Pods/**"])
-        configuration.buildArguments
         configuration.buildFilenameMatchers()
     }
     
