@@ -12,12 +12,28 @@ class IPAViewModel: ObservableObject {
     @Published var selectedUUID = UUID()
     @Published var sizeAnalysisProgress = ""
     @Published var sizeAnalysisAlert: AlertContent?
+    @Published var expandedExecutables: Set<String> = []
     
     @Dependency var persistenceManager: PersistenceManager
     @Dependency var analyzer: any Analyzer<IPAAnalysis>
     var sizeAnalyzer: IPASizeAnalyzer = .init()
     
     private let persistenceKey = "ipa_analyses"
+
+    var groupedAnalyses: [String: [IPAAnalysis]] {
+        let grouped = Dictionary(grouping: analyses, by: { $0.executableName ?? $0.fileName })
+        return grouped.mapValues { analyses in
+            analyses.sorted {
+                let versionA = $0.version ?? "0"
+                let versionB = $1.version ?? "0"
+                return versionA.compare(versionB, options: .numeric) == .orderedDescending
+            }
+        }
+    }
+
+    var sortedGroupKeys: [String] {
+        groupedAnalyses.keys.sorted()
+    }
 
     struct AlertContent: Identifiable {
         let id = UUID()
