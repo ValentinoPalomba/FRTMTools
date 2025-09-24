@@ -7,7 +7,6 @@ struct DeadCodeResultView: View {
     @ObservedObject var viewModel: DeadCodeViewModel
     @State private var showingFilterSheet = false
     @State private var expandedCodeTypes: Set<String> = []
-
     var body: some View {
         Group {
             if let analysis = viewModel.selectedAnalysis {
@@ -87,6 +86,7 @@ struct DeadCodeResultView: View {
                 selectedAccessibilities: $viewModel.selectedAccessibilities
             )
         }
+        .errorAlert(error: $viewModel.error)
     }
 
     @ViewBuilder

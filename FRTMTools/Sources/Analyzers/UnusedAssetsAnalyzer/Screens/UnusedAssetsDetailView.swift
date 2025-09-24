@@ -393,8 +393,8 @@ struct AssetCollapsibleSection: View {
 }
 
 
-fileprivate extension View {
-    func errorAlert(error: Binding<UnusedAssetsError?>) -> some View {
+extension View {
+    func errorAlert<E: Error>(error: Binding<E?>) -> some View {
         let isPresented = Binding(
             get: { error.wrappedValue != nil },
             set: { if !$0 { error.wrappedValue = nil } }
@@ -407,8 +407,11 @@ fileprivate extension View {
         ) { _ in
             Button("OK") { error.wrappedValue = nil }
         } message: { error in
-            Text(error.errorDescription ?? "An unknown error occurred.")
+            if let error = error as? LocalizedError {
+                Text(error.errorDescription ?? "An unknown error occurred.")
+            } else {
+                Text("An unknown error occurred.")
+            }
         }
     }
 }
-
