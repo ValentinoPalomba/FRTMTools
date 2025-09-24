@@ -11,40 +11,7 @@ struct IPAAnalyzerContentView: View {
     @ObservedObject var viewModel: IPAViewModel
     
     var body: some View {
-        VStack(spacing: 0) {
-            
-            List {
-                ForEach(viewModel.analyses) { analysis in
-                    IPAAnalysisRow(
-                        analysis: analysis,
-                        role: (
-                            viewModel.selectedUUID == analysis.id
-                        ) ? .base : nil
-                    )
-                        .onTapGesture {
-                            viewModel.toggleSelection(analysis.id)
-                        }
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                if let index = viewModel.analyses.firstIndex(where: { $0.id == analysis.id }) {
-                                    viewModel.deleteAnalysis(at: IndexSet(integer: index))
-                                }
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                            Button {
-                                viewModel.revealAnalysesJSONInFinder()
-                            } label: {
-                                Label("Show in Finder", systemImage: "folder")
-                            }
-                        }
-                        .animation(.spring(), value: viewModel.selectedUUID)
-                }
-            }
-            .listRowSeparator(.hidden)
-            .listStyle(.plain)
-            
-        }
+        analysesList
         .navigationTitle("IPA Analyses")
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
@@ -64,6 +31,92 @@ struct IPAAnalyzerContentView: View {
         }
         .onAppear {
             viewModel.loadAnalyses()
+        }
+    }
+    
+    
+    @ViewBuilder
+    var analysesList: some View {
+        ScrollView {
+            LazyVStack {
+                ForEach(viewModel.sortedGroupKeys, id: \.self) { executableName in
+                    DisclosureGroup(
+                        isExpanded: Binding(
+                            get: { viewModel.expandedExecutables.contains(executableName) },
+                            set: { isExpanding in
+                                if isExpanding {
+                                    viewModel.expandedExecutables.insert(executableName)
+                                } else {
+                                    viewModel.expandedExecutables.remove(executableName)
+                                }
+                            }
+                        ),
+                        content: {
+                            analysisRowView(with: executableName)
+                        },
+                        label: {
+                            analysisGroupView(with: executableName)
+                        }
+                    )
+                    .listRowSeparator(.hidden)
+                    .listStyle(.inset)
+                }
+            }
+        }
+        .padding()
+        .listRowSeparator(.hidden)
+    }
+    
+    @ViewBuilder
+    func analysisGroupView(with executableName: String) -> some View {
+        HStack {
+            if let firstAnalysis = viewModel.groupedAnalyses[executableName]?.first, let image = firstAnalysis.image {
+                Image(nsImage: image)
+                    .resizable().scaledToFit().frame(width: 24, height: 24).cornerRadius(5)
+            } else {
+                Image(systemName: "app.box.fill")
+                    .font(.system(size: 24))
+                    .frame(width: 24, height: 24)
+            }
+            VStack(alignment: .leading) {
+                Text(executableName).font(.headline)
+                Text("\(viewModel.groupedAnalyses[executableName]?.count ?? 0) builds")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(4)
+    }
+    
+    @ViewBuilder
+    func analysisRowView(with executableName: String) -> some View {
+        if let analysesForExecutable = viewModel.groupedAnalyses[executableName] {
+            ForEach(analysesForExecutable) { analysis in
+                IPAAnalysisRow(
+                    analysis: analysis,
+                    role: (
+                        viewModel.selectedUUID == analysis.id
+                    ) ? .base : nil
+                )
+                .onTapGesture {
+                    viewModel.toggleSelection(analysis.id)
+                }
+                .contextMenu {
+                    Button(role: .destructive) {
+                        if let index = viewModel.analyses.firstIndex(where: { $0.id == analysis.id }) {
+                            viewModel.deleteAnalysis(at: IndexSet(integer: index))
+                        }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    Button {
+                        viewModel.revealAnalysesJSONInFinder()
+                    } label: {
+                        Label("Show in Finder", systemImage: "folder")
+                    }
+                }
+                .animation(.spring(), value: viewModel.selectedUUID)
+            }
         }
     }
 }
