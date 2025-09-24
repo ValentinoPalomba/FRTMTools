@@ -5,9 +5,9 @@
 //  Created by PALOMBA VALENTINO on 09/09/25.
 //
 
-
+import Foundation
 // MARK: - Errori personalizzati
-enum UnusedAssetsError: Error {
+enum UnusedAssetsError: LocalizedError {
     case bundlePathNotFound
     case sourcePathNotFound(String)
     case fileReadError(String)

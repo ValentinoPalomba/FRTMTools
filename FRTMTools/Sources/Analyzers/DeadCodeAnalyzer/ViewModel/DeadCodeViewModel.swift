@@ -31,7 +31,7 @@ class DeadCodeViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var isLoadingSchemes = false
 
-    @Published var errorMessage: String?
+    @Published var error: Error?
 
     // Filter properties
     @Published var selectedKinds: Set<String> = Set(Declaration.Kind.allCases.map { $0.displayName }) {
@@ -164,7 +164,10 @@ class DeadCodeViewModel: ObservableObject {
             self.selectedScheme = nil
             loadSchemes(for: url)
         } else {
-            self.errorMessage = "Failed to select file"
+            self.error = NSError(
+                domain: "Failed to select project",
+                code: 0
+            )
         }
     }
 
@@ -174,7 +177,7 @@ class DeadCodeViewModel: ObservableObject {
             do {
                 self.schemes = try await Task { try scanner.listSchemes(for: projectURL) }.value
             } catch {
-                self.errorMessage = "Failed to load schemes: \(error.localizedDescription)"
+                self.error = error
             }
         }
     }
@@ -182,12 +185,15 @@ class DeadCodeViewModel: ObservableObject {
     func runScan() {
         isLoadingSchemes = false
         guard let projectURL = projectToScan, let scheme = selectedScheme else {
-            errorMessage = "Project path or scheme not selected."
+            error = NSError(
+                domain: "Project path or scheme not selected.",
+                code: 0
+            )
             return
         }
         
         isLoading = true
-        errorMessage = nil
+        error = nil
 
         DispatchQueue.global(qos: .userInitiated).async {
             do {
@@ -235,7 +241,7 @@ class DeadCodeViewModel: ObservableObject {
                 }
             } catch {
                 DispatchQueue.main.async {
-                    self.errorMessage = "Scan failed: \(error.localizedDescription)"
+                    self.error = error
                     self.isLoading = false
                 }
             }
