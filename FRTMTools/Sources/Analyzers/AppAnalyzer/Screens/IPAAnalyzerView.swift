@@ -103,9 +103,7 @@ struct IPAAnalyzerContentView: View {
                 }
                 .contextMenu {
                     Button(role: .destructive) {
-                        if let index = viewModel.analyses.firstIndex(where: { $0.id == analysis.id }) {
-                            viewModel.deleteAnalysis(at: IndexSet(integer: index))
-                        }
+                        viewModel.deleteAnalysis(withId: analysis.id)
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
@@ -129,7 +127,7 @@ struct IPAAnalyzerDetailView: View {
         Group {
             if viewModel.compareMode {
                 CompareView(analyses: viewModel.analyses)
-            } else if let selected = viewModel.analyses.first(where: { $0.id == viewModel.selectedUUID }) ?? viewModel.analyses.first {
+            } else if let selected = viewModel.selectedAnalysis {
                 DetailView(analysis: selected, ipaViewModel: viewModel)
             } else {
                 VStack(spacing: 12) {

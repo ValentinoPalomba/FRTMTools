@@ -52,9 +52,7 @@ final class IPAAnalyzer: Analyzer {
     func analyze(at url: URL) async throws -> IPAAnalysis? {
         switch url.pathExtension.lowercased() {
         case "ipa":
-                var analysis = analyzeIPA(at: url)
-                analysis?.url = url
-                return analysis
+                return analyzeIPA(at: url)
         case "app":
             return performAnalysisOnAppBundle(appBundleURL: url, originalFileName: url.lastPathComponent)
         default:
@@ -82,7 +80,7 @@ final class IPAAnalyzer: Analyzer {
                 return nil
             }
             
-            return performAnalysisOnAppBundle(appBundleURL: appBundleURL, originalFileName: url.lastPathComponent)
+            return performAnalysisOnAppBundle(appBundleURL: appBundleURL, originalFileName: url.lastPathComponent, originalURL: url)
         } catch {
             print("Error analyzing IPA: \(error)")
             return nil
@@ -91,7 +89,7 @@ final class IPAAnalyzer: Analyzer {
     
     // MARK: - Core analysis
     
-    private func performAnalysisOnAppBundle(appBundleURL: URL, originalFileName: String) -> IPAAnalysis? {
+    private func performAnalysisOnAppBundle(appBundleURL: URL, originalFileName: String, originalURL: URL? = nil) -> IPAAnalysis? {
         let layout = detectLayout(for: appBundleURL)
         
         // Scan resources
@@ -112,7 +110,7 @@ final class IPAAnalyzer: Analyzer {
         }
         
         return IPAAnalysis(
-            url: layout.appURL,
+            url: originalURL ?? layout.appURL,
             fileName: originalFileName,
             executableName: execName,
             rootFile: rootFile,

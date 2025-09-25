@@ -7,7 +7,7 @@ struct IPAAnalysis: Identifiable, Codable {
     let id: UUID
     let fileName: String
     let executableName: String?
-    var url: URL
+    let url: URL
     let rootFile: FileInfo
     let version: String?
     let buildNumber: String?

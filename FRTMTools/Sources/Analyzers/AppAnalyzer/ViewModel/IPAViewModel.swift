@@ -35,6 +35,13 @@ class IPAViewModel: ObservableObject {
         groupedAnalyses.keys.sorted()
     }
 
+    var selectedAnalysis: IPAAnalysis? {
+        if let selected = analyses.first(where: { $0.id == selectedUUID }) {
+            return selected
+        }
+        return analyses.first
+    }
+
     struct AlertContent: Identifiable {
         let id = UUID()
         let title: String
@@ -105,11 +112,6 @@ class IPAViewModel: ObservableObject {
     }
     
     func saveAnalyses() {
-        ensureAnalysesDirectoryExists()
-
-        let fm = FileManager.default
-        let ids = Set(analyses.map { $0.id.uuidString })
-
         for analysis in analyses {
             saveAnalysis(analysis)
         }
@@ -150,6 +152,17 @@ class IPAViewModel: ObservableObject {
 
         // Remove from memory
         analyses.remove(atOffsets: offsets)
+    }
+
+    func deleteAnalysis(withId id: UUID) {
+        let fm = FileManager.default
+
+        if let analysis = analyses.first(where: { $0.id == id }) {
+            let url = fileURL(forAnalysisID: analysis.id)
+            try? fm.removeItem(at: url)
+        }
+
+        analyses.removeAll(where: { $0.id == id })
     }
 
     func toggleSelection(_ id: UUID) {
