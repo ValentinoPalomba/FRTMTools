@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Tipi di Dati Pubblici
 
 /// Contiene il risultato finale dell'analisi.
-public struct IPASizeAnalysisResult {
+public struct IPASizeAnalysisResult: Sendable {
     public let appName: String
     public let sizeInMB: Int
     /// Size of the main executable and binaries directly in the app bundle (MB)
@@ -15,7 +15,7 @@ public struct IPASizeAnalysisResult {
 }
 
 /// Errori specifici che possono essere lanciati durante l'analisi.
-public enum IPASizeError: LocalizedError {
+public enum IPASizeError: LocalizedError, Sendable {
     case invalidIPAPath
     case simulatorNotFound
     case appBundleNotFound

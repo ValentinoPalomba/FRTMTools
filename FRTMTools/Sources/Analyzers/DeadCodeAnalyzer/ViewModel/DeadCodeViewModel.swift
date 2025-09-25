@@ -1,11 +1,12 @@
 import Foundation
 import SwiftUI
 import PeripheryKit
-import SourceGraph
+@preconcurrency import SourceGraph
 import FRTMCore
+import UniformTypeIdentifiers
 
 extension Accessibility: @retroactive CaseIterable {
-    public static var allCases: [Accessibility] = [
+    public static let allCases: [Accessibility] = [
         .fileprivate, .internal, .open, .private, .public
     ]
 }
@@ -56,8 +57,6 @@ class DeadCodeViewModel: ObservableObject {
     @Published var schemes: [String] = []
     @Published var selectedScheme: String?
     var projectToScan: URL?
-
-    private let scanner = DeadCodeScanner()
 
     // MARK: - Init
     init() {
@@ -120,8 +119,8 @@ class DeadCodeViewModel: ObservableObject {
         }
 
         // Defer publishing to avoid changing @Published properties during view updates
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self, self.updateSequence == currentSequence else { return }
+        Task { @MainActor in
+            guard self.updateSequence == currentSequence else { return }
             self.filteredResults = newFilteredResults
             self.resultsByKind = newResultsByKind
         }
@@ -129,7 +128,7 @@ class DeadCodeViewModel: ObservableObject {
     
     // MARK: - Scanning Logic
     
-    private func annotationDescription(for result: ScanResult) -> String {
+    nonisolated private static func annotationDescription(for result: ScanResult) -> String {
         switch result.annotation {
         case .unused:
             return "Unused"
@@ -153,9 +152,17 @@ class DeadCodeViewModel: ObservableObject {
 
     func selectProjectFromFile() {
         let panel = NSOpenPanel()
-        panel.allowedFileTypes = ["xcodeproj", "xcworkspace"]
+        
+        let types: [UTType] = [
+            UTType(filenameExtension: "xcodeproj", conformingTo: .package),
+            UTType(filenameExtension: "xcworkspace", conformingTo: .package)
+        ].compactMap { $0 }
+        
+        panel.allowedContentTypes = types
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false // Should be false to select a file
+        panel.treatsFilePackagesAsDirectories = false
         panel.title = "Select an xcodeproj or xcworkspace file"
 
         if panel.runModal() == .OK, let url = panel.url {
@@ -170,14 +177,19 @@ class DeadCodeViewModel: ObservableObject {
             )
         }
     }
-
+    
     private func loadSchemes(for projectURL: URL) {
         isLoadingSchemes = true
-        Task {
+        Task(priority: .userInitiated) {
             do {
-                self.schemes = try await Task { try scanner.listSchemes(for: projectURL) }.value
+                let schemes = try DeadCodeScanner().listSchemes(for: projectURL)
+                await MainActor.run {
+                    self.schemes = schemes
+                }
             } catch {
-                self.error = error
+                await MainActor.run {
+                    self.error = error
+                }
             }
         }
     }
@@ -195,15 +207,18 @@ class DeadCodeViewModel: ObservableObject {
         isLoading = true
         error = nil
 
-        DispatchQueue.global(qos: .userInitiated).async {
+        let projectPath = projectURL.path
+        let selectedScheme = scheme
+
+        Task(priority: .userInitiated) {
             do {
                 let startTime = Date().timeIntervalSince1970
-                let scanResults = try self.scanner.scan(
-                    projectPath: projectURL.path,
-                    scheme: scheme
+                let scanResults = try DeadCodeScanner().scan(
+                    projectPath: projectPath,
+                    scheme: selectedScheme
                 )
-
                 let endTime = Date().timeIntervalSince1970
+
                 let serializableResults = scanResults.map { result -> SerializableDeadCodeResult in
                     return SerializableDeadCodeResult(
                         id: UUID(),
@@ -213,25 +228,25 @@ class DeadCodeViewModel: ObservableObject {
                         location: result.declaration.location.description,
                         filePath: result.declaration.location.file.path.string,
                         icon: result.declaration.kind.icon,
-                        annotationDescription: self.annotationDescription(for: result)
+                        annotationDescription: Self.annotationDescription(for: result)
                     )
                 }
 
                 let newAnalysis = DeadCodeAnalysis(
                     id: UUID(),
-                    projectName: projectURL.lastPathComponent,
-                    projectPath: projectURL.path,
+                    projectName: URL(fileURLWithPath: projectPath).lastPathComponent,
+                    projectPath: projectPath,
                     scanTimeDuration: endTime - startTime,
                     results: serializableResults
                 )
 
-                DispatchQueue.main.async {
+                await MainActor.run {
                     if let index = self.analyses.firstIndex(where: { $0.projectPath == newAnalysis.projectPath }) {
                         self.analyses[index] = newAnalysis
                     } else {
                         self.analyses.append(newAnalysis)
                     }
-                    
+
                     self.selectedAnalysisID = newAnalysis.id
                     self.saveAnalyses()
                     self.isLoading = false
@@ -240,7 +255,7 @@ class DeadCodeViewModel: ObservableObject {
                     self.selectedScheme = nil
                 }
             } catch {
-                DispatchQueue.main.async {
+                await MainActor.run {
                     self.error = error
                     self.isLoading = false
                 }
@@ -248,3 +263,4 @@ class DeadCodeViewModel: ObservableObject {
         }
     }
 }
+

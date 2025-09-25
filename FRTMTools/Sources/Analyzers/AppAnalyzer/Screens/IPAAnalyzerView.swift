@@ -146,7 +146,9 @@ struct IPAAnalyzerDetailView: View {
             for provider in providers {
                 _ = provider.loadObject(ofClass: URL.self) { url, _ in
                     if let url = url, ["ipa", "app"].contains(url.pathExtension.lowercased()) {
-                        viewModel.analyzeFile(url)
+                        Task {
+                            await viewModel.analyzeFile(url)
+                        }
                     }
                 }
             }

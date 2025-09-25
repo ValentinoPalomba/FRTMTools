@@ -1,13 +1,13 @@
 import Foundation
 import FRTMCore
 
-protocol PersistenceManager: AnyObject {
+protocol PersistenceManager: AnyObject, Sendable {
     func load<T: Codable>(key: String) -> [T]
     func save<T: Codable>(_ items: [T], key: String)
 }
 
 
-class CorePersistenceManager: PersistenceManager {
+final class CorePersistenceManager: PersistenceManager {
     private func fileURL(for key: String) -> URL {
         let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let appDirectory = directory.appendingPathComponent("FRTMTools")
