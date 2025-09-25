@@ -3,7 +3,8 @@ import AppKit
 import UniformTypeIdentifiers
 import FRTMCore
 
-class IPAViewModel: ObservableObject {
+@MainActor
+final class IPAViewModel: ObservableObject {
     
     @Published var analyses: [IPAAnalysis] = []
     @Published var isLoading = false
@@ -16,7 +17,12 @@ class IPAViewModel: ObservableObject {
     
     @Dependency var persistenceManager: PersistenceManager
     @Dependency var analyzer: any Analyzer<IPAAnalysis>
-    var sizeAnalyzer: IPASizeAnalyzer = .init()
+    
+    // Off-main persistence actor for file I/O
+    private lazy var fileStore = IPAFileStore(
+        appDirectory: appDirectory,
+        analysesDirectoryURL: analysesDirectoryURL
+    )
     
     private let persistenceKey = "ipa_analyses"
 
@@ -49,24 +55,16 @@ class IPAViewModel: ObservableObject {
     }
 
     func loadAnalyses() {
-        ensureAnalysesDirectoryExists()
-
-        let fm = FileManager.default
-        let dir = analysesDirectoryURL
-        var loaded: [IPAAnalysis] = []
-
-        if let files = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) {
-            for file in files where file.pathExtension.lowercased() == "json" {
-                if let data = try? Data(contentsOf: file), let item = try? JSONDecoder().decode(IPAAnalysis.self, from: data) {
-                    loaded.append(item)
+        Task { @MainActor in
+            do {
+                let loaded = try await fileStore.loadAnalyses()
+                self.analyses = loaded
+                if let first = self.analyses.first {
+                    self.selectedUUID = first.id
                 }
+            } catch {
+                print("Failed to load analyses: \(error)")
             }
-        }
-
-        self.analyses = loaded
-
-        if let first = self.analyses.first {
-            self.selectedUUID = first.id
         }
     }
     
@@ -77,24 +75,24 @@ class IPAViewModel: ObservableObject {
             }
             isSizeLoading = true
             sizeAnalysisProgress = ""
+            defer { isSizeLoading = false }
             do {
-                let sizeAnalysis = try await sizeAnalyzer.analyze(
+                let sizeAnalysis = try await IPASizeAnalyzer().analyze(
                     ipaPath: analyses[analysis].url.path()
-                ) { sizeAnalysisUpdate in
-                    DispatchQueue.main.async { [weak self] in
-                        self?.sizeAnalysisProgress = sizeAnalysisUpdate
+                ) { @Sendable sizeAnalysisUpdate in
+                    Task { @MainActor in
+                        self.sizeAnalysisProgress = sizeAnalysisUpdate
                     }
                 }
-                
+
                 analyses[analysis].installedSize = IPAAnalysis.InstalledSize(
                     total: sizeAnalysis.sizeInMB,
                     binaries: sizeAnalysis.appBinariesInMB,
                     frameworks: sizeAnalysis.frameworksInMB,
                     resources: sizeAnalysis.resourcesInMB
                 )
-                
-                saveAnalyses()
-                isSizeLoading = false
+
+                try await fileStore.saveAnalyses(self.analyses)
             } catch {
                 let message: String
                 if let localizedError = error as? LocalizedError, let description = localizedError.errorDescription, !description.isEmpty {
@@ -106,52 +104,56 @@ class IPAViewModel: ObservableObject {
                     title: "Size Analysis Failed",
                     message: message
                 )
-                isSizeLoading = false
             }
         }
     }
     
     func saveAnalyses() {
-        for analysis in analyses {
-            saveAnalysis(analysis)
+        Task { @MainActor in
+            do {
+                try await fileStore.saveAnalyses(self.analyses)
+            } catch {
+                print("Failed to save analyses: \(error)")
+            }
         }
     }
 
     func analyzeFile(_ url: URL) {
         Task { @MainActor in
             isLoading = true
-        }
-        Task(priority: .userInitiated) { [weak self] in
-            guard let self else { return }
-            if let analysis = try await self.analyzer.analyze(at: url) {
-                await MainActor.run {
+            defer { isLoading = false }
+            do {
+                if let analysis = try await analyzer.analyze(at: url) {
                     withAnimation {
-                        self.analyses.append(analysis)
-                        self.selectedUUID = analysis.id
-                        self.isLoading = false
-                        self.saveAnalyses() // Save after adding
+                        analyses.append(analysis)
+                        selectedUUID = analysis.id
                     }
+                    try await fileStore.saveAnalyses(self.analyses)
                 }
-            } else {
-                await MainActor.run {
-                    self.isLoading = false
+            } catch {
+                let message: String
+                if let localizedError = error as? LocalizedError, let description = localizedError.errorDescription, !description.isEmpty {
+                    message = description
+                } else {
+                    message = error.localizedDescription
                 }
+                sizeAnalysisAlert = AlertContent(
+                    title: "App Analysis Failed",
+                    message: message
+                )
             }
         }
     }
     
     func deleteAnalysis(at offsets: IndexSet) {
-        let fm = FileManager.default
         let toDelete = offsets.map { analyses[$0] }
 
-        // Remove files from disk
-        for analysis in toDelete {
-            let url = fileURL(forAnalysisID: analysis.id)
-            try? fm.removeItem(at: url)
+        Task { @MainActor in
+            for analysis in toDelete {
+                try? await fileStore.deleteAnalysis(id: analysis.id)
+            }
+            analyses.remove(atOffsets: offsets)
         }
-
-        // Remove from memory
-        analyses.remove(atOffsets: offsets)
     }
 
     func deleteAnalysis(withId id: UUID) {
@@ -253,4 +255,3 @@ class IPAViewModel: ObservableObject {
         }
     }
 }
-
