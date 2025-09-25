@@ -7,7 +7,7 @@
 
 import Foundation
 
-protocol Analyzer<T> {
+protocol Analyzer<T> : Sendable {
     associatedtype T
     func analyze(at url: URL) async throws -> T?
 }
