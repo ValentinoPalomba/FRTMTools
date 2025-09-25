@@ -145,26 +145,14 @@ final class IPAViewModel: ObservableObject {
         }
     }
     
-    func deleteAnalysis(at offsets: IndexSet) {
-        let toDelete = offsets.map { analyses[$0] }
-
+    
+    func deleteAnalysis(withId id: UUID) {
         Task { @MainActor in
-            for analysis in toDelete {
+            if let analysis = analyses.first(where: { $0.id == id }) {
                 try? await fileStore.deleteAnalysis(id: analysis.id)
             }
-            analyses.remove(atOffsets: offsets)
+            analyses.removeAll(where: { $0.id == id })
         }
-    }
-
-    func deleteAnalysis(withId id: UUID) {
-        let fm = FileManager.default
-
-        if let analysis = analyses.first(where: { $0.id == id }) {
-            let url = fileURL(forAnalysisID: analysis.id)
-            try? fm.removeItem(at: url)
-        }
-
-        analyses.removeAll(where: { $0.id == id })
     }
 
     func toggleSelection(_ id: UUID) {
