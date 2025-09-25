@@ -13,7 +13,7 @@ struct MainView: View {
         case ipaAnalyzer = "IPA Analyzer"
         case unusedAssets = "Unused Assets Analyzer"
         case securityScanner = "Security Scanner"
-        case deadCodeSanner = "Dead Code Sanner"
+        case deadCodeScanner = "Dead Code Scanner"
         var id: String { rawValue }
     }
 
@@ -27,7 +27,7 @@ struct MainView: View {
                 Label("Security Scanner", systemImage: "shield.lefthalf.filled")
                     .tag(Tool.securityScanner)
                 Label("Dead Code Scanner", systemImage: "text.magnifyingglass")
-                    .tag(Tool.deadCodeSanner)
+                    .tag(Tool.deadCodeScanner)
             }
             .listStyle(.sidebar)
             .navigationTitle("FRTM Tools")
@@ -39,7 +39,7 @@ struct MainView: View {
                 UnusedAssetsContentView(viewModel: unusedAssetsViewModel)
             case .securityScanner:
                 SecurityScannerContentView(viewModel: securityScannerViewModel)
-            case .deadCodeSanner:
+            case .deadCodeScanner:
                 DeadCodeContentView(viewModel: deadCodeViewModel)
             case .none:
                 Text("Select an item to see details.")
@@ -53,7 +53,7 @@ struct MainView: View {
                 UnusedAssetsResultView(viewModel: unusedAssetsViewModel)
             case .securityScanner:
                     SecurityScannerResultView(viewModel: securityScannerViewModel)
-            case .deadCodeSanner:
+            case .deadCodeScanner:
                     DeadCodeResultView(viewModel: deadCodeViewModel)
             case .none:
                 Text("Select an item to see details.")

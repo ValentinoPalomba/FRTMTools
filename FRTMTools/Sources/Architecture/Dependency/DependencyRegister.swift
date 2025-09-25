@@ -26,5 +26,10 @@ final class DependencyRegister {
             .registerSingleton((any Analyzer<UnusedAssetResult>).self) {
                 UnusedAssetsAnalyzer()
             }
+
+        CoreDependencyContainer.shared
+            .registerSingleton((any Analyzer<SecurityScanResult>).self) {
+                SecurityScanner()
+            }
     }
 }

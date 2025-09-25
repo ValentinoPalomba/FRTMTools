@@ -1,6 +1,6 @@
 import Foundation
 
-struct SecurityScanner {
+struct SecurityScanner: Analyzer {
     
     private struct Rule {
         let name: String
@@ -26,11 +26,11 @@ struct SecurityScanner {
         )
     ]
 
-    func scan(directory: URL) async -> SecurityScanResult {
+    func analyze(at url: URL) async throws -> SecurityScanResult? {
         var findings: [SecurityFinding] = []
         
-        guard let enumerator = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles, .skipsPackageDescendants]) else {
-            return SecurityScanResult(projectPath: directory.path, findings: [])
+        guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles, .skipsPackageDescendants]) else {
+            return SecurityScanResult(projectPath: url.path, findings: [])
         }
         
         while let next = enumerator.nextObject() {
@@ -46,7 +46,7 @@ struct SecurityScanner {
                     for rule in rules {
                         if line.range(of: rule.pattern, options: .regularExpression) != nil {
                             let finding = SecurityFinding(
-                                filePath: fileURL.path.replacingOccurrences(of: directory.path, with: ""),
+                                filePath: fileURL.path.replacingOccurrences(of: url.path, with: ""),
                                 lineNumber: index + 1,
                                 content: line.trimmingCharacters(in: .whitespacesAndNewlines),
                                 ruleName: rule.name
@@ -61,7 +61,7 @@ struct SecurityScanner {
             }
         }
         
-        return SecurityScanResult(projectPath: directory.path, findings: findings)
+        return SecurityScanResult(projectPath: url.path, findings: findings)
     }
 }
 
