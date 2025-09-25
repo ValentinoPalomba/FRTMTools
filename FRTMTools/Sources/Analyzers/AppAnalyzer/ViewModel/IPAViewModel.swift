@@ -41,6 +41,13 @@ final class IPAViewModel: ObservableObject {
         groupedAnalyses.keys.sorted()
     }
 
+    var selectedAnalysis: IPAAnalysis? {
+        if let selected = analyses.first(where: { $0.id == selectedUUID }) {
+            return selected
+        }
+        return analyses.first
+    }
+
     struct AlertContent: Identifiable {
         let id = UUID()
         let title: String
@@ -138,14 +145,13 @@ final class IPAViewModel: ObservableObject {
         }
     }
     
-    func deleteAnalysis(at offsets: IndexSet) {
-        let toDelete = offsets.map { analyses[$0] }
-
+    
+    func deleteAnalysis(withId id: UUID) {
         Task { @MainActor in
-            for analysis in toDelete {
+            if let analysis = analyses.first(where: { $0.id == id }) {
                 try? await fileStore.deleteAnalysis(id: analysis.id)
             }
-            analyses.remove(atOffsets: offsets)
+            analyses.removeAll(where: { $0.id == id })
         }
     }
 

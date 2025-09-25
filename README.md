@@ -8,15 +8,15 @@ FRTMTools is not just a tool; it's your secret weapon. A powerful macOS applicat
 
 ### 📊 Deep IPA Analysis
 *Get a ridiculously detailed overview of your app's structure: binary, resources, frameworks, and more.*
-![IPA Analysis](AnalysisViiew.png)
+![IPA Analysis](.github/Resources/AnalysisViiew.png)
 
 ### ↔️ The Ultimate IPA Diff Tool
 *Analyze two app versions side-by-side. Know exactly what changed in file size and composition between builds.*
-![Compare View](CompareView.png)
+![Compare View](.github/Resources/CompareView.png)
 
 ### 🗑️ Unused Assets Hunter
 *Find forgotten assets bloating your app. This feature scans your project to identify and help you remove unused resources.*
-![Unused Asset Hunter](UnusedAsset.png)
+![Unused Asset Hunter](.github/Resources/UnusedAsset.png)
 
 ### 💀 Dead Code Scanner
 *Hunt down and eliminate unused code. This powerful scanner analyzes your source files to find dead code, helping you clean up your project and reduce its size.*

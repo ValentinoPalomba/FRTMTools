@@ -11,7 +11,7 @@ class SecurityScannerViewModel: ObservableObject {
     @Published var analysisToOverwrite: SecurityScanResult?
 
     @Dependency var persistenceManager: PersistenceManager
-    private var scanner = SecurityScanner()
+    @Dependency var scanner: any Analyzer<SecurityScanResult>
     
     private let persistenceKey = "security_scan_analyses"
 
@@ -64,7 +64,10 @@ class SecurityScannerViewModel: ObservableObject {
     func analyzeProject(at url: URL, overwriting: UUID? = nil) async {
         isLoading = true
         
-        let analysisResult = await scanner.scan(directory: url)
+        guard let analysisResult = try? await scanner.analyze(at: url) else {
+            self.isLoading = false
+            return
+        }
         
         if let overwritingID = overwriting, let index = self.analyses.firstIndex(where: { $0.id == overwritingID }) {
             self.analyses[index] = analysisResult
