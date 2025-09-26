@@ -13,9 +13,14 @@ struct FRTMTools: App {
     init() {
         DependencyRegister.register()
     }
+    @State private var showOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+
     var body: some Scene {
         WindowGroup {
             MainView()
+                .sheet(isPresented: $showOnboarding) {
+                    OnboardingView(isPresented: $showOnboarding)
+                }
         }
     }
 }
