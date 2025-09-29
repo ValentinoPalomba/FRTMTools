@@ -214,12 +214,21 @@ private struct TreemapCell: View {
                     isHovering = false
                 }
             }
-            .popover(isPresented: $isHovering, content: {
-                Text(file.name)
-                    .padding(8)
-                    .background(Color.gray.opacity(0.8))
-                    .cornerRadius(5)
-            })
+            .popover(
+                isPresented: $isHovering,
+                content: {
+                    VStack {
+                        Text(file.name)
+                        Text(ByteCountFormatter.string(fromByteCount: file.size, countStyle: .file))
+                        .font(.caption)
+                        
+                        if let subItems = file.subItems, !subItems.isEmpty {
+                            Text("\(subItems.count) files")
+                                .font(.caption2)
+                        }
+                    }
+                    .padding()
+                })
             .onTapGesture {
                 // Tutti gli elementi sono tappabili, ma solo quelli navigabili cambiano vista
                 if isNavigable {
