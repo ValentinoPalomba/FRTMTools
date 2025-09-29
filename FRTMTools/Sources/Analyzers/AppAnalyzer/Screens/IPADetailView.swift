@@ -63,6 +63,12 @@ struct DetailView: View {
                 }
                 .padding(.horizontal)
                 
+                if analysis.totalSize > 0 {
+                    ExpandableGraphView(
+                        analysis: analysis
+                    )
+                }
+                
                 HStack(alignment: .top, spacing: 24) {
                     // Pie chart
                     if !categories.isEmpty {
@@ -216,3 +222,4 @@ struct DetailView: View {
         return prompt
     }
 }
+
