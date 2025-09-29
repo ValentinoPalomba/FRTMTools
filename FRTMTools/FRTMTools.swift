@@ -13,7 +13,7 @@ struct FRTMTools: App {
     init() {
         DependencyRegister.register()
     }
-    @State private var showOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+    @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
 
     var body: some Scene {
         WindowGroup {
