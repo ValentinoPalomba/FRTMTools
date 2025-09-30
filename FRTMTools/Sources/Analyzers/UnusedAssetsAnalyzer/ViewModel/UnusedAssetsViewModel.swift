@@ -141,4 +141,27 @@ class UnusedAssetsViewModel: ObservableObject {
             // self.error = .failedToDelete(error)
         }
     }
+    
+    func exportToCSV() {
+        guard let analysis = selectedAnalysis as? Exportable else { return }
+
+        do {
+            let csvString = try analysis.export()
+            guard let data = csvString.data(using: .utf8) else { return }
+            
+            let savePanel = NSSavePanel()
+            savePanel.canCreateDirectories = true
+            if let analysis = selectedAnalysis {
+                savePanel.nameFieldStringValue = "\(analysis.projectName)_UnusedAssets.csv"
+            }
+            
+            savePanel.begin { result in
+                if result == .OK, let url = savePanel.url {
+                    try? data.write(to: url)
+                }
+            }
+        } catch {
+            // Handle error if needed
+        }
+    }
 }

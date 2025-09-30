@@ -79,6 +79,13 @@ struct DeadCodeResultView: View {
                 }
                 .disabled(viewModel.selectedAnalysis == nil || viewModel.selectedAnalysis?.results.isEmpty == true)
             }
+            
+            ToolbarItem {
+                Button(action: { viewModel.exportToCSV() }) {
+                    Label("Export as CSV", systemImage: "square.and.arrow.up")
+                }
+                .disabled(viewModel.selectedAnalysis == nil || viewModel.selectedAnalysis?.results.isEmpty == true)
+            }
         }
         .sheet(isPresented: $showingFilterSheet) {
             DeadCodeFilterView(
@@ -110,23 +117,6 @@ struct DeadCodeResultView: View {
         }
         .padding(.horizontal)
     }
-
-    private func format(duration: TimeInterval) -> String {
-        if duration == 0 { return "0s" }
-
-        let minutes = Int(duration) / 60
-        let seconds = Int(duration) % 60
-
-        if minutes > 0 {
-            return "\(minutes)m \(seconds)s"
-        } else {
-            if duration < 1 {
-                return String(format: "%.2fs", duration)
-            } else {
-                return "\(seconds)s"
-            }
-        }
-    }
     
     @ViewBuilder
     private var topIssuesChartView: some View {
@@ -141,7 +131,7 @@ struct DeadCodeResultView: View {
                 )
                 .foregroundStyle(by: .value("Type", item.kind.uppercased()))
             }
-            .frame(height: 240)
+            .frame(height: 250)
             .chartLegend(.hidden)
         }
         .padding()
@@ -233,17 +223,7 @@ struct DeadCodeCollapsibleSection: View {
 
 }
 
-struct DeadCodeGroup: Identifiable {
-    let id: String
-    let kind: String
-    let results: [SerializableDeadCodeResult]
-    
-    init(kind: String, results: [SerializableDeadCodeResult]) {
-        self.id = kind
-        self.kind = kind
-        self.results = results
-    }
-}
+
 
 fileprivate extension String {
     func truncating(to length: Int) -> String {
