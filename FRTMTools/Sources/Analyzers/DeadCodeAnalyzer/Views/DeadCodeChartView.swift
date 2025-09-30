@@ -22,9 +22,9 @@ struct DeadCodeChartView: View {
     }
 
     var body: some View {
-        VStack {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Dead Code Distribution")
-                .font(.headline)
+                .font(.title3).bold()
             
             Chart(chartData) { data in
                 SectorMark(

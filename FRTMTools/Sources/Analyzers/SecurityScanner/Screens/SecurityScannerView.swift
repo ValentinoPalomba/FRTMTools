@@ -42,6 +42,7 @@ struct SecurityScannerContentView: View {
         }
         .navigationTitle("Security Scans")
         .toolbar {
+            
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     viewModel.selectFolderAndScan()
@@ -50,12 +51,19 @@ struct SecurityScannerContentView: View {
                 }
                 .help("Scan new project")
             }
+            
+            ToolbarItem {
+                Button(action: { viewModel.exportToCSV() }) {
+                    Label("Export as CSV", systemImage: "square.and.arrow.up")
+                }
+                .disabled(viewModel.selectedAnalysis == nil || viewModel.selectedAnalysis?.findings.isEmpty == true)
+            }
         }
         .onAppear {
             viewModel.loadAnalyses()
         }
         .alert(item: $viewModel.analysisToOverwrite) {
- analysis in
+            analysis in
             Alert(
                 title: Text("Analysis Exists"),
                 message: Text("An analysis for \(analysis.projectName) already exists. Do you want to overwrite it?"),

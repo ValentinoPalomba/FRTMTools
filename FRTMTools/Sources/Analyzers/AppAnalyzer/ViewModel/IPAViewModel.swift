@@ -242,4 +242,38 @@ final class IPAViewModel: ObservableObject {
             NSWorkspace.shared.activateFileViewerSelecting([analysesDirectoryURL])
         }
     }
+    
+    func exportToCSV() {
+        guard let analysis = selectedAnalysis as? Exportable else { return }
+
+        do {
+            let csvString = try analysis.export()
+            guard let data = csvString.data(using: .utf8) else {
+                sizeAnalysisAlert = AlertContent(title: "Export Error", message: "Failed to encode CSV data.")
+                return
+            }
+            
+            let savePanel = NSSavePanel()
+            savePanel.canCreateDirectories = true
+            if let analysis = selectedAnalysis {
+                savePanel.nameFieldStringValue = "\(analysis.fileName)_AppAnalysis.csv"
+            }
+            
+            savePanel.begin { result in
+                if result == .OK, let url = savePanel.url {
+                    do {
+                        try data.write(to: url)
+                    } catch {
+                        DispatchQueue.main.async {
+                            self.sizeAnalysisAlert = AlertContent(title: "Export Error", message: error.localizedDescription)
+                        }
+                    }
+                }
+            }
+        } catch {
+            DispatchQueue.main.async {
+                self.sizeAnalysisAlert = AlertContent(title: "Export Error", message: error.localizedDescription)
+            }
+        }
+    }
 }

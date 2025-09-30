@@ -30,3 +30,25 @@ struct UnusedAssetResult: Codable, Identifiable {
         self.scanDuration = scanDuration
     }
 }
+
+extension UnusedAssetResult: Exportable {
+    func export() throws -> String {
+        let header = "Name,Path,Size (Bytes)\n"
+        let rows = unusedAssets.map { asset in
+            let name = escapeCSVField(asset.name)
+            let path = escapeCSVField(asset.path)
+            let size = "\(asset.size)"
+            return "\(name),\(path),\(size)"
+        }
+        return header + rows.joined(separator: "\n")
+    }
+    
+    private func escapeCSVField(_ field: String) -> String {
+        var escaped = field
+        if escaped.contains(",") || escaped.contains("\"") || escaped.contains("\n") {
+            escaped = escaped.replacingOccurrences(of: "\"", with: "")
+            escaped = "\"\(escaped)\""
+        }
+        return escaped
+    }
+}
