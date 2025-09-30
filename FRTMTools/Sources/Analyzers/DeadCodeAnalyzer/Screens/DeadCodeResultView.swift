@@ -117,23 +117,6 @@ struct DeadCodeResultView: View {
         }
         .padding(.horizontal)
     }
-
-    private func format(duration: TimeInterval) -> String {
-        if duration == 0 { return "0s" }
-
-        let minutes = Int(duration) / 60
-        let seconds = Int(duration) % 60
-
-        if minutes > 0 {
-            return "\(minutes)m \(seconds)s"
-        } else {
-            if duration < 1 {
-                return String(format: "%.2fs", duration)
-            } else {
-                return "\(seconds)s"
-            }
-        }
-    }
     
     @ViewBuilder
     private var topIssuesChartView: some View {
@@ -148,7 +131,7 @@ struct DeadCodeResultView: View {
                 )
                 .foregroundStyle(by: .value("Type", item.kind.uppercased()))
             }
-            .frame(height: 240)
+            .frame(height: 250)
             .chartLegend(.hidden)
         }
         .padding()
