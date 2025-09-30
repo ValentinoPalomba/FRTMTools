@@ -50,7 +50,6 @@ struct DeadCodeContentView: View {
     }
 }
 
-// This helper view is still needed
 struct SchemeSelectionView: View {
     @ObservedObject var viewModel: DeadCodeViewModel
 
@@ -86,3 +85,22 @@ struct SchemeSelectionView: View {
         .padding()
     }
 }
+
+
+func format(duration: TimeInterval) -> String {
+    if duration == 0 { return "0s" }
+
+    let minutes = Int(duration) / 60
+    let seconds = Int(duration) % 60
+
+    if minutes > 0 {
+        return "\(minutes)m \(seconds)s"
+    } else {
+        if duration < 1 {
+            return String(format: "%.2fs", duration)
+        } else {
+            return "\(seconds)s"
+        }
+    }
+}
+
