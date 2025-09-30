@@ -149,18 +149,6 @@ struct DetailView: View {
         }
         .searchable(text: $searchText, prompt: "Search files...")
         .navigationTitle(analysis.fileName)
-//        .toolbar {
-//            ToolbarItem(placement: .automatic) {
-//                Button(action: {
-//                    showAISummary = true
-//                }) {
-//                    Label("AI Summary", systemImage: "sparkles")
-//                }
-//            }
-//        }
-//        .sheet(isPresented: $showAISummary) {
-//            AIMagicView(input: generateAnalysisSummaryPrompt(analysis: analysis), systemPrompt: ConstantsPrompt.ipaAnalysisPrompt)
-//        }
         .onChange(of: expandedSections) {
             updateSelectedCategory()
         }

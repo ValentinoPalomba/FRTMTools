@@ -31,6 +31,13 @@ struct DeadCodeContentView: View {
                         }
                         .padding(.vertical, 4)
                         .tag(analysis.id)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                viewModel.deleteAnalysis(analysis)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                     }
                 }
             }

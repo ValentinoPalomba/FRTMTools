@@ -16,3 +16,25 @@ struct SecurityScanResult: Identifiable, Codable, Hashable {
         self.findings = findings
     }
 }
+
+extension SecurityScanResult: Exportable {
+    func export() throws -> String {
+        let header = "File,Line,Description\n"
+        let rows = findings.map { finding in
+            let file = escapeCSVField(finding.filePath)
+            let line = "\(finding.lineNumber)"
+            let description = escapeCSVField(finding.content)
+            return "\(file),\(line),\(description)"
+        }
+        return header + rows.joined(separator: "\n")
+    }
+    
+    private func escapeCSVField(_ field: String) -> String {
+        var escaped = field
+        if escaped.contains(",") || escaped.contains("\"") || escaped.contains("\n") {
+            escaped = escaped.replacingOccurrences(of: "\"", with: "")
+            escaped = "\"\(escaped)\""
+        }
+        return escaped
+    }
+}

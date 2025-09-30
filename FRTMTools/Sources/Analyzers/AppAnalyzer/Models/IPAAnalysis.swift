@@ -49,3 +49,27 @@ struct IPAAnalysis: Identifiable, Codable {
         case id, fileName, executableName, url, rootFile, version, buildNumber, imageData, isStripped, allowsArbitraryLoads, installedSize
     }
 }
+
+extension IPAAnalysis: Exportable {
+    func export() throws -> String {
+        let header = "Path,Type,Size (Bytes)\n"
+        let rows = flatten(file: rootFile).map {
+            "\($0.name),\($0.type),\($0.size)"
+        }
+        return header + rows.joined(separator: "\n")
+    }
+
+    private func flatten(file: FileInfo, prefix: String = "") -> [FileInfo] {
+        let currentPath = "\(prefix)/\(file.name)"
+        var result = [FileInfo(
+            name: file.name,
+            type: file.type,
+            size: file.size
+        )]
+        
+        for child in file.subItems ?? [] {
+            result.append(contentsOf: flatten(file: child, prefix: currentPath))
+        }
+        return result
+    }
+}

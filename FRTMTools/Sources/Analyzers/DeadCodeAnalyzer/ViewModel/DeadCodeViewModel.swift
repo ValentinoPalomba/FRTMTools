@@ -85,14 +85,65 @@ class DeadCodeViewModel: ObservableObject {
     }
     
     func deleteAnalysis(_ analysis: DeadCodeAnalysis) {
-        if selectedAnalysisID == analysis.id {
-            selectedAnalysisID = analyses.first(where: { $0.id != analysis.id })?.id
+        let shouldUpdateSelection = selectedAnalysisID == analysis.id
+        let newAnalyses = analyses.filter { $0.id != analysis.id }
+
+        if shouldUpdateSelection {
+            selectedAnalysisID = newAnalyses.first?.id
         }
-        analyses.removeAll { $0.id == analysis.id }
+
+        analyses = newAnalyses
+        saveAnalyses()
+    }
+
+    func deleteAnalyses(at offsets: IndexSet) {
+        var newAnalyses = analyses
+        newAnalyses.remove(atOffsets: offsets)
+
+        if let selectedID = selectedAnalysisID, !newAnalyses.contains(where: { $0.id == selectedID }) {
+            selectedAnalysisID = newAnalyses.first?.id
+        }
+
+        analyses = newAnalyses
         saveAnalyses()
     }
 
     // MARK: - Data Processing
+
+    // MARK: - CSV Export
+    func exportToCSV() {
+        guard let analysis = selectedAnalysis as? Exportable else { return }
+
+        do {
+            let csvString = try analysis.export()
+            guard let data = csvString.data(using: .utf8) else {
+                DispatchQueue.main.async {
+                    self.error = NSError(domain: "CSVError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to encode CSV data."])
+                }
+                return
+            }
+            
+            let savePanel = NSSavePanel()
+            savePanel.canCreateDirectories = true
+            savePanel.nameFieldStringValue = "\(selectedAnalysis?.projectName ?? "")_DeadCodeReport.csv"
+            
+            savePanel.begin { result in
+                if result == .OK, let url = savePanel.url {
+                    do {
+                        try data.write(to: url)
+                    } catch {
+                        DispatchQueue.main.async {
+                            self.error = error
+                        }
+                    }
+                }
+            }
+        } catch {
+            DispatchQueue.main.async {
+                self.error = error
+            }
+        }
+    }
     private func updateFilteredAndGroupedResults() {
         // Bump sequence to invalidate any in-flight assignments
         updateSequence &+= 1

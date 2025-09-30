@@ -273,11 +273,12 @@ struct AnalysisResultView: View {
             }
             
             ToolbarItem(placement: .primaryAction) {
-                Button(action: viewModel.selectProjectFolder) {
-                    Label("Analyze Project", systemImage: "folder.badge.plus")
+                Button(action: { viewModel.exportToCSV() }) {
+                    Label("Export as CSV", systemImage: "square.and.arrow.up")
                 }
-                .disabled(viewModel.isLoading)
+                .disabled(viewModel.selectedAnalysis == nil || viewModel.selectedAnalysis?.unusedAssets.isEmpty == true)
             }
+            
         }
         .alert("Delete \(viewModel.selectedAssets.count) assets?", isPresented: $showDeleteConfirmation) {
             Button("Delete", role: .destructive, action: viewModel.deleteSelectedAssets)
