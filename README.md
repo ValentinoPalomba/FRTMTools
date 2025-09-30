@@ -57,4 +57,7 @@ Got ideas? Found a bug? Contributions are what make the world go 'round. Feel fr
 
 ---
 
+[![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/fratm)
+
+
 *Crafted with ❤️ and a lot of ☕ for the iOS developer community.*
