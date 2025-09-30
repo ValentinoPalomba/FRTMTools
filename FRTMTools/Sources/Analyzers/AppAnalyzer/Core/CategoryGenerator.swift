@@ -56,18 +56,25 @@ class CategoryGenerator {
         if let resourcesFolder = allFiles.first(where: { $0.name == "Resources" && $0.type == .directory }) {
             var folderItems = resourcesFolder.subItems ?? []
             
-            // Compiled Assets (gestiti separatamente)
-            if let assets = folderItems.first(where: { $0.name == "Assets.car" }) {
-                categoryItems[.assets] = [assets]
-                folderItems.removeAll { $0.id == assets.id }
+            // Trova TUTTI gli Assets.car al primo livello della cartella Resources
+            let assetsFiles = folderItems.filter { $0.name == "Assets.car" }
+            if !assetsFiles.isEmpty {
+                categoryItems[.assets, default: []].append(contentsOf: assetsFiles)
+                folderItems.removeAll { file in assetsFiles.contains { $0.id == file.id } }
             }
             
             // Aggiungi i rimanenti items della cartella Resources
-            categoryItems[.resources, default: []].append(contentsOf: folderItems)
+            if !folderItems.isEmpty {
+                categoryItems[.resources, default: []].append(contentsOf: folderItems)
+            }
             remainingFiles.removeAll { $0.id == resourcesFolder.id }
-        } else if let assets = allFiles.first(where: { $0.name == "Assets.car" }) { // iOS fallback
-            categoryItems[.assets] = [assets]
-            remainingFiles.removeAll { $0.id == assets.id }
+        }
+        
+        // iOS fallback - cerca Assets.car al primo livello di root
+        let rootAssets = allFiles.filter { $0.name == "Assets.car" }
+        if !rootAssets.isEmpty {
+            categoryItems[.assets, default: []].append(contentsOf: rootAssets)
+            remainingFiles.removeAll { file in rootAssets.contains { $0.id == file.id } }
         }
         
         // Bundles
@@ -102,6 +109,3 @@ class CategoryGenerator {
         return categories.sorted { $0.totalSize > $1.totalSize }
     }
 }
-
-
-

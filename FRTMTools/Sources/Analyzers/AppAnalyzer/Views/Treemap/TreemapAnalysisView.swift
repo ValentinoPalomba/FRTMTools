@@ -38,7 +38,7 @@ struct TreemapAnalysisView: View {
                     file: currentRoot,
                     rect: geometry.frame(in: .local),
                     level: 0,
-                    maxDepth: 2
+                    maxDepth: 1
                 ) { tappedFile in
                     withAnimation(.easeInOut) {
                         navigationStack.append(tappedFile)
@@ -60,12 +60,34 @@ private struct TreemapContainerView: View {
     let maxDepth: Int
     var onTap: ((FileInfo) -> Void)?
     
-    var body: some View {
-        if let subItems = file.subItems, !subItems.isEmpty, level < maxDepth {
+    static var smallChildrenName = "[Other Files]"
+    
+    private func effectiveMaxDepth(for file: FileInfo, baseMaxDepth: Int) -> Int {
+        switch file.name {
+            case "Frameworks", "Resources":
+                return 2
+            default:
+                return baseMaxDepth
+        }
+    }
+    
+    private var children: [FileInfo] {
+        guard let subItems = file.subItems, !subItems.isEmpty else { return [] }
+        
+        if file.name == TreemapContainerView.smallChildrenName {
+            // Caso speciale: non ricreo altri "[Other Files]"
+            return subItems
+        } else {
             let threshold = max(4096, file.size / 1000)
-            let (largeChildren, smallChildrenSize) = partition(subItems: subItems, threshold: threshold)
-            
-            let children = buildChildren(largeChildren: largeChildren, smallChildrenSize: smallChildrenSize)
+            let (largeChildren, smallChildren) = partition(subItems: subItems, threshold: threshold)
+            return buildChildren(largeChildren: largeChildren, smallChildren: smallChildren)
+        }
+    }
+    
+    var body: some View {
+        let allowedMaxDepth = effectiveMaxDepth(for: file, baseMaxDepth: maxDepth)
+        
+        if !children.isEmpty, level < allowedMaxDepth {
             let values = children.map { Double($0.size) }
             let treemap = YMTreeMap(withValues: values)
             let childRects = treemap.tessellate(inRect: rect)
@@ -93,50 +115,63 @@ private struct TreemapContainerView: View {
     }
     
     private func canNavigate(_ file: FileInfo) -> Bool {
-        if file.name == "[Other Files]" { return false }
-        // Controlla se ha subItems con almeno un elemento
+        if file.name == TreemapContainerView.smallChildrenName { return true }
         if let subItems = file.subItems, !subItems.isEmpty {
             return true
         }
         return false
     }
     
-    private func partition(subItems: [FileInfo], threshold: Int64) -> ([FileInfo], Int64) {
+    private func partition(subItems: [FileInfo], threshold: Int64) -> ([FileInfo], [FileInfo]) {
+        let effectiveThreshold = max(threshold, 8192)
+        
         var large: [FileInfo] = []
-        var small: Int64 = 0
-
-        // First pass without sorting to find large items
+        var small: [FileInfo] = []
+        
         for child in subItems {
-            if child.size >= threshold {
+            if child.size >= effectiveThreshold {
                 large.append(child)
             } else {
-                small += child.size
+                small.append(child)
             }
         }
-
-        // If large items are found, we sort them and we are done.
+        
         if !large.isEmpty {
-            // Sort only the large items to maintain descending order for the treemap algorithm
-            return (large.sorted(by: { $0.size > $1.size }), small)
+            let maxCells = 50
+            let sortedLarge = large.sorted(by: { $0.size > $1.size })
+            let topLarge = Array(sortedLarge.prefix(maxCells))
+            let remainingLarge = Array(sortedLarge.dropFirst(maxCells))
+            
+            // Combina i rimanenti con i piccoli
+            let allSmall = small + remainingLarge
+            return (topLarge, allSmall)
         }
-
-        // If no large items, we must find the top 10. Now we have to sort.
+        
         if !subItems.isEmpty {
             let sortedItems = subItems.sorted { $0.size > $1.size }
             let topItems = Array(sortedItems.prefix(min(10, sortedItems.count)))
-            // The original logic returns 0 for the small size.
-            return (topItems, 0)
+            let remainingItems = Array(sortedItems.dropFirst(min(10, sortedItems.count)))
+            return (topItems, remainingItems)
         }
-
-        // If subItems is empty.
-        return ([], 0)
+        
+        return ([], [])
     }
     
-    private func buildChildren(largeChildren: [FileInfo], smallChildrenSize: Int64) -> [FileInfo] {
+    private func buildChildren(largeChildren: [FileInfo], smallChildren: [FileInfo]) -> [FileInfo] {
         var children = largeChildren
-        if smallChildrenSize > 0 {
-            children.append(FileInfo(name: "[Other Files]", type: .directory, size: smallChildrenSize))
+        
+        if !smallChildren.isEmpty {
+            let totalSize = smallChildren.reduce(0) { $0 + $1.size }
+            // Crea un FileInfo con subItems per renderlo navigabile
+            let otherFiles = FileInfo(
+                name: TreemapContainerView.smallChildrenName,
+                type: .directory,
+                size: totalSize,
+                subItems: smallChildren
+            )
+            children.append(otherFiles)
         }
+        
         return children
     }
 }
@@ -167,15 +202,17 @@ private struct TreemapCell: View {
         } else {
             ZStack(alignment: .topLeading) {
                 Rectangle()
-                    .fill(color.opacity(file.name == "[Other Files]" ? 0.1 : 0.1))
+                    .fill(color.opacity(file.name == TreemapContainerView.smallChildrenName ? 0.15 : 0.1))
                 
                 Rectangle()
-                    .stroke(color.opacity(0.6), lineWidth: 1)
+                    .stroke(
+                        color.opacity(file.name == TreemapContainerView.smallChildrenName ? 0.8 : 0.6),
+                        lineWidth: file.name == TreemapContainerView.smallChildrenName ? 1.5 : 1)
                 
                 if rect.width > 60 && rect.height > 25 {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(file.name)
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.system(size: 11, weight: file.name == "[Other Files]" ? .semibold : .bold))
                             .foregroundColor(.white)
                             .lineLimit(1)
                         Text(ByteCountFormatter.string(fromByteCount: file.size, countStyle: .file))
@@ -190,7 +227,7 @@ private struct TreemapCell: View {
                     VStack {
                         HStack {
                             Spacer()
-                            Image(systemName: "chevron.right.circle.fill")
+                            Image(systemName: file.name == TreemapContainerView.smallChildrenName ? "folder.fill" : "chevron.right.circle.fill")
                                 .foregroundColor(.white.opacity(0.6))
                                 .font(.system(size: 12))
                         }
@@ -201,41 +238,59 @@ private struct TreemapCell: View {
             }
             .frame(width: rect.width, height: rect.height)
             .contentShape(Rectangle())
-            .onHover { hovering in
-                if hovering {
-                    hoverTask = Task {
-                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 second
-                        if !Task.isCancelled {
-                            isHovering = true
-                        }
-                    }
-                } else {
-                    hoverTask?.cancel()
-                    isHovering = false
-                }
-            }
-            .popover(
-                isPresented: $isHovering,
-                content: {
-                    VStack {
-                        Text(file.name)
-                        Text(ByteCountFormatter.string(fromByteCount: file.size, countStyle: .file))
-                        .font(.caption)
-                        
-                        if let subItems = file.subItems, !subItems.isEmpty {
-                            Text("\(subItems.count) files")
-                                .font(.caption2)
-                        }
-                    }
-                    .padding()
-                })
+            .modifier(HoverModifier(
+                file: file,
+                isEnabled: true
+            ))
             .onTapGesture {
-                // Tutti gli elementi sono tappabili, ma solo quelli navigabili cambiano vista
                 if isNavigable {
                     onTap?(file)
                 }
             }
             .position(x: rect.origin.x + rect.width/2, y: rect.origin.y + rect.height/2)
+        }
+    }
+}
+
+struct HoverModifier: ViewModifier {
+    let file: FileInfo
+    let isEnabled: Bool
+    @State private var isHovering = false
+    @State private var hoverTask: Task<Void, Never>? = nil
+    
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content
+                .onHover { hovering in
+                    if hovering {
+                        hoverTask = Task {
+                            try? await Task.sleep(nanoseconds: 500_000_000)
+                            if !Task.isCancelled {
+                                isHovering = true
+                            }
+                        }
+                    } else {
+                        hoverTask?.cancel()
+                        isHovering = false
+                    }
+                }
+                .popover(isPresented: $isHovering) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(file.name)
+                            .font(.headline)
+                        Text(ByteCountFormatter.string(fromByteCount: file.size, countStyle: .file))
+                            .font(.caption)
+                        
+                        if let subItems = file.subItems, !subItems.isEmpty {
+                            Text("\(subItems.count) files")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding()
+                }
+        } else {
+            content
         }
     }
 }
