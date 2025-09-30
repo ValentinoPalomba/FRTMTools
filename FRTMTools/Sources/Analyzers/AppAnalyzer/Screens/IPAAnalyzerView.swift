@@ -13,22 +13,6 @@ struct IPAAnalyzerContentView: View {
     var body: some View {
         analysesList
         .navigationTitle("IPA Analyses")
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                Button {
-                    viewModel.selectFile()
-                } label: {
-                    Label("Add IPA", systemImage: "plus")
-                }
-                .help("New Analysis")
-                
-                if !viewModel.analyses.isEmpty {
-                    Button(viewModel.compareMode ? "Done" : "Compare") {
-                        withAnimation { viewModel.compareMode.toggle() }
-                    }
-                }
-            }
-        }
         .onAppear {
             viewModel.loadAnalyses()
         }
@@ -140,7 +124,28 @@ struct IPAAnalyzerDetailView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-        }.onDrop(of: [.fileURL], isTargeted: nil) { providers in
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button {
+                    viewModel.selectFile()
+                } label: {
+                    Label("Add IPA", systemImage: "plus")
+                }
+                .help("New Analysis")
+                
+                Button(action: { viewModel.exportToCSV() }) {
+                    Label("Export as CSV", systemImage: "square.and.arrow.up")
+                }
+                
+                if !viewModel.analyses.isEmpty {
+                    Button(viewModel.compareMode ? "Done" : "Compare") {
+                        withAnimation { viewModel.compareMode.toggle() }
+                    }
+                }
+            }
+        }
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             for provider in providers {
                 _ = provider.loadObject(ofClass: URL.self) { url, _ in
                     if let url = url, ["ipa", "app"].contains(url.pathExtension.lowercased()) {

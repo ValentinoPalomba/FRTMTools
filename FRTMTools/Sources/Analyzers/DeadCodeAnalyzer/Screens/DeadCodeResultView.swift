@@ -79,6 +79,13 @@ struct DeadCodeResultView: View {
                 }
                 .disabled(viewModel.selectedAnalysis == nil || viewModel.selectedAnalysis?.results.isEmpty == true)
             }
+            
+            ToolbarItem {
+                Button(action: { viewModel.exportToCSV() }) {
+                    Label("Export as CSV", systemImage: "square.and.arrow.up")
+                }
+                .disabled(viewModel.selectedAnalysis == nil || viewModel.selectedAnalysis?.results.isEmpty == true)
+            }
         }
         .sheet(isPresented: $showingFilterSheet) {
             DeadCodeFilterView(
@@ -233,17 +240,7 @@ struct DeadCodeCollapsibleSection: View {
 
 }
 
-struct DeadCodeGroup: Identifiable {
-    let id: String
-    let kind: String
-    let results: [SerializableDeadCodeResult]
-    
-    init(kind: String, results: [SerializableDeadCodeResult]) {
-        self.id = kind
-        self.kind = kind
-        self.results = results
-    }
-}
+
 
 fileprivate extension String {
     func truncating(to length: Int) -> String {
