@@ -55,24 +55,15 @@ public final class IPASizeAnalyzer {
             throw IPASizeError.invalidIPAPath
         }
         
-        // 1. Trova e prepara il simulatore
         progress("🔎 Searching for a target simulator...")
         let deviceUDID = try await findAndPrepareSimulator(log: progress)
         progress("🎯 Simulator selected: \(deviceUDID)")
         
-        // 2. Decomprimi e prepara l'app
-        let tempDir = createTempDirectory()
-        defer { try? FileManager.default.removeItem(at: tempDir) }
-        
-        let appPath = try await unzipAndFindApp(ipaPath: normalizedIPAPath, in: tempDir, log: progress)
-        
-        // 3. Installa l'app
         progress("📲 Installing the app...")
-        try await shell(cmd: "/usr/bin/xcrun", args: ["simctl", "install", deviceUDID, appPath])
+        try await shell(cmd: "/usr/bin/xcrun", args: ["simctl", "install", deviceUDID, normalizedIPAPath])
         
-        // 4. Calcola la dimensione
         progress("📊 Calculating installed size...")
-        let result = try await calculateInstalledSize(for: appPath, on: deviceUDID)
+        let result = try await calculateInstalledSize(for: normalizedIPAPath, on: deviceUDID)
         
         progress("🎉 Done!")
         return result
