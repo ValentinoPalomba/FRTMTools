@@ -8,6 +8,8 @@ class TipGenerator {
         case infoPlist     = "Info.plist"
         case codeSignature = "_CodeSignature"
         case codeResources = "CodeResources"
+        case xcPrivacy = "PrivacyInfo.xcprivacy"
+        case runtimeNib = "runtime.nib"
         
         static var allNames: Set<String> {
             return Set(Self.allCases.map { $0.rawValue })
