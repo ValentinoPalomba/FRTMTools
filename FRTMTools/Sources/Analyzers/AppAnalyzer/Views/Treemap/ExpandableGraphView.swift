@@ -30,7 +30,19 @@ struct ExpandableGraphView: View {
                 .buttonStyle(.plain)
             }
 
-            TreemapAnalysisView(root: analysis.rootFile)
+            let baseURL: URL? = {
+                let appURL = analysis.url
+                let fm = FileManager.default
+                var isDir: ObjCBool = false
+                let contents = appURL.appendingPathComponent("Contents")
+                if fm.fileExists(atPath: contents.path, isDirectory: &isDir), isDir.boolValue {
+                    return contents // macOS bundle layout
+                }
+                // Fallback: use appURL even if it may not currently exist on disk
+                return appURL
+            }()
+
+            TreemapAnalysisView(root: analysis.rootFile, baseURL: baseURL)
                 .frame(height: 300)
 
             TreemapLegendView()
@@ -52,28 +64,40 @@ private struct ExpandedDetailView: View {
     @Binding var isShowingDetail: Bool
 
     var body: some View {
-            VStack {
-                HStack {
-                    Text("Treemap Detail")
-                        .font(.title2).bold()
-                    Spacer()
-                    Button(action: { isShowingDetail = false }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
+        let baseURL: URL? = {
+            let appURL = analysis.url
+            let fm = FileManager.default
+            var isDir: ObjCBool = false
+            let contents = appURL.appendingPathComponent("Contents")
+            if fm.fileExists(atPath: contents.path, isDirectory: &isDir), isDir.boolValue {
+                return contents // macOS bundle layout
+            }
+            // Fallback: use appURL even if it may not currently exist on disk
+            return appURL
+        }()
+
+        return VStack {
+            HStack {
+                Text("Treemap Detail")
+                    .font(.title2).bold()
+                Spacer()
+                Button(action: { isShowingDetail = false }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
                 }
-                .padding()
-                
-                TreemapAnalysisView(root: analysis.rootFile)
-                
-                TreemapLegendView()
-                    .padding()
+                .buttonStyle(.plain)
             }
             .padding()
-            .frame(minWidth: 1200, minHeight: 800)
-            .background(Color(NSColor.controlBackgroundColor))
+            
+            TreemapAnalysisView(root: analysis.rootFile, baseURL: baseURL)
+            
+            TreemapLegendView()
+                .padding()
+        }
+        .padding()
+        .frame(minWidth: 1200, minHeight: 800)
+        .background(Color(NSColor.controlBackgroundColor))
     }
 }
 

@@ -68,6 +68,7 @@ final class IPAAnalyzer: Analyzer {
         let fm = FileManager.default
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         
+        // Clean up temporary extraction when done
         defer { try? fm.removeItem(at: tempDir) }
         
         do {
@@ -84,7 +85,21 @@ final class IPAAnalyzer: Analyzer {
                 return nil
             }
             
-            return performAnalysisOnAppBundle(appBundleURL: appBundleURL, originalFileName: url.lastPathComponent, originalURL: url)
+            // Persist a copy of the extracted .app into Caches so Finder reveal keeps working
+            let cachesBase = try fm.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            let extractedBase = cachesBase.appendingPathComponent("FRTMTools/ExtractedIPAs", isDirectory: true)
+            try? fm.createDirectory(at: extractedBase, withIntermediateDirectories: true)
+            let folderName = url.deletingPathExtension().lastPathComponent + "-" + UUID().uuidString
+            let targetDir = extractedBase.appendingPathComponent(folderName, isDirectory: true)
+            try? fm.createDirectory(at: targetDir, withIntermediateDirectories: true)
+            let persistentAppURL = targetDir.appendingPathComponent(appBundleURL.lastPathComponent, isDirectory: true)
+            if fm.fileExists(atPath: persistentAppURL.path) {
+                try? fm.removeItem(at: persistentAppURL)
+            }
+            try? fm.copyItem(at: appBundleURL, to: persistentAppURL)
+            let finalAppURL = fm.fileExists(atPath: persistentAppURL.path) ? persistentAppURL : appBundleURL
+            
+            return performAnalysisOnAppBundle(appBundleURL: finalAppURL, originalFileName: url.lastPathComponent, originalURL: finalAppURL)
         } catch {
             print("Error analyzing IPA: \(error)")
             return nil
@@ -278,3 +293,4 @@ final class IPAAnalyzer: Analyzer {
         return binaryAnalyzer.isBinaryStripped(at: binaryURL)
     }
 }
+

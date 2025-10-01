@@ -1,8 +1,16 @@
 import SwiftUI
+import AppKit
 
 struct TreemapAnalysisView: View {
     let root: FileInfo
+    let baseURL: URL?
     @State private var navigationStack: [FileInfo] = []
+    
+    init(root: FileInfo, baseURL: URL? = nil) {
+        self.root = root
+        self.baseURL = baseURL
+        self._navigationStack = State(initialValue: [])
+    }
     
     private var currentRoot: FileInfo {
         navigationStack.last ?? root
@@ -38,7 +46,8 @@ struct TreemapAnalysisView: View {
                     file: currentRoot,
                     rect: geometry.frame(in: .local),
                     level: 0,
-                    maxDepth: 1
+                    maxDepth: 1,
+                    baseURL: baseURL
                 ) { tappedFile in
                     withAnimation(.easeInOut) {
                         navigationStack.append(tappedFile)
@@ -58,6 +67,7 @@ private struct TreemapContainerView: View {
     let rect: CGRect
     let level: Int
     let maxDepth: Int
+    let baseURL: URL?
     var onTap: ((FileInfo) -> Void)?
     
     static var smallChildrenName = "[Other Files]"
@@ -100,6 +110,7 @@ private struct TreemapContainerView: View {
                         rect: childRect,
                         level: level + 1,
                         maxDepth: maxDepth,
+                        baseURL: baseURL,
                         onTap: onTap
                     )
                 }
@@ -109,6 +120,7 @@ private struct TreemapContainerView: View {
                 file: file,
                 rect: rect,
                 isNavigable: canNavigate(file),
+                baseURL: baseURL,
                 onTap: onTap
             )
         }
@@ -180,9 +192,42 @@ private struct TreemapCell: View {
     let file: FileInfo
     let rect: CGRect
     let isNavigable: Bool
+    let baseURL: URL?
     var onTap: ((FileInfo) -> Void)?
     @State private var isHovering: Bool = false
     @State private var hoverTask: Task<Void, Never>? = nil
+    
+    private func resolvedURL() -> URL? {
+        // Do not resolve synthetic grouping nodes
+        if file.name == TreemapContainerView.smallChildrenName { return nil }
+        if let path = file.path, !path.isEmpty {
+            if path.hasPrefix("/") { return URL(fileURLWithPath: path) }
+            if let baseURL = baseURL { return baseURL.appendingPathComponent(path) }
+        } else if let baseURL = baseURL {
+            return baseURL
+        }
+        return nil
+    }
+    
+    private func revealInFinder() {
+        guard let initialURL = resolvedURL() else { return }
+        let fm = FileManager.default
+
+        // If the exact file/folder exists, reveal it; otherwise, walk up to the nearest existing parent.
+        var candidate = initialURL
+        var lastPath = candidate.path
+        while !fm.fileExists(atPath: candidate.path) {
+            let parent = candidate.deletingLastPathComponent()
+            // Stop if we can't go higher
+            if parent.path == lastPath { break }
+            lastPath = parent.path
+            candidate = parent
+        }
+
+        // Only proceed if the candidate exists on disk
+        guard fm.fileExists(atPath: candidate.path) else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([candidate])
+    }
     
     private var color: Color {
         switch file.type {
@@ -238,6 +283,11 @@ private struct TreemapCell: View {
             }
             .frame(width: rect.width, height: rect.height)
             .contentShape(Rectangle())
+            .contextMenu {
+                Button("Reveal in Finder", systemImage: "folder") {
+                    revealInFinder()
+                }
+            }
             .modifier(HoverModifier(
                 file: file,
                 isEnabled: true
@@ -294,3 +344,4 @@ struct HoverModifier: ViewModifier {
         }
     }
 }
+
