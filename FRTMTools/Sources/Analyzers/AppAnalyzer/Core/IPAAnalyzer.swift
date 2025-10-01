@@ -86,9 +86,8 @@ final class IPAAnalyzer: Analyzer {
             }
             
             // Persist a copy of the extracted .app into Caches so Finder reveal keeps working
-            let cachesBase = try fm.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-            let extractedBase = cachesBase.appendingPathComponent("FRTMTools/ExtractedIPAs", isDirectory: true)
-            try? fm.createDirectory(at: extractedBase, withIntermediateDirectories: true)
+            let extractedBase = CacheLocations.extractedIPAsDirectory
+            CacheLocations.ensureExtractedIPAsDirectoryExists()
             let folderName = url.deletingPathExtension().lastPathComponent + "-" + UUID().uuidString
             let targetDir = extractedBase.appendingPathComponent(folderName, isDirectory: true)
             try? fm.createDirectory(at: targetDir, withIntermediateDirectories: true)
