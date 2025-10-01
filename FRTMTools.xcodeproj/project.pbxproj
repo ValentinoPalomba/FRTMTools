@@ -41,7 +41,7 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		E6E5F5032E7AFD52000919D5 /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */ = {
+		E6291BED2E8D2B1500F6625A /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */ = {
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
 			attributesByRelativePath = {
 				CartoolKit.framework = (CodeSignOnCopy, RemoveHeadersOnCopy, );
@@ -57,7 +57,7 @@
 		E6E5F1332E7AE90E000919D5 /* ExternalFrameworks */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				E6E5F5032E7AFD52000919D5 /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */,
+				E6291BED2E8D2B1500F6625A /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */,
 			);
 			path = ExternalFrameworks;
 			sourceTree = "<group>";
@@ -317,10 +317,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = FRTMTools/FRTMTools.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"FRTMTools/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = 8JS222QZL3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -371,10 +374,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = FRTMTools/FRTMTools.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"FRTMTools/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = 8JS222QZL3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (

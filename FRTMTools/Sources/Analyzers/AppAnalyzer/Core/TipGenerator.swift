@@ -1,6 +1,19 @@
 import Foundation
 
 class TipGenerator {
+    enum ExcludedFile: String, CaseIterable {
+        case scInfo        = "SC_Info"
+        case pkgInfo       = "PkgInfo"
+        case assetsCar     = "Assets.car"
+        case infoPlist     = "Info.plist"
+        case codeSignature = "_CodeSignature"
+        case codeResources = "CodeResources"
+        
+        static var allNames: Set<String> {
+            return Set(Self.allCases.map { $0.rawValue })
+        }
+    }
+    
     static func generateTips(for analysis: IPAAnalysis) -> [Tip] {
         var tips: [Tip] = []
         let allFiles = flatten(file: analysis.rootFile)
@@ -41,9 +54,10 @@ class TipGenerator {
         }
 
         // 4. Binary not stripped
-        if !analysis.isStripped {
+        if !analysis.isStripped, let binary = allFiles.first(where: { $0.type == .binary }) {
+            let potentialSaving = ByteCountFormatter.string(fromByteCount: Int64(Double(binary.size) * 0.25), countStyle: .file)
             tips.append(Tip(
-                text: "The binary is not fully stripped of symbols. Stripping reduces binary size and makes reverse-engineering more difficult.",
+                text: "The binary is not fully stripped. Stripping could save up to \(potentialSaving) or more, reduce binary size, and make reverse-engineering more difficult.",
                 category: .warning
             ))
         }
@@ -60,26 +74,47 @@ class TipGenerator {
             let name: String
             let size: Int64
         }
+        
 
-        let duplicates = Dictionary(grouping: allFiles, by: { FileKey(name: $0.name, size: $0.size) })
+        let duplicates = Dictionary(
+            grouping: allFiles.filter { file in
+                let url = URL(fileURLWithPath: file.path ?? "-")
+                let parentDirectory = url.deletingLastPathComponent().lastPathComponent
+                
+                return !parentDirectory.hasSuffix(".lproj")
+                && file.type != .lproj
+                && !ExcludedFile.allNames.contains(file.name)
+            },
+            by: { file -> FileKey in
+                FileKey(name: file.name, size: file.size)
+            })
             .filter { $0.value.count > 1 }
+
         if !duplicates.isEmpty {
+            let totalSavings = duplicates.reduce(0) { result, duplicate in
+                let key = duplicate.key
+                let files = duplicate.value
+                return result + Int((key.size * Int64(files.count - 1)))
+            }
+
             var duplicateImageTip = Tip(
-                text: "Found \(duplicates.count) duplicate files",
+                text: "Found \(duplicates.count) sets of duplicate files, with a potential saving of \(ByteCountFormatter.string(fromByteCount: Int64(totalSavings), countStyle: .file))",
                 category: .optimization
             )
-            
+
             for (key, files) in duplicates {
+                let potentialSaving = key.size * Int64(files.count - 1)
+                let paths = files.map { $0.path ?? "-" }.joined(separator: "\n")
                 duplicateImageTip.subTips.append(Tip(
-                    text: "Found \(files.count) duplicate files named '\(key.name)' (\(ByteCountFormatter.string(fromByteCount: key.size, countStyle: .file))). Consider consolidating or removing duplicates.",
+                    text: "'\(key.name)' is duplicated \(files.count) times. Potential saving: \(ByteCountFormatter.string(fromByteCount: potentialSaving, countStyle: .file))\n\(paths)",
                     category: .optimization
                 ))
             }
-            
+
             tips.append(duplicateImageTip)
         }
 
-        // 7. Large images
+        
         let imageFiles = allFiles.filter { $0.name.lowercased().hasSuffix(".png") || $0.name.lowercased().hasSuffix(".jpg") }
         for image in imageFiles where image.size > 5 * 1024 * 1024 {
             tips.append(Tip(
