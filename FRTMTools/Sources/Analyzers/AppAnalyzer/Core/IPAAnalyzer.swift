@@ -49,6 +49,10 @@ private enum AppBundleLayout {
 // MARK: - Analyzer
 
 final class IPAAnalyzer: Analyzer {
+    
+    private static let excludedScanDirectories: Set<String> = ["_CodeSignature", "CodeResources"]
+    private static let excludedScanExtensions: Set<String> = ["storyboardc", "lproj"]
+    
     func analyze(at url: URL) async throws -> IPAAnalysis? {
         switch url.pathExtension.lowercased() {
         case "ipa":
@@ -93,7 +97,7 @@ final class IPAAnalyzer: Analyzer {
         let layout = detectLayout(for: appBundleURL)
         
         // Scan resources
-        let rootFile = scan(url: layout.resourcesRoot, appBundleURL: layout.appURL, layout: layout)
+        let rootFile = scan(url: layout.resourcesRoot, rootURL: layout.resourcesRoot, appBundleURL: layout.appURL, layout: layout)
         
         // Metadata
         let plist = extractInfoPlist(from: layout)
@@ -137,53 +141,54 @@ final class IPAAnalyzer: Analyzer {
     
     // MARK: - File scan
     
-    private func scan(url: URL, appBundleURL: URL, layout: AppBundleLayout) -> FileInfo {
+    private func scan(url: URL, rootURL: URL, appBundleURL: URL, layout: AppBundleLayout) -> FileInfo {
         let fm = FileManager.default
         var isDir: ObjCBool = false
         fm.fileExists(atPath: url.path, isDirectory: &isDir)
         
+        let name = url.lastPathComponent
+        let ext = url.pathExtension.lowercased()
+
+        if Self.excludedScanDirectories.contains(name) || Self.excludedScanExtensions.contains(ext) {
+            let type: FileType = ext == "lproj" ? .lproj : (isDir.boolValue ? .directory : .file)
+            
+            return FileInfo(
+                path: url.path.replacingOccurrences(of: rootURL.path, with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/")),
+                name: name,
+                type: type,
+                size: url.allocatedSize(),
+                subItems: nil
+            )
+        }
+        
+        let relativePath = url.path.replacingOccurrences(of: rootURL.path, with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         let subItems: [FileInfo]?
         if isDir.boolValue {
             subItems = (try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: .skipsHiddenFiles))?
-                .map { scan(url: $0, appBundleURL: appBundleURL, layout: layout) }
+                .map { scan(url: $0, rootURL: rootURL, appBundleURL: appBundleURL, layout: layout) }
                 .sorted(by: { $0.size > $1.size })
         } else {
             subItems = nil
         }
         
         if url.pathExtension.lowercased() == "car" {
-            do {
-                let reader: Reader<LazyRendition> = try Reader(.init(url))
-                let renditions = try reader.read()
-
-                let subItems = renditions.map { rendition -> FileInfo in
-                    let fileName = rendition.fileName
-                    let tmpURL = try? rendition.writeTo(.temporaryDirectory)
-                    let size = tmpURL != nil ? allocatedSize(of: tmpURL!) : 0
-                    return FileInfo(
-                        name: fileName,
-                        type: .assets,
-                        size: size,
-                        subItems: nil
-                    )
-                }
-
-                return FileInfo(
-                    name: url.lastPathComponent,
-                    type: .assets,
-                    size: allocatedSize(of: url),
-                    subItems: subItems
-                )
-            } catch {
-                print("Error parsing .car: \(error)")
-            }
+            return analyzeCarFile(at: url, relativePath: relativePath)
         }
 
         
-        let size = allocatedSize(of: url)
+        let size = url.allocatedSize()
         let type = fileType(for: url, layout: layout)
-        
-        return FileInfo(name: url.lastPathComponent, type: type, size: size, subItems: subItems)
+        return FileInfo(
+            path: relativePath, name: url.lastPathComponent ,
+            type: type,
+            size: size,
+            subItems: subItems
+        )
+    }
+
+    private func analyzeCarFile(at url: URL, relativePath: String) -> FileInfo {
+        let carAnalyzer = CarAnalyzer()
+        return carAnalyzer.analyzeCarFile(at: url, relativePath: relativePath)
     }
     
     private func fileType(for url: URL, layout: AppBundleLayout) -> FileType {
@@ -267,82 +272,9 @@ final class IPAAnalyzer: Analyzer {
         return nil
     }
     
-    // MARK: - Utils
 
     func isBinaryStripped(at binaryURL: URL) -> Bool {
-        let fm = FileManager.default
-        let tempDir = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-        let tempCopy = tempDir.appendingPathComponent(binaryURL.lastPathComponent)
-
-        func run(_ tool: String, _ args: [String]) throws -> (status: Int32, stdout: String, stderr: String) {
-            let p = Process()
-            p.executableURL = URL(fileURLWithPath: tool)
-            p.arguments = args
-            let out = Pipe(), err = Pipe()
-            p.standardOutput = out
-            p.standardError = err
-            try p.run()
-            p.waitUntilExit()
-            let outStr = String(data: out.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-            let errStr = String(data: err.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-            return (p.terminationStatus, outStr, errStr)
-        }
-
-        func sha1(of url: URL) throws -> String {
-            // Prefer /usr/bin/shasum (macOS). If unavailable, try sha1sum.
-            if fm.isReadableFile(atPath: "/usr/bin/shasum") {
-                let result = try run("/usr/bin/shasum", ["-a", "1", url.path])
-                guard result.status == 0 else { throw NSError(domain: "sha1", code: Int(result.status), userInfo: [NSLocalizedDescriptionKey: result.stderr]) }
-                return result.stdout.split(separator: " ").first.map(String.init) ?? ""
-            } else if let sha1sum = ["/opt/homebrew/bin/sha1sum", "/usr/local/bin/sha1sum"].first(where: { fm.isReadableFile(atPath: $0) }) {
-                let result = try run(sha1sum, [url.path])
-                guard result.status == 0 else { throw NSError(domain: "sha1", code: Int(result.status), userInfo: [NSLocalizedDescriptionKey: result.stderr]) }
-                return result.stdout.split(separator: " ").first.map(String.init) ?? ""
-            } else {
-                throw NSError(domain: "sha1", code: -1, userInfo: [NSLocalizedDescriptionKey: "No shasum/sha1sum found"])
-            }
-        }
-
-        do {
-            try fm.createDirectory(at: tempDir, withIntermediateDirectories: true)
-            try fm.copyItem(at: binaryURL, to: tempCopy)
-
-            // Ensure we clean up even on early returns/errors.
-            defer {
-                try? fm.removeItem(at: tempDir)
-            }
-
-            let pre = try sha1(of: tempCopy)
-
-            // Strip in place: strip -rSTx <copy>
-            let stripRes = try run("/usr/bin/strip", ["-rSTx", tempCopy.path])
-            // Some binaries may already be fully stripped; strip can still exit 0 or 1 depending on toolchain.
-            // Treat non-zero as "no change possible" only if the file still exists.
-            if stripRes.status != 0 && !fm.fileExists(atPath: tempCopy.path) {
-                // Something went wrong: no file to compare.
-                return false
-            }
-
-            let post = try sha1(of: tempCopy)
-            
-            // If hashes are identical, stripping made no byte-level change => already stripped.
-            return pre == post
-        } catch {
-            // On any failure, fall back to "not sure; assume not stripped"
-            return false
-        }
-    }
-    
-    func allocatedSize(of url: URL) -> Int64 {
-        var total: Int64 = 0
-        if let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.totalFileAllocatedSizeKey], options: [.skipsHiddenFiles]) {
-            for case let fileURL as URL in enumerator {
-                let size = try? fileURL.resourceValues(forKeys: [.totalFileAllocatedSizeKey]).totalFileAllocatedSize
-                total += Int64(size ?? 0)
-            }
-        }
-        let size = try? url.resourceValues(forKeys: [.totalFileAllocatedSizeKey]).totalFileAllocatedSize
-        total += Int64(size ?? 0)
-        return total
+        let binaryAnalyzer = BinaryAnalyzer()
+        return binaryAnalyzer.isBinaryStripped(at: binaryURL)
     }
 }
