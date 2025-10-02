@@ -142,7 +142,19 @@ struct DetailView: View {
                 .padding(.horizontal)
                 
                 // Tips Section
-                TipsSection(tips: TipGenerator.generateTips(for: analysis))
+                // Compute a base URL for resolving relative paths in tips
+                let tipsBaseURL: URL? = {
+                    let appURL = analysis.url
+                    let fm = FileManager.default
+                    var isDir: ObjCBool = false
+                    let contents = appURL.appendingPathComponent("Contents")
+                    if fm.fileExists(atPath: contents.path, isDirectory: &isDir), isDir.boolValue {
+                        return contents // macOS bundle layout
+                    }
+                    return appURL
+                }()
+                
+                TipsSection(tips: TipGenerator.generateTips(for: analysis), baseURL: tipsBaseURL)
                     .padding(.top)
             }
             .padding(.vertical, 16)
