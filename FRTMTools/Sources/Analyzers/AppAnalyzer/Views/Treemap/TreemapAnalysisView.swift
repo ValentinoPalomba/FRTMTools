@@ -326,6 +326,17 @@ struct HoverModifier: ViewModifier {
                 }
                 .popover(isPresented: $isHovering) {
                     VStack(alignment: .leading, spacing: 4) {
+                        if let imageData = file.internalImageData, let image = imageData.toNSImage() {
+                            HStack {
+                                Spacer()
+                                Image(nsImage: image)
+                                    .resizable()
+                                    .frame(width: 50, height: 50)
+                                    .padding()
+                                Spacer()
+                            }
+                        }
+                        
                         Text(file.name)
                             .font(.headline)
                         Text(ByteCountFormatter.string(fromByteCount: file.size, countStyle: .file))
@@ -339,6 +350,48 @@ struct HoverModifier: ViewModifier {
                     }
                     .padding()
                 }
+        } else {
+            content
+        }
+    }
+}
+
+
+struct HoverImageModifier: ViewModifier {
+    let file: FileInfo
+    let isEnabled: Bool
+    @State private var isHovering = false
+    @State private var hoverTask: Task<Void, Never>? = nil
+    
+    func body(content: Content) -> some View {
+        if let imageData = file.internalImageData, let image = imageData.toNSImage() {
+            if isEnabled {
+                content
+                    .onHover { hovering in
+                        if hovering {
+                            hoverTask = Task {
+                                try? await Task.sleep(nanoseconds: 500_000_000)
+                                if !Task.isCancelled {
+                                    isHovering = true
+                                }
+                            }
+                        } else {
+                            hoverTask?.cancel()
+                            isHovering = false
+                        }
+                    }
+                    .popover(isPresented: $isHovering) {
+                        VStack(alignment: .center, spacing: 4) {
+                            Image(nsImage: image)
+                                .resizable()
+                                .frame(width: 50, height: 50)
+                                .padding()
+                        }
+                        .padding()
+                    }
+            } else {
+                content
+            }
         } else {
             content
         }
