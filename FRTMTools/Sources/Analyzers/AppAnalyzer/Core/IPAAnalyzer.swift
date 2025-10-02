@@ -51,7 +51,8 @@ private enum AppBundleLayout {
 final class IPAAnalyzer: Analyzer {
     
     private static let excludedScanDirectories: Set<String> = ["_CodeSignature", "CodeResources"]
-    private static let excludedScanExtensions: Set<String> = ["storyboardc", "lproj"]
+    private static let excludedScanExtensions: Set<String> = ["storyboardc", "lproj", "nib"]
+    let carAnalyzer = CarAnalyzer()
     
     func analyze(at url: URL) async throws -> IPAAnalysis? {
         switch url.pathExtension.lowercased() {
@@ -201,7 +202,6 @@ final class IPAAnalyzer: Analyzer {
     }
 
     private func analyzeCarFile(at url: URL, relativePath: String) -> FileInfo {
-        let carAnalyzer = CarAnalyzer()
         return carAnalyzer.analyzeCarFile(at: url, relativePath: relativePath)
     }
     
