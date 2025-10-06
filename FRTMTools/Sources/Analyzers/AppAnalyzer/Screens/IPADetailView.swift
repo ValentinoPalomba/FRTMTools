@@ -68,6 +68,22 @@ struct DetailView: View {
                         analysis: analysis
                     )
                 }
+
+                // Dependency Graph Section
+                if let dependencyGraph = analysis.dependencyGraph, !dependencyGraph.nodes.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Dependency Graph")
+                            .font(.title3)
+                            .bold()
+                            .padding(.horizontal)
+
+                        DependencyGraphView(graph: dependencyGraph)
+                            .frame(height: 600)
+                            .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
+                            .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+                            .padding(.horizontal)
+                    }
+                }
                 
                 HStack(alignment: .top, spacing: 24) {
                     // Pie chart

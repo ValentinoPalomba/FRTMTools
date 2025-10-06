@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		E67072FE2E813001004869AB /* PeripheryKit in Frameworks */ = {isa = PBXBuildFile; productRef = E67072FD2E813001004869AB /* PeripheryKit */; };
 		E67073002E813001004869AB /* ProjectDrivers in Frameworks */ = {isa = PBXBuildFile; productRef = E67072FF2E813001004869AB /* ProjectDrivers */; };
+		E68A8D742E9390020077CA29 /* ForceSimulation in Frameworks */ = {isa = PBXBuildFile; productRef = E68A8D732E9390020077CA29 /* ForceSimulation */; };
+		E68A8D762E9390020077CA29 /* Grape in Frameworks */ = {isa = PBXBuildFile; productRef = E68A8D752E9390020077CA29 /* Grape */; };
 		E6AE4BF82E707B4200C1F2F8 /* FengNiaoKit in Frameworks */ = {isa = PBXBuildFile; productRef = E6AE4BF72E707B4200C1F2F8 /* FengNiaoKit */; };
 		E6B372492E6AC55C005F365C /* FRTMCore in Frameworks */ = {isa = PBXBuildFile; productRef = E6B372482E6AC55C005F365C /* FRTMCore */; };
 /* End PBXBuildFile section */
@@ -80,7 +82,9 @@
 				E67072FE2E813001004869AB /* PeripheryKit in Frameworks */,
 				E6AE4BF82E707B4200C1F2F8 /* FengNiaoKit in Frameworks */,
 				E67073002E813001004869AB /* ProjectDrivers in Frameworks */,
+				E68A8D762E9390020077CA29 /* Grape in Frameworks */,
 				E6B372492E6AC55C005F365C /* FRTMCore in Frameworks */,
+				E68A8D742E9390020077CA29 /* ForceSimulation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -130,6 +134,8 @@
 				E6AE4BF72E707B4200C1F2F8 /* FengNiaoKit */,
 				E67072FD2E813001004869AB /* PeripheryKit */,
 				E67072FF2E813001004869AB /* ProjectDrivers */,
+				E68A8D732E9390020077CA29 /* ForceSimulation */,
+				E68A8D752E9390020077CA29 /* Grape */,
 			);
 			productName = ipaAnalyzer;
 			productReference = E6EDE3D12E679CC300310565 /* FRTMTools.app */;
@@ -163,6 +169,7 @@
 				E6B372472E6AC55C005F365C /* XCRemoteSwiftPackageReference "FRTMCore" */,
 				E6AE4BF62E707B4200C1F2F8 /* XCRemoteSwiftPackageReference "FengNiao" */,
 				E67072FC2E813001004869AB /* XCRemoteSwiftPackageReference "frtm_periphery" */,
+				E68A8D722E9390020077CA29 /* XCRemoteSwiftPackageReference "Grape" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E6EDE3D22E679CC300310565 /* Products */;
@@ -457,6 +464,14 @@
 				kind = branch;
 			};
 		};
+		E68A8D722E9390020077CA29 /* XCRemoteSwiftPackageReference "Grape" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/swiftgraphs/Grape";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.0;
+			};
+		};
 		E6AE4BF62E707B4200C1F2F8 /* XCRemoteSwiftPackageReference "FengNiao" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/onevcat/FengNiao.git";
@@ -485,6 +500,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E67072FC2E813001004869AB /* XCRemoteSwiftPackageReference "frtm_periphery" */;
 			productName = ProjectDrivers;
+		};
+		E68A8D732E9390020077CA29 /* ForceSimulation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E68A8D722E9390020077CA29 /* XCRemoteSwiftPackageReference "Grape" */;
+			productName = ForceSimulation;
+		};
+		E68A8D752E9390020077CA29 /* Grape */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E68A8D722E9390020077CA29 /* XCRemoteSwiftPackageReference "Grape" */;
+			productName = Grape;
 		};
 		E6AE4BF72E707B4200C1F2F8 /* FengNiaoKit */ = {
 			isa = XCSwiftPackageProductDependency;
