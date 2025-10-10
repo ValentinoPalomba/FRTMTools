@@ -6,7 +6,7 @@
 //
 
 import Foundation
-
+import AppKit
 struct FileInfo: Identifiable, Codable {
     let id: UUID
     let name: String
@@ -14,6 +14,8 @@ struct FileInfo: Identifiable, Codable {
     let path: String?
     var size: Int64
     var subItems: [FileInfo]?
+    var internalName: String? //only used for assets extracted from asset.car
+    var internalImageData: Data?
 
     init(id: UUID = UUID(), path: String? = nil, name: String, type: FileType, size: Int64, subItems: [FileInfo]? = nil) {
         self.id = id

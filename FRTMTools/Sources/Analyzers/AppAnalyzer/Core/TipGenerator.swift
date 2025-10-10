@@ -75,22 +75,38 @@ class TipGenerator {
         struct FileKey: Hashable {
             let name: String
             let size: Int64
+            let internalName: String?  // o Int se vuoi usare NameIdentifier
+            
+            func hash(into hasher: inout Hasher) {
+                hasher.combine(name)
+                hasher.combine(size)
+                hasher.combine(internalName)
+            }
+            
+            static func ==(lhs: FileKey, rhs: FileKey) -> Bool {
+                return lhs.name == rhs.name &&
+                       lhs.size == rhs.size &&
+                       lhs.internalName == rhs.internalName
+            }
         }
+
         
 
         let duplicates = Dictionary(
             grouping: allFiles.filter { file in
                 let url = URL(fileURLWithPath: file.path ?? "-")
                 let parentDirectory = url.deletingLastPathComponent().lastPathComponent
-                
+
                 return !parentDirectory.hasSuffix(".lproj")
-                && file.type != .lproj
-                && !ExcludedFile.allNames.contains(file.name)
+                    && file.type != .lproj
+                    && !ExcludedFile.allNames.contains(file.name)
             },
             by: { file -> FileKey in
-                FileKey(name: file.name, size: file.size)
-            })
-            .filter { $0.value.count > 1 }
+                FileKey(name: file.name, size: file.size, internalName: file.internalName)
+            }
+        )
+        .filter { $0.value.count > 1 }
+
 
         if !duplicates.isEmpty {
             let totalSavings = duplicates.reduce(0) { result, duplicate in
