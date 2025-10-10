@@ -21,6 +21,7 @@ struct IPAAnalysis: Identifiable, Codable {
     private let imageData: Data?
     let isStripped: Bool
     let allowsArbitraryLoads: Bool
+    var dependencyGraph: DependencyGraph?
 
     var totalSize: Int64 {
         rootFile.size
@@ -31,7 +32,7 @@ struct IPAAnalysis: Identifiable, Codable {
         return NSImage(data: data)
     }
 
-    init(id: UUID = UUID(), url: URL, fileName: String, executableName: String?, rootFile: FileInfo, image: NSImage?, version: String?, buildNumber: String?, isStripped: Bool, allowsArbitraryLoads: Bool, installedSize: InstalledSize? = nil) {
+    init(id: UUID = UUID(), url: URL, fileName: String, executableName: String?, rootFile: FileInfo, image: NSImage?, version: String?, buildNumber: String?, isStripped: Bool, allowsArbitraryLoads: Bool, installedSize: InstalledSize? = nil, dependencyGraph: DependencyGraph? = nil) {
         self.id = id
         self.fileName = fileName
         self.executableName = executableName
@@ -43,10 +44,11 @@ struct IPAAnalysis: Identifiable, Codable {
         self.allowsArbitraryLoads = allowsArbitraryLoads
         self.installedSize = installedSize
         self.url = url
+        self.dependencyGraph = dependencyGraph
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, fileName, executableName, url, rootFile, version, buildNumber, imageData, isStripped, allowsArbitraryLoads, installedSize
+        case id, fileName, executableName, url, rootFile, version, buildNumber, imageData, isStripped, allowsArbitraryLoads, installedSize, dependencyGraph
     }
 }
 

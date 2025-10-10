@@ -30,10 +30,14 @@ struct FileRow: View {
             Image(systemName: icon(for: file.type))
                 .frame(width: 20)
             Text(file.name)
+                .modifier(
+                    HoverImageModifier(file: file, isEnabled: (file.internalImageData != nil) ? true : false)
+                )
             Spacer()
             Text(format(bytes: file.size))
                 .font(.system(.body, design: .monospaced))
         }
+        
         .padding(.vertical, 4)
     }
     

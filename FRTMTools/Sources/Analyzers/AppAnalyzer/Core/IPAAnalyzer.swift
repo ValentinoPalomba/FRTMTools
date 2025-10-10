@@ -5,24 +5,24 @@ import CartoolKit
 
 // MARK: - Layout
 
-private enum AppBundleLayout {
+enum AppBundleLayout {
     case iOS(appURL: URL)
     case macOS(appURL: URL, contents: URL, resources: URL)
-    
+
     var appURL: URL {
         switch self {
         case .iOS(let url): return url
         case .macOS(let url, _, _): return url
         }
     }
-    
+
     var resourcesRoot: URL {
         switch self {
         case .iOS(let url): return url
         case .macOS(_, _, let res): return res
         }
     }
-    
+
     var infoPlist: URL? {
         switch self {
         case .iOS(let url):
@@ -33,7 +33,7 @@ private enum AppBundleLayout {
             return FileManager.default.fileExists(atPath: candidate.path) ? candidate : nil
         }
     }
-    
+
     var executableCandidatePaths: [URL] {
         switch self {
         case .iOS(let appURL):
@@ -51,7 +51,9 @@ private enum AppBundleLayout {
 final class IPAAnalyzer: Analyzer {
     
     private static let excludedScanDirectories: Set<String> = ["_CodeSignature", "CodeResources"]
-    private static let excludedScanExtensions: Set<String> = ["storyboardc", "lproj"]
+    private static let excludedScanExtensions: Set<String> = ["storyboardc", "lproj", "nib"]
+    let carAnalyzer = CarAnalyzer()
+    let dependencyAnalyzer = DependencyAnalyzer()
     
     func analyze(at url: URL) async throws -> IPAAnalysis? {
         switch url.pathExtension.lowercased() {
@@ -126,7 +128,10 @@ final class IPAAnalyzer: Analyzer {
         if let binaryURL = findMainExecutableURL(in: layout, plist: plist) {
             isStripped = isBinaryStripped(at: binaryURL)
         }
-        
+
+        // Analyze dependencies
+        let dependencyGraph = dependencyAnalyzer.analyzeDependencies(rootFile: rootFile, layout: layout, plist: plist)
+
         return IPAAnalysis(
             url: originalURL ?? layout.appURL,
             fileName: originalFileName,
@@ -136,7 +141,8 @@ final class IPAAnalyzer: Analyzer {
             version: version,
             buildNumber: build,
             isStripped: isStripped,
-            allowsArbitraryLoads: allowsArbitraryLoads
+            allowsArbitraryLoads: allowsArbitraryLoads,
+            dependencyGraph: dependencyGraph
         )
     }
     
@@ -201,7 +207,6 @@ final class IPAAnalyzer: Analyzer {
     }
 
     private func analyzeCarFile(at url: URL, relativePath: String) -> FileInfo {
-        let carAnalyzer = CarAnalyzer()
         return carAnalyzer.analyzeCarFile(at: url, relativePath: relativePath)
     }
     
