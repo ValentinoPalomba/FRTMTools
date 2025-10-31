@@ -244,7 +244,7 @@ final class IPAViewModel: ObservableObject {
     }
     
     func exportToCSV() {
-        guard let analysis = selectedAnalysis as? Exportable else { return }
+        guard let analysis = selectedAnalysis else { return }
 
         do {
             let csvString = try analysis.export()
