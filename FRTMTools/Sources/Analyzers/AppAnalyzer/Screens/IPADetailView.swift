@@ -23,6 +23,10 @@ struct DetailView: View {
     private var categories: [CategoryResult] {
         return CategoryGenerator.generateCategories(from: analysis.rootFile)
     }
+    
+    private var archs: ArchsResult {
+        return ArchsAnalyzer.generateCategories(from: analysis.rootFile)
+    }
 
     private var filteredCategories: [CategoryResult] {
         if searchText.isEmpty {
@@ -59,6 +63,12 @@ struct DetailView: View {
                         title: "📂 Categories",
                         value: "\(categories.count)",
                         subtitle: "Main groups"
+                    )
+                    
+                    SummaryCard(
+                        title: "📐 Architectures",
+                        value: "\(archs.number)",
+                        subtitle: archs.types.joined(separator: ", ")
                     )
                 }
                 .padding(.horizontal)
@@ -238,4 +248,3 @@ struct DetailView: View {
         return prompt
     }
 }
-

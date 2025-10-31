@@ -199,7 +199,9 @@ final class IPAAnalyzer: Analyzer {
         let size = url.allocatedSize()
         let type = fileType(for: url, layout: layout)
         return FileInfo(
-            path: relativePath, name: url.lastPathComponent ,
+            path: relativePath,
+            fullPath: url.path,
+            name: url.lastPathComponent,
             type: type,
             size: size,
             subItems: subItems
