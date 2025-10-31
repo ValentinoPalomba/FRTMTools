@@ -202,15 +202,15 @@ public class DependencyAnalyzer: @unchecked Sendable {
 
         // Fallback: cerca nei nodi esistenti con matching più flessibile
         // Questo gestisce casi dove il nodo è stato creato senza registrare il canonical name
-        let cleanedPath: String
-        if libPath.hasPrefix("@rpath/") || libPath.hasPrefix("@executable_path/") || libPath.hasPrefix("@loader_path/") {
-            cleanedPath = libPath
-                .replacingOccurrences(of: "@rpath/", with: "")
-                .replacingOccurrences(of: "@executable_path/", with: "")
-                .replacingOccurrences(of: "@loader_path/", with: "")
-        } else {
-            cleanedPath = libPath
-        }
+//        let cleanedPath: String
+//        if libPath.hasPrefix("@rpath/") || libPath.hasPrefix("@executable_path/") || libPath.hasPrefix("@loader_path/") {
+//            cleanedPath = libPath
+//                .replacingOccurrences(of: "@rpath/", with: "")
+//                .replacingOccurrences(of: "@executable_path/", with: "")
+//                .replacingOccurrences(of: "@loader_path/", with: "")
+//        } else {
+//            cleanedPath = libPath
+//        }
 
         // Cerca tra i nodi esistenti confrontando canonical names
         for (nodeId, node) in context.nodes {

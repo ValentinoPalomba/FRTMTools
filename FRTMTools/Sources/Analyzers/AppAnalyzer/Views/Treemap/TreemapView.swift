@@ -297,25 +297,25 @@ import Foundation
 public extension YMTreeMap {
 
     #if os(iOS) || os(tvOS) || os(watchOS)
-    public typealias SystemRect = CGRect
+    typealias SystemRect = CGRect
     #elseif os(OSX)
-    public typealias SystemRect = NSRect
+    typealias SystemRect = NSRect
     #endif
 
-    @objc public func tessellate(inRect rect: YMTreeMap.SystemRect) -> [YMTreeMap.SystemRect] {
+    @objc func tessellate(inRect rect: YMTreeMap.SystemRect) -> [YMTreeMap.SystemRect] {
         let rects = self.tessellate(weights: self.allWeights, inRect: rect.toYMTreeMapRect)
         return rects.map { $0.toSystemRect }
     }
 }
 
 internal extension YMTreeMap.Rect {
-    internal var toSystemRect: YMTreeMap.SystemRect {
+    var toSystemRect: YMTreeMap.SystemRect {
         return YMTreeMap.SystemRect(x: x, y: y, width: width, height: height)
     }
 }
 
 internal extension YMTreeMap.SystemRect {
-    internal var toYMTreeMapRect: YMTreeMap.Rect {
+    var toYMTreeMapRect: YMTreeMap.Rect {
         return YMTreeMap.Rect(x: Double(minX),
                               y: Double(minY),
                               width: Double(width),
