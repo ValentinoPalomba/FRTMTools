@@ -16,6 +16,7 @@ struct FRTMTools: App {
     }
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
     @State private var showCleanCacheConfirmation = false
+    @State private var showClearAppStoreCacheConfirmation = false
     
     private var extractedIPAsCacheURL: URL { CacheLocations.extractedIPAsDirectory }
 
@@ -35,6 +36,11 @@ struct FRTMTools: App {
         }
     }
 
+    private func clearAppStoreVersionsCache() {
+        IPAToolClient.removePersistedMetadataCache()
+        NotificationCenter.default.post(name: .clearIPAToolMetadataCache, object: nil)
+    }
+
     var body: some Scene {
         WindowGroup {
             MainView()
@@ -49,6 +55,14 @@ struct FRTMTools: App {
                 } message: {
                     Text("This will remove all extracted IPA copies from the cache.")
                 }
+                .confirmationDialog("Clear App Store Versions Cache?", isPresented: $showClearAppStoreCacheConfirmation, titleVisibility: .visible) {
+                    Button("Clear Cache", role: .destructive) {
+                        clearAppStoreVersionsCache()
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("This will delete cached ipatool version metadata so the app can fetch fresh data.")
+                }
         }
         .commands {
             CommandMenu("Cache") {
@@ -61,8 +75,13 @@ struct FRTMTools: App {
                     showCleanCacheConfirmation = true
                 }
                 .keyboardShortcut(.delete, modifiers: [.command, .shift])
+
+                Divider()
+
+                Button("Clear App Store Versions Cache", role: .destructive) {
+                    showClearAppStoreCacheConfirmation = true
+                }
             }
         }
     }
 }
-
