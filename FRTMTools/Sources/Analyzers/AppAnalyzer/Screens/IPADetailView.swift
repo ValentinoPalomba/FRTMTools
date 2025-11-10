@@ -27,6 +27,16 @@ struct DetailView: View {
     private var archs: ArchsResult {
         ipaViewModel.archs(for: analysis)
     }
+    
+    private var buildsForApp: [IPAAnalysis] {
+        let key = analysis.executableName ?? analysis.fileName
+        let builds = ipaViewModel.groupedAnalyses[key] ?? []
+        return builds.sorted {
+            let vA = $0.version ?? "0"
+            let vB = $1.version ?? "0"
+            return vA.compare(vB, options: .numeric) == .orderedAscending
+        }
+    }
 
     private var filteredCategories: [CategoryResult] {
         if searchText.isEmpty {
@@ -154,6 +164,28 @@ struct DetailView: View {
                     }
                 }
                 .padding(.horizontal)
+                
+                if buildsForApp.count > 1 {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Build Size by Version")
+                            .font(.title3).bold()
+                        
+                        Chart(buildsForApp, id: \.id) { build in
+                            let sizeMB = Double(build.totalSize) / 1_048_576.0
+                            BarMark(
+                                x: .value("Version", build.version ?? "Unknown"),
+                                y: .value("Size (MB)", sizeMB)
+                            )
+                            .foregroundStyle(.blue)
+                        }
+                        .chartXScale(domain: buildsForApp.map { $0.version ?? "Unknown" })
+                        .frame(height: 260)
+                    }
+                    .padding()
+                    .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
+                    .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+                    .padding(.horizontal)
+                }
                 
                 // Collapsible sections
                 VStack(spacing: 12) {
