@@ -21,11 +21,11 @@ struct DetailView: View {
     private var categoryColorRange: [Color] { categoryColorDomain.compactMap { categoryColorScale[$0] } }
 
     private var categories: [CategoryResult] {
-        return CategoryGenerator.generateCategories(from: analysis.rootFile)
+        ipaViewModel.categories(for: analysis)
     }
     
     private var archs: ArchsResult {
-        return ArchsAnalyzer.generateCategories(from: analysis.rootFile)
+        ipaViewModel.archs(for: analysis)
     }
 
     private var filteredCategories: [CategoryResult] {
@@ -248,3 +248,4 @@ struct DetailView: View {
         return prompt
     }
 }
+
