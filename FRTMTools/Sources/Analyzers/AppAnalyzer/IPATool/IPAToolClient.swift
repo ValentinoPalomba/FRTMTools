@@ -26,7 +26,6 @@ struct IPAToolAppVersion: Identifiable, Codable, Hashable {
     let version: String
     let build: String?
     let displayVersion: String?
-    let releaseDate: Date?
     let externalIdentifier: String?
 
     init(
@@ -34,14 +33,12 @@ struct IPAToolAppVersion: Identifiable, Codable, Hashable {
         version: String,
         build: String? = nil,
         displayVersion: String? = nil,
-        releaseDate: Date? = nil,
         externalIdentifier: String? = nil
     ) {
         self.id = id
         self.version = version
         self.build = build
         self.displayVersion = displayVersion
-        self.releaseDate = releaseDate
         self.externalIdentifier = externalIdentifier
     }
 
@@ -71,7 +68,6 @@ final class IPAToolClient: @unchecked Sendable {
     private struct VersionMetadataCacheEntry: Codable {
         let externalVersionID: String
         let displayVersion: String?
-        let releaseDate: Date?
     }
 
     enum IPAToolError: LocalizedError {
@@ -106,16 +102,6 @@ final class IPAToolClient: @unchecked Sendable {
             .appendingPathComponent("ipatool_version_cache.json")
     }()
     private var metadataCacheURL: URL { Self.metadataCacheURL }
-    private let metadataDateFormatterWithFractional: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
-    private let metadataDateFormatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }()
 
     init() {
         loadMetadataCache()
@@ -502,7 +488,6 @@ final class IPAToolClient: @unchecked Sendable {
                 version: version.version,
                 build: version.build,
                 displayVersion: metadata.displayVersion ?? version.displayVersion,
-                releaseDate: metadata.releaseDate ?? version.releaseDate,
                 externalIdentifier: metadata.externalVersionID
             )
         }
@@ -533,8 +518,7 @@ final class IPAToolClient: @unchecked Sendable {
 
         let entry = VersionMetadataCacheEntry(
             externalVersionID: (dict["externalVersionID"] as? String) ?? identifier,
-            displayVersion: dict["displayVersion"] as? String,
-            releaseDate: parseReleaseDate(dict["releaseDate"])
+            displayVersion: dict["displayVersion"] as? String
         )
         return entry
     }
@@ -571,13 +555,6 @@ final class IPAToolClient: @unchecked Sendable {
         }
     }
 
-    private func parseReleaseDate(_ value: Any?) -> Date? {
-        guard let string = value as? String else { return nil }
-        if let date = metadataDateFormatterWithFractional.date(from: string) {
-            return date
-        }
-        return metadataDateFormatter.date(from: string)
-    }
 
     private func resolveExecutable() async -> URL? {
         let fm = FileManager.default

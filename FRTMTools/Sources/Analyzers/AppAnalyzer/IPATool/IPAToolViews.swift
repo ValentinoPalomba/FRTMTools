@@ -339,11 +339,6 @@ struct IPAToolDetailView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(versionTitle(version))
                                     .font(.body.weight(isSelected ? .semibold : .regular))
-                                if let subtitle = versionSubtitle(version) {
-                                    Text(subtitle)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
                             }
                             Spacer()
                             if let identifier = version.externalIdentifier, !identifier.isEmpty {
@@ -573,34 +568,17 @@ private extension View {
     }
 }
 
-private let versionDateFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .medium
-    formatter.timeStyle = .none
-    return formatter
-}()
-
 private func versionTitle(_ version: IPAToolAppVersion) -> String {
     if let display = version.displayVersion, !display.isEmpty {
         if let build = version.build, !build.isEmpty {
             return "\(display) (\(build))"
         }
-        let identifier = version.externalIdentifier ?? version.version
-        if identifier == display {
-            return display
-        } else {
-            return "\(display) (\(identifier))"
-        }
+        return display
     }
     if let build = version.build, !build.isEmpty {
         return "\(version.version) (\(build))"
     }
     return version.version
-}
-
-private func versionSubtitle(_ version: IPAToolAppVersion) -> String? {
-    guard let date = version.releaseDate else { return nil }
-    return versionDateFormatter.string(from: date)
 }
 
 private extension IPAToolStoreApp {
