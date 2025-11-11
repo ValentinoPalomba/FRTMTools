@@ -334,11 +334,8 @@ struct HoverModifier: ViewModifier {
         if hovering {
             hoverTask = Task { @MainActor in
                 try? await Task.sleep(nanoseconds: delay)
-                if !Task.isCancelled {
-                    await MainActor.run {
-                        isHovering = true
-                    }
-                }
+                guard !Task.isCancelled else { return }
+                isHovering = true
             }
         } else {
             hoverTask = Task { @MainActor in
