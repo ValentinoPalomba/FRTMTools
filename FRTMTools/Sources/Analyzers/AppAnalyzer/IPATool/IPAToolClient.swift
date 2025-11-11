@@ -11,6 +11,7 @@ struct IPAToolStoreApp: Identifiable, Codable, Hashable {
     let version: String?
     let formattedPrice: String?
     let artworkUrl100: String?
+    let price: Double?
 
     // Convenience
     var displayName: String { trackName }
@@ -61,6 +62,7 @@ private struct ITunesSearchItem: Decodable {
     let version: String?
     let formattedPrice: String?
     let artworkUrl100: String?
+    let price: Double?
 }
 
 // MARK: - IPATool Client
@@ -95,6 +97,8 @@ final class IPAToolClient: @unchecked Sendable {
     // MARK: Internal State
 
     private var versionMetadataCache: [String: VersionMetadataCacheEntry] = [:]
+    private var cachedExecutableURL: URL?
+    private var attemptedPurchases: Set<String> = []
     private static let metadataCacheURL: URL = {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return appSupport
@@ -184,16 +188,25 @@ final class IPAToolClient: @unchecked Sendable {
                 sellerName: item.sellerName,
                 version: item.version,
                 formattedPrice: item.formattedPrice,
-                artworkUrl100: item.artworkUrl100
+                artworkUrl100: item.artworkUrl100,
+                price: item.price
             )
         }
     }
 
     /// Best-effort versions listing using ipatool (if supported). Falls back to a single version if not supported.
-    func listVersions(bundleId: String, appId: Int?, fallbackCurrentVersion: String?) async -> [IPAToolAppVersion] {
+    func listVersions(
+        bundleId: String,
+        appId: Int?,
+        fallbackCurrentVersion: String?,
+        ensurePurchaseIfFree: Bool = false
+    ) async -> [IPAToolAppVersion] {
         guard let exe = await resolveExecutable() else {
             if let v = fallbackCurrentVersion { return [IPAToolAppVersion(version: v)] }
             return []
+        }
+        if ensurePurchaseIfFree {
+            await attemptPurchaseIfPossible(executableURL: exe, bundleId: bundleId, appId: appId)
         }
         var resolvedVersions: [IPAToolAppVersion]?
 
@@ -225,7 +238,6 @@ final class IPAToolClient: @unchecked Sendable {
                 }
             }
         }
-
         if let versions = resolvedVersions {
             let enriched = await attachMetadataIfPossible(
                 versions,
@@ -568,17 +580,88 @@ final class IPAToolClient: @unchecked Sendable {
     }
 
     private func resolveExecutable() async -> URL? {
-        // Try PATH first
-        if let path = try? await runTextCommand(executableURL: URL(fileURLWithPath: "/usr/bin/env"), arguments: ["which", "ipatool"]).trimmingCharacters(in: .whitespacesAndNewlines), !path.isEmpty {
+        let fm = FileManager.default
+
+        if let cachedExecutableURL,
+           fm.isExecutableFile(atPath: cachedExecutableURL.path) {
+            return cachedExecutableURL
+        }
+
+        if let override = ProcessInfo.processInfo.environment["IPATOOL_PATH"],
+           !override.isEmpty,
+           fm.isExecutableFile(atPath: override) {
+            let url = URL(fileURLWithPath: override)
+            cachedExecutableURL = url
+            return url
+        }
+
+        // Try PATH via /usr/bin/env which
+        if let path = try? await runTextCommand(
+            executableURL: URL(fileURLWithPath: "/usr/bin/env"),
+            arguments: ["which", "ipatool"]
+        ).trimmingCharacters(in: .whitespacesAndNewlines),
+           !path.isEmpty,
+           fm.isExecutableFile(atPath: path) {
             let url = URL(fileURLWithPath: path)
-            if FileManager.default.isExecutableFile(atPath: url.path) { return url }
+            cachedExecutableURL = url
+            return url
         }
-        // Common Homebrew locations
-        let candidates = ["/opt/homebrew/bin/ipatool", "/usr/local/bin/ipatool"]
-        for c in candidates {
-            if FileManager.default.isExecutableFile(atPath: c) { return URL(fileURLWithPath: c) }
+
+        // Accumulate candidate locations
+        var candidates: [String] = []
+        var seen: Set<String> = []
+
+        func appendCandidate(_ path: String) {
+            guard !path.isEmpty, !seen.contains(path) else { return }
+            candidates.append(path)
+            seen.insert(path)
         }
+
+        appendCandidate("/opt/homebrew/bin/ipatool")
+        appendCandidate("/usr/local/bin/ipatool")
+
+        if let brewPrefix = ProcessInfo.processInfo.environment["HOMEBREW_PREFIX"] {
+            appendCandidate("\(brewPrefix)/bin/ipatool")
+        }
+
+        let homeDirectory = fm.homeDirectoryForCurrentUser
+        appendCandidate(homeDirectory.appendingPathComponent("homebrew/bin/ipatool").path)
+        appendCandidate(homeDirectory.appendingPathComponent(".homebrew/bin/ipatool").path)
+        appendCandidate(homeDirectory.appendingPathComponent(".local/bin/ipatool").path)
+        appendCandidate(homeDirectory.appendingPathComponent("bin/ipatool").path)
+
+        let pathComponents = (ProcessInfo.processInfo.environment["PATH"] ?? "")
+            .split(separator: ":")
+            .map { String($0) }
+        for component in pathComponents {
+            appendCandidate(URL(fileURLWithPath: component).appendingPathComponent("ipatool").path)
+        }
+
+        for candidate in candidates {
+            if fm.isExecutableFile(atPath: candidate) {
+                let url = URL(fileURLWithPath: candidate)
+                cachedExecutableURL = url
+                return url
+            }
+        }
+
+        cachedExecutableURL = nil
         return nil
+    }
+
+    private func attemptPurchaseIfPossible(executableURL: URL, bundleId: String, appId: Int?) async {
+        let attemptKey = "\(bundleId)#\(appId ?? 0)"
+        if attemptedPurchases.contains(attemptKey) { return }
+        attemptedPurchases.insert(attemptKey)
+
+        var args = ["purchase", "--bundle-identifier", bundleId]
+        
+        do {
+            _ = try await runTextCommand(executableURL: executableURL, arguments: args)
+        } catch {
+            // Purchasing a paid/non-owned app will fail; swallow and continue listing versions.
+            print("ipatool purchase attempt failed for \(bundleId): \(error.localizedDescription)")
+        }
     }
 
     private func runJSONCommand(executableURL: URL, arguments: [String]) async throws -> Any {
@@ -610,16 +693,18 @@ final class IPAToolClient: @unchecked Sendable {
         try process.run()
 
         // Optional line streaming
+        var outHandle: FileHandle?
+        var errHandle: FileHandle?
         if let onLine {
-            let outHandle = outPipe.fileHandleForReading
-            let errHandle = errPipe.fileHandleForReading
+            outHandle = outPipe.fileHandleForReading
+            errHandle = errPipe.fileHandleForReading
 
-            outHandle.readabilityHandler = { [onLine] handle in
+            outHandle?.readabilityHandler = { [onLine] handle in
                 if let line = String(data: handle.availableData, encoding: .utf8), !line.isEmpty {
                     onLine(line)
                 }
             }
-            errHandle.readabilityHandler = { [onLine] handle in
+            errHandle?.readabilityHandler = { [onLine] handle in
                 if let line = String(data: handle.availableData, encoding: .utf8), !line.isEmpty {
                     onLine(line)
                 }
@@ -627,6 +712,8 @@ final class IPAToolClient: @unchecked Sendable {
         }
 
         process.waitUntilExit()
+        outHandle?.readabilityHandler = nil
+        errHandle?.readabilityHandler = nil
 
         let outData = outPipe.fileHandleForReading.readDataToEndOfFile()
         let errData = errPipe.fileHandleForReading.readDataToEndOfFile()

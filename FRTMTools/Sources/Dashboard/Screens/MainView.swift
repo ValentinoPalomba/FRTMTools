@@ -13,7 +13,7 @@ struct MainView: View {
     enum Tool: String, Hashable, Identifiable, CaseIterable {
         case ipaAnalyzer = "IPA Analyzer"
         case unusedAssets = "Unused Assets Analyzer"
-        case securityScanner = "Security Scanner"
+        //case securityScanner = "Security Scanner"
         case deadCodeScanner = "Dead Code Scanner"
         case ipatool = "App Store"
         
@@ -23,7 +23,7 @@ struct MainView: View {
             switch self {
             case .ipaAnalyzer: return "app.badge"
             case .unusedAssets: return "trash"
-            case .securityScanner: return "shield.lefthalf.filled"
+            //case .securityScanner: return "shield.lefthalf.filled"
             case .deadCodeScanner: return "text.magnifyingglass"
             case .ipatool: return "bag.badge.plus"
             }
@@ -33,7 +33,7 @@ struct MainView: View {
             switch self {
             case .ipaAnalyzer: return .blue
             case .unusedAssets: return .purple
-            case .securityScanner: return .red
+            //case .securityScanner: return .red
             case .deadCodeScanner: return .orange
             case .ipatool: return .green
             }
@@ -69,8 +69,8 @@ struct MainView: View {
                 IPAAnalyzerContentView(viewModel: ipaViewModel)
             case .unusedAssets:
                 UnusedAssetsContentView(viewModel: unusedAssetsViewModel)
-            case .securityScanner:
-                SecurityScannerContentView(viewModel: securityScannerViewModel)
+//            case .securityScanner:
+//                SecurityScannerContentView(viewModel: securityScannerViewModel)
             case .deadCodeScanner:
                 DeadCodeContentView(viewModel: deadCodeViewModel)
             case .ipatool:
@@ -85,8 +85,8 @@ struct MainView: View {
                 IPAAnalyzerDetailView(viewModel: ipaViewModel)
             case .unusedAssets:
                 UnusedAssetsResultView(viewModel: unusedAssetsViewModel)
-            case .securityScanner:
-                SecurityScannerResultView(viewModel: securityScannerViewModel)
+//            case .securityScanner:
+//                SecurityScannerResultView(viewModel: securityScannerViewModel)
             case .deadCodeScanner:
                 DeadCodeResultView(viewModel: deadCodeViewModel)
             case .ipatool:

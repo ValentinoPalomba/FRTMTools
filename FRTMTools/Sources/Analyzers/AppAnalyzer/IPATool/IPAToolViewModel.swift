@@ -85,7 +85,12 @@ final class IPAToolViewModel: ObservableObject {
         Task { @MainActor in
             isLoadingVersions = true
             defer { isLoadingVersions = false }
-            let list = await client.listVersions(bundleId: app.bundleId, appId: app.id, fallbackCurrentVersion: app.version)
+            let list = await client.listVersions(
+                bundleId: app.bundleId,
+                appId: app.id,
+                fallbackCurrentVersion: app.version,
+                ensurePurchaseIfFree: shouldEnsurePurchase(for: app)
+            )
             self.versions = list
             self.selectedVersion = list.first
         }
@@ -121,5 +126,21 @@ final class IPAToolViewModel: ObservableObject {
         if let app = selectedApp {
             loadVersions(for: app)
         }
+    }
+
+    private func shouldEnsurePurchase(for app: IPAToolStoreApp) -> Bool {
+        if let price = app.price, price == 0 {
+            return true
+        }
+        guard let formatted = app.formattedPrice?.trimmingCharacters(in: .whitespacesAndNewlines), !formatted.isEmpty else {
+            return false
+        }
+        let lower = formatted.lowercased()
+        let keywords = ["free", "gratis", "gratuit", "gratuita", "gratuito", "kostenlos", "libre"]
+        if keywords.contains(where: { lower.contains($0) }) {
+            return true
+        }
+        let numericCharacters = lower.filter { "0123456789., ".contains($0) }.replacingOccurrences(of: " ", with: "")
+        return numericCharacters == "0" || numericCharacters == "0.00" || numericCharacters == "0,00"
     }
 }
