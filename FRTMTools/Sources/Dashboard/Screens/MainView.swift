@@ -13,7 +13,7 @@ struct MainView: View {
         case ipaAnalyzer = "IPA Analyzer"
         case unusedAssets = "Unused Assets Analyzer"
         case securityScanner = "Security Scanner"
-        case deadCodeScanner = "Dead Code Scanner"
+        //case deadCodeScanner = "Dead Code Scanner"
         
         var id: String { rawValue }
         
@@ -22,7 +22,7 @@ struct MainView: View {
             case .ipaAnalyzer: return "app.badge"
             case .unusedAssets: return "trash"
             case .securityScanner: return "shield.lefthalf.filled"
-            case .deadCodeScanner: return "text.magnifyingglass"
+            //case .deadCodeScanner: return "text.magnifyingglass"
             }
         }
         
@@ -31,7 +31,7 @@ struct MainView: View {
             case .ipaAnalyzer: return .blue
             case .unusedAssets: return .purple
             case .securityScanner: return .red
-            case .deadCodeScanner: return .orange
+           // case .deadCodeScanner: return .orange
             }
         }
     }
@@ -67,8 +67,8 @@ struct MainView: View {
                 UnusedAssetsContentView(viewModel: unusedAssetsViewModel)
             case .securityScanner:
                 SecurityScannerContentView(viewModel: securityScannerViewModel)
-            case .deadCodeScanner:
-                DeadCodeContentView(viewModel: deadCodeViewModel)
+//            case .deadCodeScanner:
+//                DeadCodeContentView(viewModel: deadCodeViewModel)
             case .none:
                 Text("Select an item to see details.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -81,8 +81,8 @@ struct MainView: View {
                 UnusedAssetsResultView(viewModel: unusedAssetsViewModel)
             case .securityScanner:
                     SecurityScannerResultView(viewModel: securityScannerViewModel)
-            case .deadCodeScanner:
-                    DeadCodeResultView(viewModel: deadCodeViewModel)
+//            case .deadCodeScanner:
+//                    DeadCodeResultView(viewModel: deadCodeViewModel)
             case .none:
                 Text("Select an item to see details.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
