@@ -82,8 +82,11 @@ struct IPAAnalyzerContentView: View {
                         viewModel.selectedUUID == analysis.id
                     ) ? .base : nil
                 )
+                
                 .onTapGesture {
-                    viewModel.toggleSelection(analysis.id)
+                    withAnimation {
+                        viewModel.toggleSelection(analysis.id)
+                    }
                 }
                 .contextMenu {
                     Button(role: .destructive) {
@@ -108,11 +111,17 @@ struct IPAAnalyzerDetailView: View {
     @ObservedObject var viewModel: IPAViewModel
 
     var body: some View {
-        Group {
+        VStack {
             if viewModel.compareMode {
                 CompareView(analyses: viewModel.analyses)
             } else if let selected = viewModel.selectedAnalysis {
-                DetailView(analysis: selected, ipaViewModel: viewModel)
+                DetailView(
+                    viewModel: IPADetailViewModel(
+                        analysis: selected,
+                        ipaViewModel: viewModel
+                    )
+                )
+                .id(selected.id)
             } else {
                 VStack(spacing: 12) {
                     Image(systemName: "square.and.arrow.down.on.square")
@@ -159,4 +168,3 @@ struct IPAAnalyzerDetailView: View {
         }
     }
 }
-

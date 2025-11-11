@@ -2,11 +2,10 @@ import SwiftUI
 import Charts
 
 struct DetailView: View {
-    let analysis: IPAAnalysis
-    
+    @ObservedObject var viewModel: IPADetailViewModel
+
     @State private var expandedSections: Set<String> = []
     @State private var selectedCategoryName: String? = nil
-    @ObservedObject var ipaViewModel: IPAViewModel
     @State private var searchText = ""
 
     private let categoryColorScale: [String: Color] = [
@@ -20,38 +19,10 @@ struct DetailView: View {
     private var categoryColorDomain: [String] { Array(categoryColorScale.keys) }
     private var categoryColorRange: [Color] { categoryColorDomain.compactMap { categoryColorScale[$0] } }
 
-    private var categories: [CategoryResult] {
-        ipaViewModel.categories(for: analysis)
-    }
-    
-    private var archs: ArchsResult {
-        ipaViewModel.archs(for: analysis)
-    }
-    
-    private var buildsForApp: [IPAAnalysis] {
-        let key = analysis.executableName ?? analysis.fileName
-        let builds = ipaViewModel.groupedAnalyses[key] ?? []
-        return builds.sorted {
-            let vA = $0.version ?? "0"
-            let vB = $1.version ?? "0"
-            return vA.compare(vB, options: .numeric) == .orderedAscending
-        }
-    }
-
     private var filteredCategories: [CategoryResult] {
-        if searchText.isEmpty {
-            return categories
-        }
-        
-        return categories.compactMap { category in
-            let filteredItems = category.items.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
-            if filteredItems.isEmpty {
-                return nil
-            }
-            return CategoryResult(type: category.type, totalSize: filteredItems.reduce(0) { $0 + $1.size }, items: filteredItems)
-        }
+        viewModel.filteredCategories(searchText: searchText)
     }
-
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
@@ -60,59 +31,50 @@ struct DetailView: View {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
                     SummaryCard(
                         title: "📦 Uncompressed Size",
-                        value: ByteCountFormatter.string(fromByteCount: analysis.totalSize, countStyle: .file),
-                        subtitle: analysis.fileName
+                        value: ByteCountFormatter.string(fromByteCount: viewModel.analysis.totalSize, countStyle: .file),
+                        subtitle: viewModel.analysis.fileName
                     )
                     
                     InstalledSizeAnalysisView(
-                        viewModel: ipaViewModel,
-                        analysis: analysis
+                        viewModel: viewModel.sizeAnalyzer,
+                        analysis: viewModel.analysis
                     )
                     
                     SummaryCard(
                         title: "📂 Categories",
-                        value: "\(categories.count)",
+                        value: "\(viewModel.categoriesCount)",
                         subtitle: "Main groups"
                     )
                     
                     SummaryCard(
                         title: "📐 Architectures",
-                        value: "\(archs.number)",
-                        subtitle: archs.types.joined(separator: ", ")
+                        value: "\(viewModel.archs.number)",
+                        subtitle: viewModel.archTypesDescription
                     )
                 }
                 .padding(.horizontal)
                 
-                if analysis.totalSize > 0 {
+                if viewModel.analysis.totalSize > 0 {
                     ExpandableGraphView(
-                        analysis: analysis
+                        analysis: viewModel.analysis
                     )
+                    .id(viewModel.analysis.id)
                 }
 
-                // Dependency Graph Section
-                if let dependencyGraph = analysis.dependencyGraph, !dependencyGraph.nodes.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Dependency Graph")
-                            .font(.title3)
-                            .bold()
-                            .padding(.horizontal)
-
-                        DependencyGraphView(graph: dependencyGraph)
-                            .frame(height: 600)
-                            .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-                            .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
-                            .padding(.horizontal)
-                    }
+                // Dependency Graph Section (on demand)
+                if let dependencyGraph = viewModel.analysis.dependencyGraph, !dependencyGraph.nodes.isEmpty {
+                    DependencyGraphOnDemandSection(graph: dependencyGraph)
+                        .padding(.horizontal)
                 }
                 
                 HStack(alignment: .top, spacing: 24) {
                     // Pie chart
-                    if !categories.isEmpty {
+                    if viewModel.hasCategories {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Distribution by Category")
                                 .font(.title3).bold()
                             
-                            Chart(categories) { category in
+                            Chart(viewModel.categories) { category in
                                 SectorMark(
                                     angle: .value("Size", category.totalSize),
                                     innerRadius: .ratio(0.55),
@@ -123,7 +85,7 @@ struct DetailView: View {
                                 )
                                 .foregroundStyle(by: .value("Category", category.name))
                                 .annotation(position: .overlay) { 
-                                    Text("\(String(format: "%.0f", (Double(category.totalSize) / Double(analysis.totalSize)) * 100))%")
+                                    Text("\(String(format: "%.0f", (Double(category.totalSize) / Double(viewModel.analysis.totalSize)) * 100))%")
                                         .font(.caption)
                                         .foregroundColor(.white)
                                         .bold()
@@ -147,7 +109,7 @@ struct DetailView: View {
                             Text("Top Files in \(selectedCategoryName)")
                                 .font(.title3).bold()
                             
-                            Chart(topFiles(for: selectedCategoryName, limit: 5)) { item in
+                            Chart(viewModel.topFiles(for: selectedCategoryName, limit: 5)) { item in
                                 BarMark(
                                     x: .value("Size", item.size),
                                     y: .value("File", item.name)
@@ -165,12 +127,12 @@ struct DetailView: View {
                 }
                 .padding(.horizontal)
                 
-                if buildsForApp.count > 1 {
+                if viewModel.buildsForApp.count > 1 {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Build Size by Version")
                             .font(.title3).bold()
                         
-                        Chart(buildsForApp, id: \.id) { build in
+                        Chart(viewModel.buildsForApp, id: \.id) { build in
                             let sizeMB = Double(build.totalSize) / 1_048_576.0
                             BarMark(
                                 x: .value("Version", build.version ?? "Unknown"),
@@ -178,7 +140,7 @@ struct DetailView: View {
                             )
                             .foregroundStyle(.blue)
                         }
-                        .chartXScale(domain: buildsForApp.map { $0.version ?? "Unknown" })
+                        .chartXScale(domain: viewModel.buildsForApp.map { $0.version ?? "Unknown" })
                         .frame(height: 260)
                     }
                     .padding()
@@ -199,26 +161,14 @@ struct DetailView: View {
                 }
                 .padding(.horizontal)
                 
-                // Tips Section
-                // Compute a base URL for resolving relative paths in tips
-                let tipsBaseURL: URL? = {
-                    let appURL = analysis.url
-                    let fm = FileManager.default
-                    var isDir: ObjCBool = false
-                    let contents = appURL.appendingPathComponent("Contents")
-                    if fm.fileExists(atPath: contents.path, isDirectory: &isDir), isDir.boolValue {
-                        return contents // macOS bundle layout
-                    }
-                    return appURL
-                }()
-                
-                TipsSection(tips: TipGenerator.generateTips(for: analysis), baseURL: tipsBaseURL)
+                TipsSection(tips: TipGenerator.generateTips(for: viewModel.analysis), baseURL: viewModel.tipsBaseURL)
+                    .id(viewModel.analysis.id)
                     .padding(.top)
             }
             .padding(.vertical, 16)
         }
         .searchable(text: $searchText, prompt: "Search files...")
-        .navigationTitle(analysis.fileName)
+        .navigationTitle(viewModel.analysis.fileName)
         .onChange(of: expandedSections) {
             updateSelectedCategory()
         }
@@ -229,55 +179,10 @@ struct DetailView: View {
     private func updateSelectedCategory() {
         withAnimation {
             if let expandedID = expandedSections.first {
-                selectedCategoryName = categories.first { $0.id == expandedID }?.name
+                selectedCategoryName = viewModel.categoryName(for: expandedID)
             } else {
                 selectedCategoryName = nil
             }
         }
     }
-
-    private func topFiles(for categoryName: String, limit: Int) -> [FileInfo] {
-        guard let category = categories.first(where: { $0.name == categoryName }) else { return [] }
-        return Array(category.items.sorted(by: { $0.size > $1.size }).prefix(limit))
-    }
-    
-    private func generateAnalysisSummaryPrompt(analysis: IPAAnalysis) -> String {
-        var prompt = ""
-        
-        prompt += "File Name: \(analysis.fileName)\n"
-        prompt += "Total Size: \(ByteCountFormatter.string(fromByteCount: analysis.totalSize, countStyle: .file))\n"
-        
-        let allFiles = categories.flatMap { $0.items }
-        prompt += "Total Files: \(allFiles.count)\n"
-        if !allFiles.isEmpty {
-            let avgSize = allFiles.map { $0.size }.reduce(0, +) / Int64(allFiles.count)
-            prompt += "Average File Size: \(ByteCountFormatter.string(fromByteCount: avgSize, countStyle: .file))\n\n"
-        }
-        
-        // Categorie
-        prompt += "Categories:\n"
-        for category in categories {
-            let percentage = Double(category.totalSize) / Double(analysis.totalSize) * 100
-            prompt += "- \(category.name): \(ByteCountFormatter.string(fromByteCount: category.totalSize, countStyle: .file)) (\(String(format: "%.2f", percentage)))%\n"
-            
-            if !category.items.isEmpty {
-                prompt += "  Top 3 files in \(category.name):\n"
-                for item in category.items.sorted(by: { $0.size > $1.size }).prefix(3) {
-                    prompt += "  - \(item.name): \(ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file))\n"
-                }
-            }
-        }
-        
-        // Top 10 globali
-        let topGlobal = allFiles.filter { $0.subItems == nil }.sorted(by: { $0.size > $1.size }).prefix(10)
-        if !topGlobal.isEmpty {
-            prompt += "\nTop 10 largest files overall:\n"
-            for item in topGlobal {
-                prompt += "- \(item.name): \(ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file))\n"
-            }
-        }
-        
-        return prompt
-    }
 }
-

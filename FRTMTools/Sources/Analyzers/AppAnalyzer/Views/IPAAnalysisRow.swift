@@ -63,6 +63,5 @@ struct IPAAnalysisRow: View {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(role != nil ? Color.accentColor : .clear, lineWidth: 2)
         )
-        .animation(.spring(), value: role != nil)
     }
 }
