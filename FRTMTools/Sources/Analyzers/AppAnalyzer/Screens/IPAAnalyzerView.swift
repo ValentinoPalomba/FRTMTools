@@ -82,8 +82,11 @@ struct IPAAnalyzerContentView: View {
                         viewModel.selectedUUID == analysis.id
                     ) ? .base : nil
                 )
+                
                 .onTapGesture {
-                    viewModel.toggleSelection(analysis.id)
+                    withAnimation {
+                        viewModel.toggleSelection(analysis.id)
+                    }
                 }
                 .contextMenu {
                     Button(role: .destructive) {
@@ -159,4 +162,3 @@ struct IPAAnalyzerDetailView: View {
         }
     }
 }
-

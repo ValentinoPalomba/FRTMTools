@@ -47,6 +47,33 @@ final class IPAViewModel: ObservableObject {
         }
         return analyses.first
     }
+    
+        // Tips Section
+        // Compute a base URL for resolving relative paths in tips
+    var tipsBaseURL: URL? {
+        guard let appURL = selectedAnalysis?.url else { return nil }
+        let fm = FileManager.default
+        var isDir: ObjCBool = false
+        let contents = appURL.appendingPathComponent("Contents")
+        if fm.fileExists(atPath: contents.path, isDirectory: &isDir), isDir.boolValue {
+            return contents // macOS bundle layout
+        }
+        return appURL
+    }
+    
+    var categories: [CategoryResult] {
+        guard let selectedAnalysis else { return [] }
+        return CategoryGenerator
+            .generateCategories(from: selectedAnalysis.rootFile)
+    }
+    
+    var archs: ArchsResult {
+        guard let selectedAnalysis else { return .none }
+        return ArchsAnalyzer.generateCategories(from: selectedAnalysis.rootFile)
+    }
+    
+    
+
 
     struct AlertContent: Identifiable {
         let id = UUID()
@@ -156,7 +183,7 @@ final class IPAViewModel: ObservableObject {
     }
 
     func toggleSelection(_ id: UUID) {
-        withAnimation { selectedUUID = id }
+        selectedUUID = id
     }
     
     func selectFile() {

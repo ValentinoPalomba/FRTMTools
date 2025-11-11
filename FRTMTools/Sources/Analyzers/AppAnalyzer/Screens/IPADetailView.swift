@@ -3,10 +3,18 @@ import Charts
 
 struct DetailView: View {
     let analysis: IPAAnalysis
+    var ipaViewModel: IPAViewModel
     
+    init(
+        analysis: IPAAnalysis,
+        ipaViewModel: IPAViewModel
+    ) {
+        self.analysis = analysis
+        self.ipaViewModel = ipaViewModel
+    }
     @State private var expandedSections: Set<String> = []
     @State private var selectedCategoryName: String? = nil
-    @ObservedObject var ipaViewModel: IPAViewModel
+    
     @State private var searchText = ""
 
     private let categoryColorScale: [String: Color] = [
@@ -19,21 +27,13 @@ struct DetailView: View {
 
     private var categoryColorDomain: [String] { Array(categoryColorScale.keys) }
     private var categoryColorRange: [Color] { categoryColorDomain.compactMap { categoryColorScale[$0] } }
-
-    private var categories: [CategoryResult] {
-        return CategoryGenerator.generateCategories(from: analysis.rootFile)
-    }
     
-    private var archs: ArchsResult {
-        return ArchsAnalyzer.generateCategories(from: analysis.rootFile)
-    }
-
     private var filteredCategories: [CategoryResult] {
         if searchText.isEmpty {
-            return categories
+            return ipaViewModel.categories
         }
         
-        return categories.compactMap { category in
+        return ipaViewModel.categories.compactMap { category in
             let filteredItems = category.items.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
             if filteredItems.isEmpty {
                 return nil
@@ -41,7 +41,7 @@ struct DetailView: View {
             return CategoryResult(type: category.type, totalSize: filteredItems.reduce(0) { $0 + $1.size }, items: filteredItems)
         }
     }
-
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
@@ -61,14 +61,14 @@ struct DetailView: View {
                     
                     SummaryCard(
                         title: "📂 Categories",
-                        value: "\(categories.count)",
+                        value: "\(ipaViewModel.categories.count)",
                         subtitle: "Main groups"
                     )
                     
                     SummaryCard(
                         title: "📐 Architectures",
-                        value: "\(archs.number)",
-                        subtitle: archs.types.joined(separator: ", ")
+                        value: "\(ipaViewModel.archs.number)",
+                        subtitle: ipaViewModel.archs.types.joined(separator: ", ")
                     )
                 }
                 .padding(.horizontal)
@@ -77,32 +77,23 @@ struct DetailView: View {
                     ExpandableGraphView(
                         analysis: analysis
                     )
+                    .id(analysis.id)
                 }
 
-                // Dependency Graph Section
+                // Dependency Graph Section (on demand)
                 if let dependencyGraph = analysis.dependencyGraph, !dependencyGraph.nodes.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Dependency Graph")
-                            .font(.title3)
-                            .bold()
-                            .padding(.horizontal)
-
-                        DependencyGraphView(graph: dependencyGraph)
-                            .frame(height: 600)
-                            .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-                            .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
-                            .padding(.horizontal)
-                    }
+                    DependencyGraphOnDemandSection(graph: dependencyGraph)
+                        .padding(.horizontal)
                 }
                 
                 HStack(alignment: .top, spacing: 24) {
                     // Pie chart
-                    if !categories.isEmpty {
+                    if !ipaViewModel.categories.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Distribution by Category")
                                 .font(.title3).bold()
                             
-                            Chart(categories) { category in
+                            Chart(ipaViewModel.categories) { category in
                                 SectorMark(
                                     angle: .value("Size", category.totalSize),
                                     innerRadius: .ratio(0.55),
@@ -167,20 +158,8 @@ struct DetailView: View {
                 }
                 .padding(.horizontal)
                 
-                // Tips Section
-                // Compute a base URL for resolving relative paths in tips
-                let tipsBaseURL: URL? = {
-                    let appURL = analysis.url
-                    let fm = FileManager.default
-                    var isDir: ObjCBool = false
-                    let contents = appURL.appendingPathComponent("Contents")
-                    if fm.fileExists(atPath: contents.path, isDirectory: &isDir), isDir.boolValue {
-                        return contents // macOS bundle layout
-                    }
-                    return appURL
-                }()
-                
-                TipsSection(tips: TipGenerator.generateTips(for: analysis), baseURL: tipsBaseURL)
+                TipsSection(tips: TipGenerator.generateTips(for: analysis), baseURL: ipaViewModel.tipsBaseURL)
+                    .id(analysis.id)
                     .padding(.top)
             }
             .padding(.vertical, 16)
@@ -197,7 +176,7 @@ struct DetailView: View {
     private func updateSelectedCategory() {
         withAnimation {
             if let expandedID = expandedSections.first {
-                selectedCategoryName = categories.first { $0.id == expandedID }?.name
+                selectedCategoryName = ipaViewModel.categories.first { $0.id == expandedID }?.name
             } else {
                 selectedCategoryName = nil
             }
@@ -205,46 +184,150 @@ struct DetailView: View {
     }
 
     private func topFiles(for categoryName: String, limit: Int) -> [FileInfo] {
-        guard let category = categories.first(where: { $0.name == categoryName }) else { return [] }
+        guard let category = ipaViewModel.categories.first(where: { $0.name == categoryName }) else { return [] }
         return Array(category.items.sorted(by: { $0.size > $1.size }).prefix(limit))
     }
     
-    private func generateAnalysisSummaryPrompt(analysis: IPAAnalysis) -> String {
-        var prompt = ""
-        
-        prompt += "File Name: \(analysis.fileName)\n"
-        prompt += "Total Size: \(ByteCountFormatter.string(fromByteCount: analysis.totalSize, countStyle: .file))\n"
-        
-        let allFiles = categories.flatMap { $0.items }
-        prompt += "Total Files: \(allFiles.count)\n"
-        if !allFiles.isEmpty {
-            let avgSize = allFiles.map { $0.size }.reduce(0, +) / Int64(allFiles.count)
-            prompt += "Average File Size: \(ByteCountFormatter.string(fromByteCount: avgSize, countStyle: .file))\n\n"
+}
+
+struct DependencyGraphOnDemandSection: View {
+    let graph: DependencyGraph
+
+    @State private var isGraphVisible = false
+    @State private var isPreparingGraph = false
+    @State private var renderToken = UUID()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            header
+            Divider()
+            if isGraphVisible {
+                graphView
+            } else {
+                placeholder
+            }
         }
-        
-        // Categorie
-        prompt += "Categories:\n"
-        for category in categories {
-            let percentage = Double(category.totalSize) / Double(analysis.totalSize) * 100
-            prompt += "- \(category.name): \(ByteCountFormatter.string(fromByteCount: category.totalSize, countStyle: .file)) (\(String(format: "%.2f", percentage)))%\n"
-            
-            if !category.items.isEmpty {
-                prompt += "  Top 3 files in \(category.name):\n"
-                for item in category.items.sorted(by: { $0.size > $1.size }).prefix(3) {
-                    prompt += "  - \(item.name): \(ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file))\n"
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(NSColor.controlBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.black.opacity(0.05))
+        )
+        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+    }
+
+    private var header: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Dependency Graph")
+                    .font(.title3)
+                    .bold()
+                Text("Genera il grafo solo quando serve così la schermata resta fluida.")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            if isGraphVisible {
+                HStack(spacing: 12) {
+                    Button(action: reloadLayout) {
+                        Label("Rigenera", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button(action: hideGraph) {
+                        Label("Chiudi", systemImage: "xmark.circle")
+                    }
+                    .buttonStyle(.bordered)
                 }
             }
         }
-        
-        // Top 10 globali
-        let topGlobal = allFiles.filter { $0.subItems == nil }.sorted(by: { $0.size > $1.size }).prefix(10)
-        if !topGlobal.isEmpty {
-            prompt += "\nTop 10 largest files overall:\n"
-            for item in topGlobal {
-                prompt += "- \(item.name): \(ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file))\n"
+    }
+
+    private var placeholder: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                Circle()
+                    .fill(Color(NSColor.quaternaryLabelColor))
+                    .frame(width: 42, height: 42)
+                    .overlay(
+                        Image(systemName: "bolt.horizontal.circle")
+                            .font(.system(size: 22, weight: .medium))
+                            .foregroundColor(.accentColor)
+                    )
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Grafo su richiesta")
+                        .font(.headline)
+                    Text("Il rendering è pesante. Premi il bottone qui sotto quando vuoi vedere le dipendenze.")
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                }
             }
+
+            if isPreparingGraph {
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                    Text("Sto preparando il grafo...")
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                }
+            } else {
+                Button(action: prepareGraph) {
+                    Label("Genera grafo", systemImage: "play.circle")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+            }
+
+            Text("Potrai richiuderlo o rigenerarlo in qualsiasi momento.")
+                .font(.footnote)
+                .foregroundColor(.secondary)
         }
-        
-        return prompt
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(NSColor.windowBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.black.opacity(0.06))
+        )
+    }
+
+    private var graphView: some View {
+        DependencyGraphView(graph: graph)
+            .id(renderToken)
+            .frame(height: 600)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.black.opacity(0.08))
+            )
+    }
+
+    private func prepareGraph() {
+        guard !isPreparingGraph else { return }
+        isPreparingGraph = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            renderToken = UUID()
+            isGraphVisible = true
+            isPreparingGraph = false
+        }
+    }
+
+    private func hideGraph() {
+        isGraphVisible = false
+    }
+
+    private func reloadLayout() {
+        renderToken = UUID()
     }
 }

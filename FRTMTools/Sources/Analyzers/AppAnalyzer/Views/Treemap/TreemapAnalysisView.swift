@@ -290,7 +290,8 @@ private struct TreemapCell: View {
             }
             .modifier(HoverModifier(
                 file: file,
-                isEnabled: true
+                isEnabled: true,
+                showOnlyImage: false
             ))
             .onTapGesture {
                 if isNavigable {
@@ -302,99 +303,102 @@ private struct TreemapCell: View {
     }
 }
 
+import SwiftUI
+
 struct HoverModifier: ViewModifier {
     let file: FileInfo
     let isEnabled: Bool
+    let showOnlyImage: Bool
+    let delay: UInt64 = 300_000_000 // 0.3 secondi
+
     @State private var isHovering = false
     @State private var hoverTask: Task<Void, Never>? = nil
-    
+
     func body(content: Content) -> some View {
-        if isEnabled {
-            content
-                .onHover { hovering in
-                    if hovering {
-                        hoverTask = Task {
-                            try? await Task.sleep(nanoseconds: 500_000_000)
-                            if !Task.isCancelled {
-                                isHovering = true
-                            }
-                        }
-                    } else {
-                        hoverTask?.cancel()
-                        isHovering = false
-                    }
+        content
+            .onHover(perform: handleHover)
+            .popover(isPresented: $isHovering) {
+                if showOnlyImage {
+                    HoverImageContent(file: file)
+                } else {
+                    HoverFullContent(file: file)
                 }
-                .popover(isPresented: $isHovering) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        if let imageData = file.internalImageData, let image = imageData.toNSImage() {
-                            HStack {
-                                Spacer()
-                                Image(nsImage: image)
-                                    .resizable()
-                                    .frame(width: 50, height: 50)
-                                    .padding()
-                                Spacer()
-                            }
-                        }
-                        
-                        Text(file.name)
-                            .font(.headline)
-                        Text(ByteCountFormatter.string(fromByteCount: file.size, countStyle: .file))
-                            .font(.caption)
-                        
-                        if let subItems = file.subItems, !subItems.isEmpty {
-                            Text("\(subItems.count) files")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding()
-                }
-        } else {
-            content
-        }
+            }
     }
-}
 
+    // MARK: - Private Hover Logic
+    private func handleHover(_ hovering: Bool) {
+        guard isEnabled else { return }
 
-struct HoverImageModifier: ViewModifier {
-    let file: FileInfo
-    let isEnabled: Bool
-    @State private var isHovering = false
-    @State private var hoverTask: Task<Void, Never>? = nil
-    
-    func body(content: Content) -> some View {
-        if let imageData = file.internalImageData, let image = imageData.toNSImage() {
-            if isEnabled {
-                content
-                    .onHover { hovering in
-                        if hovering {
-                            hoverTask = Task {
-                                try? await Task.sleep(nanoseconds: 500_000_000)
-                                if !Task.isCancelled {
-                                    isHovering = true
-                                }
-                            }
-                        } else {
-                            hoverTask?.cancel()
-                            isHovering = false
-                        }
+        hoverTask?.cancel()
+        if hovering {
+            hoverTask = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: delay)
+                if !Task.isCancelled {
+                    await MainActor.run {
+                        isHovering = true
                     }
-                    .popover(isPresented: $isHovering) {
-                        VStack(alignment: .center, spacing: 4) {
-                            Image(nsImage: image)
-                                .resizable()
-                                .frame(width: 50, height: 50)
-                                .padding()
-                        }
-                        .padding()
-                    }
-            } else {
-                content
+                }
             }
         } else {
-            content
+            hoverTask = Task { @MainActor in
+                isHovering = false
+            }
         }
     }
 }
 
+// MARK: - Subviews
+private struct HoverFullContent: View {
+    let file: FileInfo
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let imageData = file.internalImageData, let image = imageData.toNSImage() {
+                HStack {
+                    Spacer()
+                    Image(nsImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 60, height: 60)
+                        .cornerRadius(8)
+                        .shadow(radius: 2)
+                    Spacer()
+                }
+            }
+
+            Text(file.name)
+                .font(.headline)
+
+            Text(ByteCountFormatter.string(fromByteCount: file.size, countStyle: .file))
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            if let subItems = file.subItems, !subItems.isEmpty {
+                Text("\(subItems.count) files")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding()
+        .frame(minWidth: 180)
+    }
+}
+
+private struct HoverImageContent: View {
+    let file: FileInfo
+
+    var body: some View {
+        if let imageData = file.internalImageData, let image = imageData.toNSImage() {
+            VStack {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 60, height: 60)
+                    .cornerRadius(8)
+                    .shadow(radius: 2)
+            }
+            .padding(8)
+        }
+    }
+}
