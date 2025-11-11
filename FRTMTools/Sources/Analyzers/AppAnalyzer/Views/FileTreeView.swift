@@ -31,7 +31,7 @@ struct FileRow: View {
                 .frame(width: 20)
             Text(file.name)
                 .modifier(
-                    HoverImageModifier(file: file, isEnabled: (file.internalImageData != nil) ? true : false)
+                    HoverModifier(file: file, isEnabled: (file.internalImageData != nil) ? true : false, showOnlyImage: true)
                 )
             Spacer()
             Text(format(bytes: file.size))

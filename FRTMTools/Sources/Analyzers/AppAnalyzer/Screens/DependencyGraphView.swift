@@ -3,6 +3,10 @@ import Grape
 
 struct DependencyGraphView: View {
     let graph: DependencyGraph
+    private let orderedNodes: [DependencyNode]
+    private let orderedEdges: [DependencyEdge]
+    private let nodeLookup: [String: DependencyNode]
+    private let allNodesSet: Set<DependencyNode>
 
     @State var selectedNode: String?
     @State var hoveredNode: String?
@@ -15,9 +19,18 @@ struct DependencyGraphView: View {
     @State var showControls = false
     @State var isExporting = false
 
+    init(graph: DependencyGraph) {
+        self.graph = graph
+        let sortedNodes = graph.nodes.sorted { $0.name < $1.name }
+        self.orderedNodes = sortedNodes
+        self.orderedEdges = Array(graph.edges)
+        self.nodeLookup = Dictionary(uniqueKeysWithValues: sortedNodes.map { ($0.id, $0) })
+        self.allNodesSet = Set(sortedNodes)
+    }
+
     // Computed properties
-    private var filteredNodes: Set<DependencyNode> {
-        graph.nodes.filter { node in
+    private var filteredNodes: [DependencyNode] {
+        orderedNodes.filter { node in
             // Filter by enabled types
             guard enabledNodeTypes.contains(node.type) else { return false }
 
@@ -35,29 +48,33 @@ struct DependencyGraphView: View {
         }
     }
 
-    private var filteredEdges: Set<DependencyEdge> {
+    private var filteredEdges: [DependencyEdge] {
         let nodeIds = Set(filteredNodes.map { $0.id })
-        return graph.edges.filter { edge in
+        return orderedEdges.filter { edge in
             nodeIds.contains(edge.fromId) && nodeIds.contains(edge.toId)
         }
     }
 
     private var selectedNodeData: DependencyNode? {
         guard let selectedNode = selectedNode else { return nil }
-        return graph.nodes.first { $0.id == selectedNode }
+        return nodeLookup[selectedNode]
     }
 
     private var selectedNodeIncomingEdges: [DependencyEdge] {
         guard let selectedNode = selectedNode else { return [] }
-        return graph.edges.filter { $0.toId == selectedNode }
+        return orderedEdges.filter { $0.toId == selectedNode }
     }
 
     private var selectedNodeOutgoingEdges: [DependencyEdge] {
         guard let selectedNode = selectedNode else { return [] }
-        return graph.edges.filter { $0.fromId == selectedNode }
+        return orderedEdges.filter { $0.fromId == selectedNode }
     }
 
     var body: some View {
+        let nodes = filteredNodes
+        let edges = filteredEdges
+        let nodeSummary = makeNodeSummary(from: nodes)
+
         HStack(spacing: 0) {
             VStack(spacing: 0) {
                 // Top toolbar - only show when controls are visible
@@ -67,8 +84,7 @@ struct DependencyGraphView: View {
                         HStack {
                             Image(systemName: "magnifyingglass")
                                 .foregroundColor(.secondary)
-                            TextField("Search nodes...", text: $searchText)
-                                .textFieldStyle(.plain)
+                            
                         }
                         .padding(8)
                         .background(RoundedRectangle(cornerRadius: 8).fill(Color(NSColor.controlBackgroundColor)))
@@ -82,19 +98,19 @@ struct DependencyGraphView: View {
                                 icon: "circle.fill",
                                 color: .blue,
                                 label: "Frameworks",
-                                value: "\(filteredNodes.filter { $0.type == .framework }.count)"
+                                value: "\(nodeSummary.frameworks)"
                             )
                             StatBadge(
                                 icon: "circle.fill",
                                 color: .green,
                                 label: "Extensions",
-                                value: "\(filteredNodes.filter { $0.type == .appExtension }.count)"
+                                value: "\(nodeSummary.extensions)"
                             )
                             StatBadge(
                                 icon: "circle.fill",
                                 color: .cyan,
                                 label: "Libraries",
-                                value: "\(filteredNodes.filter { $0.type == .dynamicLibrary }.count)"
+                                value: "\(nodeSummary.libraries)"
                             )
                         }
                         
@@ -168,7 +184,7 @@ struct DependencyGraphView: View {
                         
                         ForceDirectedGraph(states: graphStates) {
                             // Nodes
-                            Series(Array(filteredNodes)) { node in
+                            Series(nodes) { node in
                                 NodeMark(id: node.id)
                                     .symbol(.circle)
                                     .symbolSize(radius: nodeSizeForNode(node))
@@ -186,7 +202,7 @@ struct DependencyGraphView: View {
                             }
                             
                             // Edges
-                            Series(Array(filteredEdges)) { edge in
+                            Series(edges) { edge in
                                 LinkMark(from: edge.fromId, to: edge.toId)
                                     .stroke(
                                         edgeColorForType(edge.type), StrokeStyle(
@@ -232,7 +248,7 @@ struct DependencyGraphView: View {
                                     }
                                 }
                         }
-                        .id(filteredNodes.count)
+                        .id(nodes.count)
                         
                         // Legend overlay
                         if showLegend {
@@ -264,7 +280,7 @@ struct DependencyGraphView: View {
                             node: nodeData,
                             incomingEdges: selectedNodeIncomingEdges,
                             outgoingEdges: selectedNodeOutgoingEdges,
-                            allNodes: graph.nodes,
+                            allNodes: allNodesSet,
                             onClose: { selectedNode = nil }
                         )
                         .frame(width: 300)
@@ -331,9 +347,12 @@ struct DependencyGraphView: View {
         // Show loading indicator
         isExporting = true
 
+        let nodesForExport = filteredNodes
+        let edgesForExport = filteredEdges
+
         let exportView = GraphExportView(
-            filteredNodes: filteredNodes,
-            filteredEdges: filteredEdges,
+            filteredNodes: nodesForExport,
+            filteredEdges: edgesForExport,
             graphStates: graphStates,
             nodeSizeForNode: nodeSizeForNode,
             colorForNodeType: colorForNodeType,
@@ -382,6 +401,21 @@ struct DependencyGraphView: View {
             return baseSize + CGFloat(sizeMultiplier) * 10
         }
         return baseSize
+    }
+
+    private func makeNodeSummary(from nodes: [DependencyNode]) -> NodeSummary {
+        nodes.reduce(into: NodeSummary()) { partialResult, node in
+            switch node.type {
+            case .framework:
+                partialResult.frameworks += 1
+            case .appExtension:
+                partialResult.extensions += 1
+            case .dynamicLibrary:
+                partialResult.libraries += 1
+            default:
+                break
+            }
+        }
     }
 
     private func colorForNodeType(_ type: DependencyNodeType) -> Color {
@@ -701,6 +735,12 @@ struct DependencyRow: View {
     }
 }
 
+private struct NodeSummary {
+    var frameworks: Int = 0
+    var extensions: Int = 0
+    var libraries: Int = 0
+}
+
 extension DependencyNodeType: CaseIterable {
     public static var allCases: [DependencyNodeType] {
         [.mainApp, .framework, .dynamicLibrary, .bundle, .plugin, .appExtension]
@@ -710,8 +750,8 @@ extension DependencyNodeType: CaseIterable {
 // MARK: - Export View
 
 struct GraphExportView: View {
-    let filteredNodes: Set<DependencyNode>
-    let filteredEdges: Set<DependencyEdge>
+    let filteredNodes: [DependencyNode]
+    let filteredEdges: [DependencyEdge]
     let graphStates: ForceDirectedGraphState
     let nodeSizeForNode: (DependencyNode) -> CGFloat
     let colorForNodeType: (DependencyNodeType) -> Color
@@ -728,7 +768,7 @@ struct GraphExportView: View {
 
     private var graphContent: some View {
         ForceDirectedGraph(states: graphStates) {
-            Series(Array(filteredNodes)) { node in
+            Series(filteredNodes) { node in
                 NodeMark(id: node.id)
                     .symbol(.circle)
                     .symbolSize(radius: nodeSizeForNode(node))
@@ -740,7 +780,7 @@ struct GraphExportView: View {
                     })
             }
             
-            Series(Array(filteredEdges)) { edge in
+            Series(filteredEdges) { edge in
                 let lineWidth: CGFloat = edge.type == .embeds ? 2 : 1
                 let dashPattern: [CGFloat] = edge.type == .links ? [5, 3] : []
 
