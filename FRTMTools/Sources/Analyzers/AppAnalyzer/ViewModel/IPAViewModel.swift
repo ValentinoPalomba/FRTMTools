@@ -6,6 +6,10 @@ import FRTMCore
 @MainActor
 final class IPAViewModel: ObservableObject {
     
+    // Cache for expensive per-analysis computations
+    private var cachedCategories: [UUID: [CategoryResult]] = [:]
+    private var cachedArchs: [UUID: ArchsResult] = [:]
+    
     @Published var analyses: [IPAAnalysis] = []
     @Published var isLoading = false
     @Published var isSizeLoading = false
@@ -25,6 +29,20 @@ final class IPAViewModel: ObservableObject {
     )
     
     private let persistenceKey = "ipa_analyses"
+
+    func categories(for analysis: IPAAnalysis) -> [CategoryResult] {
+        if let cached = cachedCategories[analysis.id] { return cached }
+        let computed = CategoryGenerator.generateCategories(from: analysis.rootFile)
+        cachedCategories[analysis.id] = computed
+        return computed
+    }
+
+    func archs(for analysis: IPAAnalysis) -> ArchsResult {
+        if let cached = cachedArchs[analysis.id] { return cached }
+        let computed = ArchsAnalyzer.generateCategories(from: analysis.rootFile)
+        cachedArchs[analysis.id] = computed
+        return computed
+    }
 
     var groupedAnalyses: [String: [IPAAnalysis]] {
         let grouped = Dictionary(grouping: analyses, by: { $0.executableName ?? $0.fileName })
@@ -86,6 +104,8 @@ final class IPAViewModel: ObservableObject {
             do {
                 let loaded = try await fileStore.loadAnalyses()
                 self.analyses = loaded
+                self.cachedCategories.removeAll()
+                self.cachedArchs.removeAll()
                 if let first = self.analyses.first {
                     self.selectedUUID = first.id
                 }
@@ -153,6 +173,9 @@ final class IPAViewModel: ObservableObject {
                 if let analysis = try await analyzer.analyze(at: url) {
                     withAnimation {
                         analyses.append(analysis)
+                        // Precompute cached data for this analysis
+                        self.cachedCategories[analysis.id] = CategoryGenerator.generateCategories(from: analysis.rootFile)
+                        self.cachedArchs[analysis.id] = ArchsAnalyzer.generateCategories(from: analysis.rootFile)
                         selectedUUID = analysis.id
                     }
                     try await fileStore.saveAnalyses(self.analyses)
@@ -179,6 +202,8 @@ final class IPAViewModel: ObservableObject {
                 try? await fileStore.deleteAnalysis(id: analysis.id)
             }
             analyses.removeAll(where: { $0.id == id })
+            cachedCategories[id] = nil
+            cachedArchs[id] = nil
         }
     }
 
@@ -304,3 +329,4 @@ final class IPAViewModel: ObservableObject {
         }
     }
 }
+
