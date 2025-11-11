@@ -141,7 +141,7 @@ struct MainView: View {
                     cancelAction: nil
                 )
         })
-        .onChange(of: selectedTool) { newValue in
+        .onChange(of: selectedTool) { oldValue, newValue in
             if newValue == .ipatool {
                 ipaToolViewModel.refreshInstallationState()
             }

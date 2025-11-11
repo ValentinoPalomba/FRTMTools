@@ -10,6 +10,7 @@ final class IPAToolViewModel: ObservableObject {
     @Published var loginOTP: String = ""
     @Published var loginInProgress: Bool = false
     @Published var loginMessage: String? = nil
+    @Published var isAwaitingOTP = false
 
     @Published var searchTerm: String = ""
     @Published var isSearching: Bool = false
@@ -51,14 +52,24 @@ final class IPAToolViewModel: ObservableObject {
             }
             loginInProgress = true
             loginMessage = nil
+            isAwaitingOTP = false
             defer { loginInProgress = false }
             do {
                 let output = try await client.login(email: loginEmail, password: loginPassword, otp: loginOTP.isEmpty ? nil : loginOTP)
                 self.loginMessage = output
                 self.isLoggedIn = try (await client.authInfo())
+                self.isAwaitingOTP = false
+                self.loginOTP = ""
             } catch {
-                self.loginMessage = error.localizedDescription
-                self.isLoggedIn = false
+                if self.didReceiveOTPChallenge(from: error) {
+                    self.isAwaitingOTP = true
+                    self.isLoggedIn = false
+                    self.loginMessage = "A verification code was sent to your trusted device. Enter it below and press Submit OTP."
+                } else {
+                    self.loginMessage = error.localizedDescription
+                    self.isLoggedIn = false
+                    self.isAwaitingOTP = false
+                }
             }
         }
     }
@@ -126,6 +137,22 @@ final class IPAToolViewModel: ObservableObject {
         if let app = selectedApp {
             loadVersions(for: app)
         }
+    }
+
+    func requireReauthentication() {
+        loginEmail = ""
+        loginPassword = ""
+        loginOTP = ""
+        loginMessage = nil
+        isLoggedIn = false
+        isAwaitingOTP = false
+    }
+
+    private func didReceiveOTPChallenge(from error: Error) -> Bool {
+        guard case let IPAToolClient.IPAToolError.commandFailed(_, _, stderr) = error else { return false }
+        let lowered = stderr.lowercased()
+        let keywords = ["one-time", "verification code", "two-factor", "enter the code", "otp"]
+        return keywords.contains(where: { lowered.contains($0) })
     }
 
     private func shouldEnsurePurchase(for app: IPAToolStoreApp) -> Bool {

@@ -99,6 +99,7 @@ final class IPAToolClient: @unchecked Sendable {
     private var versionMetadataCache: [String: VersionMetadataCacheEntry] = [:]
     private var cachedExecutableURL: URL?
     private var attemptedPurchases: Set<String> = []
+    private var failedMetadataIdentifiers: Set<String> = []
     private static let metadataCacheURL: URL = {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return appSupport
@@ -142,14 +143,12 @@ final class IPAToolClient: @unchecked Sendable {
 
     func login(email: String, password: String, otp: String?) async throws -> String {
         guard let exe = await resolveExecutable() else { throw IPAToolError.ipatoolNotFound }
-        var args = ["auth", "login", "-e", email, "-p", password]
+        let args = ["auth", "login", "--email", email, "--password", password]
         if let otp, !otp.isEmpty {
-            // Common flags seen in ipatool for OTP are either --otp or --one-time-code; attempt both in order
-            // We'll try --otp first, falling back to --one-time-code if the first attempt fails.
             do {
-                return try await runTextCommand(executableURL: exe, arguments: args + ["--otp", otp])
-            } catch {
                 return try await runTextCommand(executableURL: exe, arguments: args + ["--one-time-code", otp])
+            } catch {
+                return try await runTextCommand(executableURL: exe, arguments: args + ["--otp", otp])
             }
         } else {
             return try await runTextCommand(executableURL: exe, arguments: args)
@@ -173,8 +172,10 @@ final class IPAToolClient: @unchecked Sendable {
         return text.contains("success=true")
     }
 
-    /// Uses the public iTunes Search API to find apps; ipatool will be used for download.
     func searchApps(term: String, country: String = "us", limit: Int = 25) async throws -> [IPAToolStoreApp] {
+        if let viaIPATool = await searchAppsViaIPATool(term: term, country: country, limit: limit), !viaIPATool.isEmpty {
+            return viaIPATool
+        }
         guard let encodedTerm = term.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return [] }
         let urlString = "https://itunes.apple.com/search?term=\(encodedTerm)&entity=software&country=\(country)&limit=\(limit)"
         guard let url = URL(string: urlString) else { return [] }
@@ -192,6 +193,23 @@ final class IPAToolClient: @unchecked Sendable {
                 price: item.price
             )
         }
+    }
+    
+    private func searchAppsViaIPATool(term: String, country: String, limit: Int) async -> [IPAToolStoreApp]? {
+        guard let exe = await resolveExecutable() else { return nil }
+        var args: [String] = [
+            "search",
+            "--term", term,
+            "--country", country,
+            "--limit", "\(limit)",
+            "--format", "json"
+        ]
+        if term.contains(".") {
+            // ipatool search occasionally requires --bundle-identifier when searching by bundle id
+            args += ["--bundle-identifier", term]
+        }
+        guard let json = try? await runJSONCommand(executableURL: exe, arguments: args) else { return nil }
+        return parseSearchResults(from: json)
     }
 
     /// Best-effort versions listing using ipatool (if supported). Falls back to a single version if not supported.
@@ -214,7 +232,8 @@ final class IPAToolClient: @unchecked Sendable {
         let candidates: [[String]] = [
             ["list-versions", "-b", bundleId, "--format", "json"],
             ["app", "versions", "-b", bundleId, "--format", "json"],
-            ["list-versions", "-b", bundleId]
+            ["list-versions", "-b", bundleId],
+            ["versions", "--bundle-identifier", bundleId, "--format", "json"]
         ]
         for args in candidates {
             if let json = try? await runJSONCommand(executableURL: exe, arguments: args),
@@ -305,37 +324,52 @@ final class IPAToolClient: @unchecked Sendable {
     // MARK: - Internals
 
     private func parseVersions(from json: Any) -> [IPAToolAppVersion]? {
-        // Try to find something like [ { "version": "1.0", "build": "100" }, ... ]
+        let payloads: [[String: Any]]
         if let dict = json as? [String: Any] {
-            // Look for common keys
             if let versions = dict["versions"] as? [[String: Any]] {
-                return versions.compactMap { v in
-                    let ver = (v["version"] as? String) ?? (v["bundleShortVersionString"] as? String)
-                    let build = (v["build"] as? String) ?? (v["bundleVersion"] as? String)
-                    if let ver { return IPAToolAppVersion(version: ver, build: build, displayVersion: ver) }
-                    return nil
-                }
-            }
-            if let data = dict["data"] as? [[String: Any]] {
-                // Sometimes data array contains versions
-                let mapped = data.compactMap { v -> IPAToolAppVersion? in
-                    let ver = (v["version"] as? String) ?? (v["bundleShortVersionString"] as? String)
-                    let build = (v["build"] as? String) ?? (v["bundleVersion"] as? String)
-                    if let ver { return IPAToolAppVersion(version: ver, build: build, displayVersion: ver) }
-                    return nil
-                }
-                if !mapped.isEmpty { return mapped }
+                payloads = versions
+            } else if let data = dict["data"] as? [[String: Any]] {
+                payloads = data
+            } else if let results = dict["results"] as? [[String: Any]] {
+                payloads = results
+            } else {
+                payloads = []
             }
         } else if let arr = json as? [[String: Any]] {
-            let mapped = arr.compactMap { v -> IPAToolAppVersion? in
-                let ver = (v["version"] as? String) ?? (v["bundleShortVersionString"] as? String)
-                let build = (v["build"] as? String) ?? (v["bundleVersion"] as? String)
-                if let ver { return IPAToolAppVersion(version: ver, build: build, displayVersion: ver) }
+            payloads = arr
+        } else {
+            payloads = []
+        }
+
+        guard !payloads.isEmpty else { return nil }
+
+        let mapped = payloads.compactMap { payload -> IPAToolAppVersion? in
+            guard let version = (payload["version"] as? String)
+                ?? (payload["bundleShortVersionString"] as? String)
+                ?? (payload["softwareVersionExternalIdentifier"] as? String) else {
                 return nil
             }
-            if !mapped.isEmpty { return mapped }
+            let build = (payload["build"] as? String)
+                ?? (payload["bundleVersion"] as? String)
+                ?? (payload["buildNumber"] as? String)
+            let identifier = (payload["externalVersionIdentifier"] as? String)
+                ?? (payload["externalVersionId"] as? String)
+                ?? (payload["external_version_id"] as? String)
+            let releaseDate = parseReleaseDate(
+                payload["released"]
+                    ?? payload["releaseDate"]
+                    ?? payload["releaseTimestamp"]
+                    ?? payload["releasedAt"]
+            )
+            return IPAToolAppVersion(
+                version: version,
+                build: build,
+                displayVersion: version,
+                releaseDate: releaseDate,
+                externalIdentifier: identifier
+            )
         }
-        return nil
+        return mapped.isEmpty ? nil : mapped
     }
 
     private func parseTextVersions(from text: String) -> [IPAToolAppVersion]? {
@@ -405,6 +439,81 @@ final class IPAToolClient: @unchecked Sendable {
 
         return versions.isEmpty ? nil : versions
     }
+    
+    private func parseSearchResults(from json: Any) -> [IPAToolStoreApp]? {
+        if let dict = json as? [String: Any] {
+            if let success = dict["success"] as? Bool, success == false {
+                return nil
+            }
+            if let results = dict["results"] as? [[String: Any]] {
+                return results.compactMap(makeStoreApp(from:))
+            }
+            if let data = dict["data"] as? [[String: Any]] {
+                return data.compactMap(makeStoreApp(from:))
+            }
+        } else if let array = json as? [[String: Any]] {
+            return array.compactMap(makeStoreApp(from:))
+        }
+        return nil
+    }
+    
+    private func makeStoreApp(from payload: [String: Any]) -> IPAToolStoreApp? {
+        func intValue(forKeys keys: [String]) -> Int? {
+            for key in keys {
+                if let value = payload[key] as? Int { return value }
+                if let string = payload[key] as? String, let value = Int(string) { return value }
+            }
+            return nil
+        }
+        
+        guard
+            let trackId = intValue(forKeys: ["trackId", "id", "softwareId", "software_id"]),
+            let name = (payload["trackName"] as? String)
+                ?? (payload["name"] as? String)
+                ?? (payload["title"] as? String),
+            let bundleId = (payload["bundleId"] as? String)
+                ?? (payload["bundleIdentifier"] as? String)
+                ?? (payload["bundle_identifier"] as? String)
+        else {
+            return nil
+        }
+        
+        let seller = (payload["sellerName"] as? String)
+            ?? (payload["developerName"] as? String)
+            ?? (payload["artistName"] as? String)
+        let version = (payload["version"] as? String)
+            ?? (payload["bundleShortVersionString"] as? String)
+        let formattedPrice = (payload["formattedPrice"] as? String)
+            ?? (payload["priceFormatted"] as? String)
+            ?? (payload["formatted-price"] as? String)
+        let artwork = (payload["artworkUrl100"] as? String)
+            ?? (payload["artworkUrl60"] as? String)
+            ?? (payload["artwork_url_100"] as? String)
+        let priceValue: Double? = {
+            if let double = payload["price"] as? Double {
+                return double
+            }
+            if let number = payload["price"] as? NSNumber {
+                return number.doubleValue
+            }
+            if let string = payload["price"] as? String {
+                let normalized = string.replacingOccurrences(of: ",", with: ".")
+                return Double(normalized)
+            }
+            return nil
+        }()
+        
+        return IPAToolStoreApp(
+            id: trackId,
+            trackName: name,
+            bundleId: bundleId,
+            sellerName: seller,
+            version: version,
+            formattedPrice: formattedPrice,
+            artworkUrl100: artwork,
+            price: priceValue
+        )
+    }
 
     private func parseExternalIdentifiers(from text: String) -> [IPAToolAppVersion]? {
         let pattern = #"externalVersionIdentifiers=\[([^\]]+)\]"#
@@ -442,7 +551,7 @@ final class IPAToolClient: @unchecked Sendable {
         executableURL: URL
     ) async -> [IPAToolAppVersion] {
         guard let appId else { return versions }
-        guard versions.contains(where: { $0.displayVersion == nil }) else { return versions }
+        guard versions.contains(where: { $0.displayVersion == nil || $0.releaseDate == nil }) else { return versions }
 
         var enriched: [String: VersionMetadataCacheEntry] = [:]
         let chunkSize = 5
@@ -455,6 +564,9 @@ final class IPAToolClient: @unchecked Sendable {
             var lookupTargets: [String] = []
             for version in chunk {
                 let identifier = version.externalIdentifier ?? version.version
+                if failedMetadataIdentifiers.contains(identifier) {
+                    continue
+                }
                 if let cached = cachedMetadata(appId: appId, identifier: identifier) {
                     enriched[identifier] = cached
                 } else {
@@ -481,6 +593,8 @@ final class IPAToolClient: @unchecked Sendable {
                             enriched[identifier] = metadata
                             self.versionMetadataCache[self.metadataCacheKey(appId: appId, identifier: identifier)] = metadata
                             didUpdateCache = true
+                        } else {
+                            self.failedMetadataIdentifiers.insert(identifier)
                         }
                     }
                 }
@@ -525,18 +639,55 @@ final class IPAToolClient: @unchecked Sendable {
         }
 
         guard let json = try? await runJSONCommand(executableURL: executableURL, arguments: args),
-              let dict = json as? [String: Any],
-              let success = dict["success"] as? Bool,
-              success == true else {
+              let dict = json as? [String: Any] else {
+            return nil
+        }
+
+        if let success = dict["success"] as? Bool, success == false {
+            logMetadataFailure(from: dict, identifier: identifier)
+            return nil
+        }
+
+        let payload = dict["data"] as? [String: Any]
+            ?? dict["Data"] as? [String: Any]
+            ?? dict
+
+        if let status = payload["StatusCode"] as? Int, status >= 400 {
+            logMetadataFailure(from: dict, identifier: identifier)
             return nil
         }
 
         let entry = VersionMetadataCacheEntry(
-            externalVersionID: (dict["externalVersionID"] as? String) ?? identifier,
-            displayVersion: dict["displayVersion"] as? String,
-            releaseDate: parseReleaseDate(dict["releaseDate"])
+            externalVersionID: (payload["externalVersionID"] as? String)
+                ?? (payload["externalVersionId"] as? String)
+                ?? (dict["externalVersionID"] as? String)
+                ?? identifier,
+            displayVersion: payload["displayVersion"] as? String
+                ?? payload["bundleShortVersionString"] as? String
+                ?? payload["version"] as? String
+                ?? dict["displayVersion"] as? String,
+            releaseDate: parseReleaseDate(
+                payload["releaseDate"]
+                    ?? payload["ReleaseDate"]
+                    ?? dict["releaseDate"]
+            )
         )
         return entry
+    }
+
+    private func logMetadataFailure(from dict: [String: Any], identifier: String) {
+        var message = "ipatool metadata fetch failed for \(identifier)"
+        if let payload = dict["Data"] as? [String: Any] {
+            if let failureType = payload["FailureType"] {
+                message += " (FailureType: \(failureType))"
+            }
+            if let customerMessage = payload["CustomerMessage"] as? String, !customerMessage.isEmpty {
+                message += " - \(customerMessage)"
+            }
+        } else if let error = dict["error"] as? String {
+            message += " - \(error)"
+        }
+        print(message)
     }
 
     private func metadataCacheKey(appId: Int, identifier: String) -> String {
@@ -572,11 +723,21 @@ final class IPAToolClient: @unchecked Sendable {
     }
 
     private func parseReleaseDate(_ value: Any?) -> Date? {
-        guard let string = value as? String else { return nil }
-        if let date = metadataDateFormatterWithFractional.date(from: string) {
-            return date
+        switch value {
+        case let string as String:
+            if let date = metadataDateFormatterWithFractional.date(from: string) {
+                return date
+            }
+            if let date = metadataDateFormatter.date(from: string) {
+                return date
+            }
+            return ISO8601DateFormatter().date(from: string)
+        case let number as NSNumber:
+            let seconds = number.doubleValue > 4_000_000_000 ? number.doubleValue / 1000.0 : number.doubleValue
+            return Date(timeIntervalSince1970: seconds)
+        default:
+            return nil
         }
-        return metadataDateFormatter.date(from: string)
     }
 
     private func resolveExecutable() async -> URL? {
@@ -654,7 +815,7 @@ final class IPAToolClient: @unchecked Sendable {
         if attemptedPurchases.contains(attemptKey) { return }
         attemptedPurchases.insert(attemptKey)
 
-        var args = ["purchase", "--bundle-identifier", bundleId]
+        let args = ["purchase", "--bundle-identifier", bundleId]
         
         do {
             _ = try await runTextCommand(executableURL: executableURL, arguments: args)
