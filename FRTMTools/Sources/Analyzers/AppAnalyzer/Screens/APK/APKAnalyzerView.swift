@@ -1,45 +1,38 @@
-//
-//  IPAAnalyzerView.swift
-//  FRTMTools
-//
-//  Created by PALOMBA VALENTINO on 09/09/25.
-//
 import Foundation
 import SwiftUI
 
-struct IPAAnalyzerContentView: View {
-    @ObservedObject var viewModel: IPAViewModel
-    
+struct APKAnalyzerContentView: View {
+    @ObservedObject var viewModel: APKViewModel
+
     var body: some View {
         analysesList
-        .navigationTitle("IPA Analyses")
-        .onAppear {
-            viewModel.loadAnalyses()
-        }
+            .navigationTitle("APK/ABB Analyses")
+            .onAppear {
+                viewModel.loadAnalyses()
+            }
     }
-    
-    
+
     @ViewBuilder
     var analysesList: some View {
         ScrollView {
             LazyVStack {
-                ForEach(viewModel.sortedGroupKeys, id: \.self) { executableName in
+                ForEach(viewModel.sortedGroupKeys, id: \.self) { identifier in
                     DisclosureGroup(
                         isExpanded: Binding(
-                            get: { viewModel.expandedExecutables.contains(executableName) },
+                            get: { viewModel.expandedExecutables.contains(identifier) },
                             set: { isExpanding in
                                 if isExpanding {
-                                    viewModel.expandedExecutables.insert(executableName)
+                                    viewModel.expandedExecutables.insert(identifier)
                                 } else {
-                                    viewModel.expandedExecutables.remove(executableName)
+                                    viewModel.expandedExecutables.remove(identifier)
                                 }
                             }
                         ),
                         content: {
-                            analysisRowView(with: executableName)
+                            analysisRowView(with: identifier)
                         },
                         label: {
-                            analysisGroupView(with: executableName)
+                            analysisGroupView(with: identifier)
                         }
                     )
                     .listRowSeparator(.hidden)
@@ -50,39 +43,52 @@ struct IPAAnalyzerContentView: View {
         .padding()
         .listRowSeparator(.hidden)
     }
-    
+
     @ViewBuilder
-    func analysisGroupView(with executableName: String) -> some View {
+    func analysisGroupView(with identifier: String) -> some View {
+        let displayIdentifier = identifier.isEmpty ? "Unknown Identifier" : identifier
+        let builds = viewModel.groupedAnalyses[identifier] ?? []
+        let latest = builds.first
+        let primaryTitle = latest?.packageName ?? displayIdentifier
+        let packageSubtitle = latest?.appLabel != nil ? displayIdentifier : nil
+
         HStack {
-            if let firstAnalysis = viewModel.groupedAnalyses[executableName]?.first, let image = firstAnalysis.image {
+            if let image = latest?.image {
                 Image(nsImage: image)
                     .resizable().scaledToFit().frame(width: 24, height: 24).cornerRadius(5)
             } else {
-                Image(systemName: "app.box.fill")
+                Image(systemName: "shippingbox.fill")
                     .font(.system(size: 24))
                     .frame(width: 24, height: 24)
             }
             VStack(alignment: .leading) {
-                Text(executableName).font(.headline)
-                Text("\(viewModel.groupedAnalyses[executableName]?.count ?? 0) builds")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                Text(primaryTitle).font(.headline)
+                if let packageSubtitle {
+                    Text(packageSubtitle)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(builds.count) builds")
+                }
+                .font(.caption)
+                .foregroundColor(.secondary)
             }
         }
         .padding(4)
     }
-    
+
     @ViewBuilder
-    func analysisRowView(with executableName: String) -> some View {
-        if let analysesForExecutable = viewModel.groupedAnalyses[executableName] {
-            ForEach(analysesForExecutable) { analysis in
-                IPAAnalysisRow(
+    func analysisRowView(with identifier: String) -> some View {
+        if let analysesForIdentifier = viewModel.groupedAnalyses[identifier] {
+            ForEach(analysesForIdentifier) { analysis in
+                AppAnalysisRow(
                     analysis: analysis,
                     role: (
                         viewModel.selectedUUID == analysis.id
                     ) ? .base : nil
                 )
-                
+
                 .onTapGesture {
                     withAnimation {
                         viewModel.toggleSelection(analysis.id)
@@ -106,9 +112,8 @@ struct IPAAnalyzerContentView: View {
     }
 }
 
-
-struct IPAAnalyzerDetailView: View {
-    @ObservedObject var viewModel: IPAViewModel
+struct APKAnalyzerDetailView: View {
+    @ObservedObject var viewModel: APKViewModel
 
     var body: some View {
         VStack {
@@ -116,9 +121,9 @@ struct IPAAnalyzerDetailView: View {
                 CompareView(analyses: viewModel.analyses)
             } else if let selected = viewModel.selectedAnalysis {
                 DetailView(
-                    viewModel: IPADetailViewModel(
+                    viewModel: APKDetailViewModel(
                         analysis: selected,
-                        ipaViewModel: viewModel
+                        apkViewModel: viewModel
                     )
                 )
                 .id(selected.id)
@@ -127,7 +132,7 @@ struct IPAAnalyzerDetailView: View {
                     Image(systemName: "square.and.arrow.down.on.square")
                         .font(.system(size: 60))
                         .foregroundColor(.secondary)
-                    Text("Drop or import an .ipa/.app file 📦")
+                    Text("Drop or import an .apk/.aab file 🤖")
                         .font(.title3)
                         .foregroundColor(.secondary)
                 }
@@ -139,14 +144,14 @@ struct IPAAnalyzerDetailView: View {
                 Button {
                     viewModel.selectFile()
                 } label: {
-                    Label("Add IPA", systemImage: "plus")
+                    Label("Add APK/ABB", systemImage: "plus")
                 }
                 .help("New Analysis")
-                
+
                 Button(action: { viewModel.exportToCSV() }) {
                     Label("Export as CSV", systemImage: "square.and.arrow.up")
                 }
-                
+
                 if !viewModel.analyses.isEmpty {
                     Button(viewModel.compareMode ? "Done" : "Compare") {
                         withAnimation { viewModel.compareMode.toggle() }
@@ -157,7 +162,7 @@ struct IPAAnalyzerDetailView: View {
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             for provider in providers {
                 _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                    if let url = url, ["ipa", "app"].contains(url.pathExtension.lowercased()) {
+                    if let url = url, ["apk", "aab", "abb"].contains(url.pathExtension.lowercased()) {
                         Task {
                             await viewModel.analyzeFile(url)
                         }

@@ -23,6 +23,11 @@ final class DependencyRegister {
             }
         
         CoreDependencyContainer.shared
+            .registerSingleton((any Analyzer<APKAnalysis>).self) {
+                APKAnalyzer()
+            }
+        
+        CoreDependencyContainer.shared
             .registerSingleton((any Analyzer<UnusedAssetResult>).self) {
                 UnusedAssetsAnalyzer()
             }

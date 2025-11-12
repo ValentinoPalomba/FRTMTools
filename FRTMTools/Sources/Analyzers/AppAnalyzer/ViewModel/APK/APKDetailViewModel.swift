@@ -1,21 +1,25 @@
 import Foundation
 
-@MainActor
-final class IPADetailViewModel: ObservableObject {
-    let analysis: IPAAnalysis
-    private let ipaViewModel: IPAViewModel
+final class APKDetailViewModel: AppDetailViewModel {
+    typealias Analysis = APKAnalysis
+    typealias SizeAnalyzer = APKViewModel
 
-    init(analysis: IPAAnalysis, ipaViewModel: IPAViewModel) {
+    let analysis: APKAnalysis
+    private let apkViewModel: APKViewModel
+
+    init(analysis: APKAnalysis, apkViewModel: APKViewModel) {
         self.analysis = analysis
-        self.ipaViewModel = ipaViewModel
+        self.apkViewModel = apkViewModel
     }
 
+    var sizeAnalyzer: APKViewModel? { apkViewModel }
+
     var categories: [CategoryResult] {
-        ipaViewModel.categories(for: analysis)
+        apkViewModel.categories(for: analysis)
     }
 
     var archs: ArchsResult {
-        ipaViewModel.archs(for: analysis)
+        apkViewModel.archs(for: analysis)
     }
 
     var categoriesCount: Int { categories.count }
@@ -25,9 +29,9 @@ final class IPADetailViewModel: ObservableObject {
         archs.types.joined(separator: ", ")
     }
 
-    var buildsForApp: [IPAAnalysis] {
-        let key = analysis.executableName ?? analysis.fileName
-        let builds = ipaViewModel.groupedAnalyses[key] ?? []
+    var buildsForApp: [APKAnalysis] {
+        let key = analysis.packageName ?? analysis.executableName ?? analysis.fileName
+        let builds = apkViewModel.groupedAnalyses[key] ?? []
         return builds.sorted {
             let vA = $0.version ?? "0"
             let vB = $1.version ?? "0"
@@ -36,18 +40,7 @@ final class IPADetailViewModel: ObservableObject {
     }
 
     var tipsBaseURL: URL? {
-        let appURL = analysis.url
-        let fm = FileManager.default
-        var isDir: ObjCBool = false
-        let contents = appURL.appendingPathComponent("Contents")
-        if fm.fileExists(atPath: contents.path, isDirectory: &isDir), isDir.boolValue {
-            return contents
-        }
-        return appURL
-    }
-
-    var sizeAnalyzer: IPAViewModel {
-        ipaViewModel
+        analysis.url
     }
 
     func filteredCategories(searchText: String) -> [CategoryResult] {

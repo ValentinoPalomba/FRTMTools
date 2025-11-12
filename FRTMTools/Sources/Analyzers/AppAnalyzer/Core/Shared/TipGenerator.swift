@@ -16,11 +16,20 @@ class TipGenerator {
         }
     }
     
-    static func generateTips(for analysis: IPAAnalysis) -> [Tip] {
+    static func generateTips(for analysis: any AppAnalysis) -> [Tip] {
+        if let ipa = analysis as? IPAAnalysis {
+            return generateIPATips(for: ipa)
+        } else if let apk = analysis as? APKAnalysis {
+            return generateAPKTips(for: apk)
+        } else {
+            return []
+        }
+    }
+
+    private static func generateIPATips(for analysis: IPAAnalysis) -> [Tip] {
         var tips: [Tip] = []
         let allFiles = flatten(file: analysis.rootFile)
 
-        // 1. Large main binary
         if let binary = allFiles.first(where: { $0.type == .binary }) {
             if binary.size > 50 * 1024 * 1024 {
                 tips.append(Tip(
@@ -30,7 +39,6 @@ class TipGenerator {
             }
         }
 
-        // 2. Too many frameworks
         if let frameworks = analysis.rootFile.subItems?.first(where: { $0.name == "Frameworks" }) {
             if let frameworkItems = frameworks.subItems, frameworkItems.count > 20 {
                 tips.append(Tip(
@@ -40,7 +48,6 @@ class TipGenerator {
             }
         }
 
-        // 3. Large Assets.car
         if let assets = allFiles.first(where: { $0.name == "Assets.car" }) {
             if assets.size > 100 * 1024 * 1024 {
                 tips.append(Tip(
@@ -55,7 +62,6 @@ class TipGenerator {
             }
         }
 
-        // 4. Binary not stripped
         if !analysis.isStripped, let binary = allFiles.first(where: { $0.type == .binary }) {
             let potentialSaving = ByteCountFormatter.string(fromByteCount: Int64(Double(binary.size) * 0.25), countStyle: .file)
             tips.append(Tip(
@@ -64,7 +70,6 @@ class TipGenerator {
             ))
         }
 
-        // 5. ATS disabled
         if analysis.allowsArbitraryLoads {
             tips.append(Tip(
                 text: "App Transport Security (ATS) is disabled (NSAllowsArbitraryLoads = true). This reduces security. Instead, define exceptions only for required domains.",
@@ -75,7 +80,7 @@ class TipGenerator {
         struct FileKey: Hashable {
             let name: String
             let size: Int64
-            let internalName: String?  // o Int se vuoi usare NameIdentifier
+            let internalName: String?
             
             func hash(into hasher: inout Hasher) {
                 hasher.combine(name)
@@ -89,8 +94,6 @@ class TipGenerator {
                        lhs.internalName == rhs.internalName
             }
         }
-
-        
 
         let duplicates = Dictionary(
             grouping: allFiles.filter { file in
@@ -132,7 +135,6 @@ class TipGenerator {
             tips.append(duplicateImageTip)
         }
 
-        
         let imageFiles = allFiles.filter { $0.name.lowercased().hasSuffix(".png") || $0.name.lowercased().hasSuffix(".jpg") }
         for image in imageFiles where image.size > 5 * 1024 * 1024 {
             tips.append(Tip(
@@ -141,7 +143,6 @@ class TipGenerator {
             ))
         }
 
-        // 8. Large videos
         let videoFiles = allFiles.filter { $0.name.lowercased().hasSuffix(".mp4") || $0.name.lowercased().hasSuffix(".mov") }
         for video in videoFiles where video.size > 10 * 1024 * 1024 {
             tips.append(Tip(
@@ -150,7 +151,6 @@ class TipGenerator {
             ))
         }
 
-        // 9. Too many localizations
         let lprojDirs = allFiles.filter { $0.type == .lproj }
         if lprojDirs.count > 10 {
             tips.append(Tip(
@@ -159,7 +159,6 @@ class TipGenerator {
             ))
         }
 
-        // 10. Debug or developer files
         let debugFiles = allFiles.filter { $0.name.hasSuffix(".dSYM") || $0.name.hasSuffix(".swiftmodule") }
         if !debugFiles.isEmpty {
             tips.append(Tip(
@@ -168,7 +167,6 @@ class TipGenerator {
             ))
         }
 
-        // 11. Large JSON or text files
         let jsonFiles = allFiles.filter { $0.name.lowercased().hasSuffix(".json") }
         for json in jsonFiles where json.size > 5 * 1024 * 1024 {
             tips.append(Tip(
@@ -177,7 +175,6 @@ class TipGenerator {
             ))
         }
 
-        // 12. Multiple bundled fonts
         let fontFiles = allFiles.filter { $0.name.lowercased().hasSuffix(".ttf") || $0.name.lowercased().hasSuffix(".otf") }
         if fontFiles.count > 5 {
             tips.append(Tip(
@@ -186,7 +183,6 @@ class TipGenerator {
             ))
         }
 
-        // Generic success tip if nothing else triggered
         if tips.isEmpty {
             tips.append(Tip(
                 text: "No major issues were detected in this analysis. Great job!",
@@ -194,6 +190,73 @@ class TipGenerator {
             ))
         }
 
+        return tips
+    }
+
+    private static func generateAPKTips(for analysis: APKAnalysis) -> [Tip] {
+        var tips: [Tip] = []
+        let files = analysis.rootFile.flattened(includeDirectories: false)
+        
+        let dexFiles = files.filter { $0.name.lowercased().hasSuffix(".dex") }
+        if let largestDex = dexFiles.max(by: { $0.size < $1.size }), largestDex.size > 25 * 1_048_576 {
+            tips.append(Tip(
+                text: "Dex file '\(largestDex.name)' is large (\(ByteCountFormatter.string(fromByteCount: largestDex.size, countStyle: .file))). Enable R8/ProGuard and shrink unused bytecode.",
+                category: .optimization
+            ))
+        }
+        
+        let nativeLibs = files.filter { $0.name.lowercased().hasSuffix(".so") }
+        if nativeLibs.count > 25 {
+            tips.append(Tip(
+                text: "App bundles \(nativeLibs.count) native libraries (.so). Consider splitting by ABI or stripping unused architectures.",
+                category: .optimization
+            ))
+        }
+        
+        if let minSDK = analysis.minSDK, let value = Int(minSDK), value < 24 {
+            tips.append(Tip(
+                text: "Min SDK is \(value). Raising it can simplify compatibility paths and reduce APK size.",
+                category: .info
+            ))
+        }
+        
+        if let targetSDK = analysis.targetSDK, let value = Int(targetSDK), value < 33 {
+            tips.append(Tip(
+                text: "Target SDK \(value) is behind current Play requirements. Target API 33+ to avoid publishing issues.",
+                category: .warning
+            ))
+        }
+        
+        let permissions = analysis.permissions
+        let dangerous = permissions.filter { AndroidPermissionCatalog.dangerousPermissions.contains($0) }
+        if !dangerous.isEmpty {
+            let joined = dangerous.joined(separator: ", ")
+            tips.append(Tip(
+                text: "App requests \(dangerous.count) high-risk permissions (\(joined)). Double-check user messaging and actual need.",
+                category: .warning
+            ))
+        } else if permissions.count > 20 {
+            tips.append(Tip(
+                text: "App declares \(permissions.count) permissions. Removing unused ones can improve install conversion.",
+                category: .info
+            ))
+        }
+        
+        let resArsc = files.first(where: { $0.name.lowercased() == "resources.arsc" })
+        if let resArsc, resArsc.size > 40 * 1_048_576 {
+            tips.append(Tip(
+                text: "resources.arsc is \(ByteCountFormatter.string(fromByteCount: resArsc.size, countStyle: .file)). Check for redundant resources or enable resource shrinking.",
+                category: .optimization
+            ))
+        }
+        
+        if tips.isEmpty {
+            tips.append(Tip(
+                text: "No major Android-specific issues detected in this analysis. Great job!",
+                category: .info
+            ))
+        }
+        
         return tips
     }
 

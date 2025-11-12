@@ -1,8 +1,8 @@
 import SwiftUI
 import Charts
 
-struct DetailView: View {
-    @ObservedObject var viewModel: IPADetailViewModel
+struct DetailView<ViewModel: AppDetailViewModel>: View {
+    @ObservedObject var viewModel: ViewModel
 
     @State private var expandedSections: Set<String> = []
     @State private var selectedCategoryName: String? = nil
@@ -13,7 +13,9 @@ struct DetailView: View {
         "Frameworks": .blue,
         "Binary": .red,
         "Assets": .purple,
-        "Bundles": .orange
+        "Bundles": .orange,
+        "Native Libraries": .teal,
+        "Dex Files": .pink
     ]
 
     private var categoryColorDomain: [String] { Array(categoryColorScale.keys) }
@@ -35,10 +37,12 @@ struct DetailView: View {
                         subtitle: viewModel.analysis.fileName
                     )
                     
-                    InstalledSizeAnalysisView(
-                        viewModel: viewModel.sizeAnalyzer,
-                        analysis: viewModel.analysis
-                    )
+                    if let sizeAnalyzer = viewModel.sizeAnalyzer {
+                        InstalledSizeAnalysisView(
+                            viewModel: sizeAnalyzer,
+                            analysis: viewModel.analysis
+                        )
+                    }
                     
                     SummaryCard(
                         title: "📂 Categories",
@@ -53,6 +57,11 @@ struct DetailView: View {
                     )
                 }
                 .padding(.horizontal)
+                
+                if let apkAnalysis = viewModel.analysis as? APKAnalysis {
+                    androidSummarySection(for: apkAnalysis)
+                        .padding(.horizontal)
+                }
                 
                 if viewModel.analysis.totalSize > 0 {
                     ExpandableGraphView(
@@ -184,5 +193,49 @@ struct DetailView: View {
                 selectedCategoryName = nil
             }
         }
+    }
+
+    @ViewBuilder
+    private func androidSummarySection(for analysis: APKAnalysis) -> some View {
+        let stats = androidStats(for: analysis)
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
+            if let minSDK = analysis.minSDK, let targetSDK = analysis.targetSDK {
+                SummaryCard(
+                    title: "🎯 SDK Targets",
+                    value: "\(analysis.minSDK ?? "—") ▸ \(analysis.targetSDK ?? "—")",
+                    subtitle: "Min ▸ Target"
+                )
+            }
+            
+            SummaryCard(
+                title: "📚 Dex vs Native",
+                value: "\(stats.dexCount) dex / \(stats.nativeLibCount) so",
+                subtitle: stats.abiSubtitle
+            )
+            
+            SummaryCard(
+                title: "🔐 Permissions",
+                value: "\(analysis.permissions.count)",
+                subtitle: "\(stats.dangerousPermissions) dangerous"
+            )
+        }
+    }
+
+    private func androidStats(for analysis: APKAnalysis) -> (dexCount: Int, nativeLibCount: Int, largestDexSize: Int64, dangerousPermissions: Int, abiSubtitle: String) {
+        let files = analysis.rootFile.flattened(includeDirectories: false)
+        let dexFiles = files.filter { $0.name.lowercased().hasSuffix(".dex") }
+        let nativeLibs = files.filter { $0.name.lowercased().hasSuffix(".so") }
+        let largestDex = dexFiles.map(\.size).max() ?? 0
+        let dangerousPermissions = analysis.permissions.filter { perm in
+            AndroidPermissionCatalog.dangerousPermissions.contains(perm)
+        }.count
+        let abiSubtitle: String
+        let largestDexLabel = ByteCountFormatter.string(fromByteCount: largestDex, countStyle: .file)
+        if analysis.supportedABIs.isEmpty {
+            abiSubtitle = "Largest dex: \(largestDexLabel)"
+        } else {
+            abiSubtitle = "ABIs: \(analysis.supportedABIs.joined(separator: ", ")) · Dex max \(largestDexLabel)"
+        }
+        return (dexFiles.count, nativeLibs.count, largestDex, dangerousPermissions, abiSubtitle)
     }
 }

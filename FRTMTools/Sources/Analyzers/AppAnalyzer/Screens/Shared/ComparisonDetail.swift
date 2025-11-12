@@ -22,9 +22,9 @@ struct FileInfoSequence: Sequence, IteratorProtocol {
 }
 
 
-struct ComparisonDetail: View {
-    let first: IPAAnalysis
-    let second: IPAAnalysis
+struct ComparisonDetail<Analysis: AppAnalysis>: View {
+    let first: Analysis
+    let second: Analysis
     
     @State private var isLoading = true
     @State private var comparisonResult: ComparisonResult?
@@ -186,7 +186,9 @@ struct ComparisonDetail: View {
             let (files1, files2) = await (firstFiles, secondFiles)
             
             // --- Categories ---
-            let firstCats = CategoryGenerator.generateCategories(from: first.rootFile)
+            let firstCats = CategoryGenerator.generateCategories(
+                from: first.rootFile
+            )
             let secondCats = CategoryGenerator.generateCategories(from: second.rootFile)
             let allCatNames = Set(firstCats.map { $0.name } + secondCats.map { $0.name })
             

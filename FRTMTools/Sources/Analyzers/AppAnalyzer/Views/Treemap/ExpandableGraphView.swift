@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-struct ExpandableGraphView: View {
-    var analysis: IPAAnalysis
+struct ExpandableGraphView<Analysis: AppAnalysis>: View {
+    var analysis: Analysis
     @State private var isShowingDetail: Bool = false
 
     var body: some View {
@@ -59,8 +59,8 @@ struct ExpandableGraphView: View {
     }
 }
 
-private struct ExpandedDetailView: View {
-    var analysis: IPAAnalysis
+private struct ExpandedDetailView<Analysis: AppAnalysis>: View {
+    var analysis: Analysis
     @Binding var isShowingDetail: Bool
 
     var body: some View {
@@ -100,4 +100,3 @@ private struct ExpandedDetailView: View {
         .background(Color(NSColor.controlBackgroundColor))
     }
 }
-

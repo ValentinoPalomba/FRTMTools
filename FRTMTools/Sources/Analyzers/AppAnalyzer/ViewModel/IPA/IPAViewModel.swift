@@ -93,7 +93,7 @@ final class IPAViewModel: ObservableObject {
     
 
 
-    struct AlertContent: Identifiable {
+    struct AlertContent: Identifiable, SizeAlertProtocol {
         let id = UUID()
         let title: String
         let message: String
@@ -115,9 +115,9 @@ final class IPAViewModel: ObservableObject {
         }
     }
     
-    func analyzeSize() {
+    func analyzeSize(for analysisID: UUID) {
         Task { @MainActor in
-            guard let analysis = analyses.firstIndex(where: { $0.id == selectedUUID }) else {
+            guard let analysis = analyses.firstIndex(where: { $0.id == analysisID }) else {
                 return
             }
             isSizeLoading = true
@@ -132,7 +132,7 @@ final class IPAViewModel: ObservableObject {
                     }
                 }
 
-                analyses[analysis].installedSize = IPAAnalysis.InstalledSize(
+                analyses[analysis].installedSize = InstalledSizeMetrics(
                     total: sizeAnalysis.sizeInMB,
                     binaries: sizeAnalysis.appBinariesInMB,
                     frameworks: sizeAnalysis.frameworksInMB,
@@ -330,3 +330,7 @@ final class IPAViewModel: ObservableObject {
     }
 }
 
+extension IPAViewModel: InstalledSizeAnalyzing {
+    typealias Analysis = IPAAnalysis
+    typealias SizeAlert = AlertContent
+}
