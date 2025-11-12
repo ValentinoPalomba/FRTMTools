@@ -341,17 +341,11 @@ final class IPAToolClient: @unchecked Sendable {
             let identifier = (payload["externalVersionIdentifier"] as? String)
                 ?? (payload["externalVersionId"] as? String)
                 ?? (payload["external_version_id"] as? String)
-            let releaseDate = parseReleaseDate(
-                payload["released"]
-                    ?? payload["releaseDate"]
-                    ?? payload["releaseTimestamp"]
-                    ?? payload["releasedAt"]
-            )
+            
             return IPAToolAppVersion(
                 version: version,
                 build: build,
                 displayVersion: version,
-                releaseDate: releaseDate,
                 externalIdentifier: identifier
             )
         }
@@ -537,7 +531,7 @@ final class IPAToolClient: @unchecked Sendable {
         executableURL: URL
     ) async -> [IPAToolAppVersion] {
         guard let appId else { return versions }
-        guard versions.contains(where: { $0.displayVersion == nil || $0.releaseDate == nil }) else { return versions }
+        guard versions.contains(where: { $0.displayVersion == nil }) else { return versions }
 
         var enriched: [String: VersionMetadataCacheEntry] = [:]
         let chunkSize = 5
