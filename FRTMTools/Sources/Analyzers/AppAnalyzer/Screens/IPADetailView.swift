@@ -12,6 +12,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
     @State private var extractionInProgress = false
     @State private var showExtractionAlert = false
     @State private var extractionAlertMessage = ""
+    @State private var showCertificateInfo = false
 
     private let categoryColorScale: [String: Color] = [
         "Resources": .green,
@@ -238,6 +239,25 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                 .popover(isPresented: $showPermissionsDetails) {
                     AndroidPermissionsPopover(permissions: analysis.permissions)
                         .frame(width: 420, height: 360)
+                }
+            }
+
+            // Certificate info card
+            if let signatureInfo = analysis.signatureInfo {
+                Button {
+                    showCertificateInfo.toggle()
+                } label: {
+                    let certStatus = signatureInfo.isDebugSigned ? "Debug" :
+                                    (signatureInfo.primaryCertificate?.isValid == true ? "Valid" : "Invalid")
+                    SummaryCard(
+                        title: "🔐 Certificate",
+                        value: certStatus,
+                        subtitle: signatureInfo.signatureSchemesDescription
+                    )
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showCertificateInfo) {
+                    CertificateInfoPopover(signatureInfo: signatureInfo)
                 }
             }
 

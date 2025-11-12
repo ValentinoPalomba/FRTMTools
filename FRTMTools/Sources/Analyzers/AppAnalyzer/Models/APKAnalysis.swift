@@ -21,6 +21,7 @@ struct APKAnalysis: AppAnalysis {
     let targetSDK: String?
     let permissions: [String]
     let supportedABIs: [String]
+    let signatureInfo: APKSignatureInfo?
 
     var totalSize: Int64 {
         rootFile.size
@@ -49,7 +50,8 @@ struct APKAnalysis: AppAnalysis {
         isStripped: Bool,
         allowsArbitraryLoads: Bool,
         installedSize: InstalledSizeMetrics? = nil,
-        dependencyGraph: DependencyGraph? = nil
+        dependencyGraph: DependencyGraph? = nil,
+        signatureInfo: APKSignatureInfo? = nil
     ) {
         self.id = id
         self.fileName = fileName
@@ -69,10 +71,11 @@ struct APKAnalysis: AppAnalysis {
         self.targetSDK = targetSDK
         self.permissions = permissions
         self.supportedABIs = supportedABIs
+        self.signatureInfo = signatureInfo
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, fileName, executableName, appLabel, url, rootFile, version, buildNumber, installedSize, imageData, isStripped, allowsArbitraryLoads, dependencyGraph, packageName, minSDK, targetSDK, permissions, supportedABIs
+        case id, fileName, executableName, appLabel, url, rootFile, version, buildNumber, installedSize, imageData, isStripped, allowsArbitraryLoads, dependencyGraph, packageName, minSDK, targetSDK, permissions, supportedABIs, signatureInfo
     }
 
     init(from decoder: Decoder) throws {
@@ -95,6 +98,7 @@ struct APKAnalysis: AppAnalysis {
         targetSDK = try container.decodeIfPresent(String.self, forKey: .targetSDK)
         permissions = try container.decodeIfPresent([String].self, forKey: .permissions) ?? []
         supportedABIs = try container.decodeIfPresent([String].self, forKey: .supportedABIs) ?? []
+        signatureInfo = try container.decodeIfPresent(APKSignatureInfo.self, forKey: .signatureInfo)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -117,6 +121,7 @@ struct APKAnalysis: AppAnalysis {
         try container.encodeIfPresent(targetSDK, forKey: .targetSDK)
         try container.encode(permissions, forKey: .permissions)
         try container.encode(supportedABIs, forKey: .supportedABIs)
+        try container.encodeIfPresent(signatureInfo, forKey: .signatureInfo)
     }
 }
 

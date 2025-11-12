@@ -22,6 +22,7 @@ final class APKAnalyzer: Analyzer {
     private let fileScanner = APKFileScanner()
     private let iconExtractor = APKIconExtractor()
     private let abiDetector = APKABIDetector()
+    private let signatureAnalyzer = APKSignatureAnalyzer()
 
     func analyze(at url: URL) async throws -> APKAnalysis? {
         guard Self.supportedExtensions.contains(url.pathExtension.lowercased()) else {
@@ -42,6 +43,7 @@ final class APKAnalyzer: Analyzer {
         let appLabel = (cleanedAppLabel?.isEmpty == false) ? cleanedAppLabel : nil
         let supportedABIs = abiDetector.supportedABIs(in: layout, manifestInfo: manifestInfo)
         let icon = iconExtractor.icon(in: layout, manifestInfo: manifestInfo)
+        let signatureInfo = signatureAnalyzer.analyzeSignature(in: layout)
 
         // TODO: Da investigare - calcolare lo stripping dei binari Android
         let isStripped = false
@@ -63,7 +65,8 @@ final class APKAnalyzer: Analyzer {
             permissions: manifestInfo?.permissions ?? [],
             supportedABIs: supportedABIs,
             isStripped: isStripped,
-            allowsArbitraryLoads: allowsArbitraryLoads
+            allowsArbitraryLoads: allowsArbitraryLoads,
+            signatureInfo: signatureInfo
         )
     }
 }
