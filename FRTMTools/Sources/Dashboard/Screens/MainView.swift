@@ -3,32 +3,36 @@ import SwiftUI
 
 struct MainView: View {
     @State private var selectedTool: Tool? = .ipaAnalyzer
-    
+
     @StateObject private var ipaViewModel = IPAViewModel()
+    @StateObject private var apkViewModel = APKViewModel()
     @StateObject private var unusedAssetsViewModel = UnusedAssetsViewModel()
     @StateObject private var securityScannerViewModel = SecurityScannerViewModel()
     @StateObject private var deadCodeViewModel = DeadCodeViewModel()
     
     enum Tool: String, Hashable, Identifiable, CaseIterable {
         case ipaAnalyzer = "IPA Analyzer"
+        case apkAnalyzer = "APK Analyzer"
         case unusedAssets = "Unused Assets Analyzer"
         case securityScanner = "Security Scanner"
         //case deadCodeScanner = "Dead Code Scanner"
-        
+
         var id: String { rawValue }
-        
+
         var systemImage: String {
             switch self {
             case .ipaAnalyzer: return "app.badge"
+            case .apkAnalyzer: return "app.dashed"
             case .unusedAssets: return "trash"
             case .securityScanner: return "shield.lefthalf.filled"
             //case .deadCodeScanner: return "text.magnifyingglass"
             }
         }
-        
+
         var color: Color {
             switch self {
             case .ipaAnalyzer: return .blue
+            case .apkAnalyzer: return .green
             case .unusedAssets: return .purple
             case .securityScanner: return .red
            // case .deadCodeScanner: return .orange
@@ -63,6 +67,8 @@ struct MainView: View {
             switch selectedTool {
             case .ipaAnalyzer:
                 IPAAnalyzerContentView(viewModel: ipaViewModel)
+            case .apkAnalyzer:
+                APKAnalyzerContentView(viewModel: apkViewModel)
             case .unusedAssets:
                 UnusedAssetsContentView(viewModel: unusedAssetsViewModel)
             case .securityScanner:
@@ -77,6 +83,8 @@ struct MainView: View {
             switch selectedTool {
             case .ipaAnalyzer:
                 IPAAnalyzerDetailView(viewModel: ipaViewModel)
+            case .apkAnalyzer:
+                APKAnalyzerDetailView(viewModel: apkViewModel)
             case .unusedAssets:
                 UnusedAssetsResultView(viewModel: unusedAssetsViewModel)
             case .securityScanner:
@@ -94,6 +102,17 @@ struct MainView: View {
                 LoaderView(
                     style: .indeterminate,
                     title: "Analyzing IPA",
+                    subtitle: "This can take a few minutes…",
+                    showsCancel: false,
+                    cancelAction: nil
+                )
+        })
+        .loaderOverlay(
+            isPresented: $apkViewModel.isLoading,
+            content: {
+                LoaderView(
+                    style: .indeterminate,
+                    title: "Analyzing APK",
                     subtitle: "This can take a few minutes…",
                     showsCancel: false,
                     cancelAction: nil

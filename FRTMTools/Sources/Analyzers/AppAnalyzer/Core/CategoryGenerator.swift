@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 enum CategoryType: String, CaseIterable {
     case binary = "Binary"
@@ -7,9 +8,40 @@ enum CategoryType: String, CaseIterable {
     case bundles = "Bundles"
     case appClips = "AppClips"
     case resources = "Resources"
-    
+
+    // APK-specific categories
+    case dex = "DEX"
+    case nativeLibraries = "Native Libraries"
+    case manifestMetadata = "Manifest & Metadata"
+    case other = "Other"
+
     var displayName: String {
         return self.rawValue
+    }
+
+    var color: Color {
+        switch self {
+        case .binary:
+            return .red
+        case .frameworks:
+            return .blue
+        case .assets:
+            return .purple
+        case .bundles:
+            return .green
+        case .appClips:
+            return .orange
+        case .resources:
+            return .yellow
+        case .dex:
+            return .orange
+        case .nativeLibraries:
+            return .blue
+        case .manifestMetadata:
+            return .red
+        case .other:
+            return .gray
+        }
     }
 }
 
@@ -18,9 +50,13 @@ struct CategoryResult: Identifiable {
     let type: CategoryType
     let totalSize: Int64
     let items: [FileInfo]
-    
+
     var name: String {
         return type.displayName
+    }
+
+    var color: Color {
+        return type.color
     }
 }
 

@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct FileDiff: Identifiable, Hashable {
+struct FileDiff: Identifiable, Hashable, Sendable {
     let id = UUID()
     let name: String
     let size1: Int64

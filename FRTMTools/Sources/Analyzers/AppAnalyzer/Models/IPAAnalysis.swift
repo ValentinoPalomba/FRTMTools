@@ -3,7 +3,7 @@ import AppKit
 
 // MARK: - Models
 
-struct IPAAnalysis: Identifiable, Codable {
+struct IPAAnalysis: Identifiable, Codable, Sendable {
     let id: UUID
     let fileName: String
     let executableName: String?
@@ -11,7 +11,7 @@ struct IPAAnalysis: Identifiable, Codable {
     let rootFile: FileInfo
     let version: String?
     let buildNumber: String?
-    struct InstalledSize: Codable {
+    struct InstalledSize: Codable, Sendable {
         let total: Int
         let binaries: Int
         let frameworks: Int
