@@ -62,7 +62,7 @@ enum DependencyEdgeType: String, Codable {
     case loads = "Loads"
 }
 
-struct DependencyGraph: Codable {
+struct DependencyGraph: Codable, Sendable {
     let nodes: Set<DependencyNode>
     let edges: Set<DependencyEdge>
 

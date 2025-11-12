@@ -7,6 +7,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
     @State private var expandedSections: Set<String> = []
     @State private var selectedCategoryName: String? = nil
     @State private var searchText = ""
+    @State private var showPermissionsDetails = false
 
     private let categoryColorScale: [String: Color] = [
         "Resources": .green,
@@ -213,11 +214,28 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                 subtitle: stats.abiSubtitle
             )
             
-            SummaryCard(
-                title: "🔐 Permissions",
-                value: "\(analysis.permissions.count)",
-                subtitle: "\(stats.dangerousPermissions) dangerous"
-            )
+            if analysis.permissions.isEmpty {
+                SummaryCard(
+                    title: "🔐 Permissions",
+                    value: "\(analysis.permissions.count)",
+                    subtitle: "\(stats.dangerousPermissions) dangerous"
+                )
+            } else {
+                Button {
+                    showPermissionsDetails.toggle()
+                } label: {
+                    SummaryCard(
+                        title: "🔐 Permissions",
+                        value: "\(analysis.permissions.count)",
+                        subtitle: "\(stats.dangerousPermissions) dangerous"
+                    )
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showPermissionsDetails) {
+                    AndroidPermissionsPopover(permissions: analysis.permissions)
+                        .frame(width: 420, height: 360)
+                }
+            }
         }
     }
 

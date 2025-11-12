@@ -11,4 +11,8 @@ enum TipCategory: String {
     case optimization = "Optimization"
     case warning = "Warning"
     case info = "Info"
+    case size = "Size Optimization"
+    case performance = "Performance"
+    case security = "Security"
+    case compatibility = "Compatibility"
 }

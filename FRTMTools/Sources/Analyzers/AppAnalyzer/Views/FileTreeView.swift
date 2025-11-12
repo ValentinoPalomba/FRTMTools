@@ -52,6 +52,11 @@ struct FileRow: View {
         case .binary: return "terminal.fill"
         case .plist: return "doc.text"
         case .lproj: return "text.book.closed.fill"
+        case .dex: return "cpu"
+        case .so: return "gearshape.fill"
+        case .xml: return "doc.text.fill"
+        case .arsc: return "doc.badge.gearshape"
+        case .apk: return "app.dashed"
         }
     }
     

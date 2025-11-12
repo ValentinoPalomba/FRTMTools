@@ -8,6 +8,7 @@ struct CollapsibleSection: View {
     
     @State private var showExporter: Bool = false
     @State private var exportURL: URL?
+    @State private var showCategoryInfo: Bool = false
 
     private func emoji(for category: String) -> String {
         let lowercasedCategory = category.lowercased()
@@ -39,6 +40,22 @@ struct CollapsibleSection: View {
                     }
                 }
                 .buttonStyle(.plain)
+                
+                if let info = AndroidCategoryInfo.info(for: category.name) {
+                    Button {
+                        showCategoryInfo.toggle()
+                    } label: {
+                        Image(systemName: "info.circle")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(6)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showCategoryInfo) {
+                        AndroidCategoryInfoPopover(info: info)
+                            .frame(width: 360)
+                    }
+                }
                 
                 Button {
                     if let url = category.items.exportAsCSV(fileName: category.name) {
