@@ -8,6 +8,10 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
     @State private var selectedCategoryName: String? = nil
     @State private var searchText = ""
     @State private var showPermissionsDetails = false
+    @State private var showImageExtractionOptions = false
+    @State private var extractionInProgress = false
+    @State private var showExtractionAlert = false
+    @State private var extractionAlertMessage = ""
 
     private let categoryColorScale: [String: Color] = [
         "Resources": .green,
@@ -207,13 +211,13 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                     subtitle: "Min ▸ Target"
                 )
             }
-            
+
             SummaryCard(
                 title: "📚 Dex vs Native",
                 value: "\(stats.dexCount) dex / \(stats.nativeLibCount) so",
                 subtitle: stats.abiSubtitle
             )
-            
+
             if analysis.permissions.isEmpty {
                 SummaryCard(
                     title: "🔐 Permissions",
@@ -236,6 +240,37 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                         .frame(width: 420, height: 360)
                 }
             }
+
+            // Image extraction card
+            if let apkViewModel = viewModel as? APKDetailViewModel {
+                Button {
+                    showImageExtractionOptions.toggle()
+                } label: {
+                    SummaryCard(
+                        title: "🖼️ Images",
+                        value: "\(apkViewModel.imageCount)",
+                        subtitle: extractionInProgress ? "Extracting..." : "Tap to extract"
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(extractionInProgress)
+                .confirmationDialog("Extract Images", isPresented: $showImageExtractionOptions) {
+                    Button("Extract with folder structure") {
+                        extractImages(from: apkViewModel, preserveStructure: true)
+                    }
+                    Button("Extract all to one folder") {
+                        extractImages(from: apkViewModel, preserveStructure: false)
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("Choose how to extract \(apkViewModel.imageCount) images from the APK")
+                }
+                .alert("Image Extraction", isPresented: $showExtractionAlert) {
+                    Button("OK") { }
+                } message: {
+                    Text(extractionAlertMessage)
+                }
+            }
         }
     }
 
@@ -255,5 +290,26 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
             abiSubtitle = "ABIs: \(analysis.supportedABIs.joined(separator: ", ")) · Dex max \(largestDexLabel)"
         }
         return (dexFiles.count, nativeLibs.count, largestDex, dangerousPermissions, abiSubtitle)
+    }
+
+    private func extractImages(from apkViewModel: APKDetailViewModel, preserveStructure: Bool) {
+        extractionInProgress = true
+
+        Task { @MainActor in
+            if let result = apkViewModel.extractImages(preserveStructure: preserveStructure) {
+                extractionInProgress = false
+
+                if result.errors.isEmpty {
+                    extractionAlertMessage = "Successfully extracted \(result.extractedImages) of \(result.totalImages) images!"
+                    showExtractionAlert = true
+                    apkViewModel.revealExtractedImages(result)
+                } else {
+                    extractionAlertMessage = "Extracted \(result.extractedImages) of \(result.totalImages) images with \(result.errors.count) errors."
+                    showExtractionAlert = true
+                }
+            } else {
+                extractionInProgress = false
+            }
+        }
     }
 }
