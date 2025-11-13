@@ -11,6 +11,14 @@ struct AndroidManifestInfo {
     var iconResource: String?
     var iconPath: String?
     var nativeCodes: [String] = []
+    var launchableActivity: String?
+    var launchableActivityLabel: String?
+    var supportedLocales: [String] = []
+    var supportsScreens: [String] = []
+    var densities: [String] = []
+    var supportsAnyDensity: Bool?
+    var requiredFeatures: [String] = []
+    var optionalFeatures: [String] = []
 }
 
 enum AndroidManifestParser {

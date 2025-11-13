@@ -22,6 +22,14 @@ struct APKAnalysis: AppAnalysis {
     let permissions: [String]
     let supportedABIs: [String]
     let signatureInfo: APKSignatureInfo?
+    let launchableActivity: String?
+    let launchableActivityLabel: String?
+    let supportedLocales: [String]
+    let supportsScreens: [String]
+    let densities: [String]
+    let supportsAnyDensity: Bool?
+    let requiredFeatures: [String]
+    let optionalFeatures: [String]
 
     var totalSize: Int64 {
         rootFile.size
@@ -51,7 +59,15 @@ struct APKAnalysis: AppAnalysis {
         allowsArbitraryLoads: Bool,
         installedSize: InstalledSizeMetrics? = nil,
         dependencyGraph: DependencyGraph? = nil,
-        signatureInfo: APKSignatureInfo? = nil
+        signatureInfo: APKSignatureInfo? = nil,
+        launchableActivity: String? = nil,
+        launchableActivityLabel: String? = nil,
+        supportedLocales: [String] = [],
+        supportsScreens: [String] = [],
+        densities: [String] = [],
+        supportsAnyDensity: Bool? = nil,
+        requiredFeatures: [String] = [],
+        optionalFeatures: [String] = []
     ) {
         self.id = id
         self.fileName = fileName
@@ -72,10 +88,18 @@ struct APKAnalysis: AppAnalysis {
         self.permissions = permissions
         self.supportedABIs = supportedABIs
         self.signatureInfo = signatureInfo
+        self.launchableActivity = launchableActivity
+        self.launchableActivityLabel = launchableActivityLabel
+        self.supportedLocales = supportedLocales
+        self.supportsScreens = supportsScreens
+        self.densities = densities
+        self.supportsAnyDensity = supportsAnyDensity
+        self.requiredFeatures = requiredFeatures
+        self.optionalFeatures = optionalFeatures
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, fileName, executableName, appLabel, url, rootFile, version, buildNumber, installedSize, imageData, isStripped, allowsArbitraryLoads, dependencyGraph, packageName, minSDK, targetSDK, permissions, supportedABIs, signatureInfo
+        case id, fileName, executableName, appLabel, url, rootFile, version, buildNumber, installedSize, imageData, isStripped, allowsArbitraryLoads, dependencyGraph, packageName, minSDK, targetSDK, permissions, supportedABIs, signatureInfo, launchableActivity, launchableActivityLabel, supportedLocales, supportsScreens, densities, supportsAnyDensity, requiredFeatures, optionalFeatures
     }
 
     init(from decoder: Decoder) throws {
@@ -99,6 +123,14 @@ struct APKAnalysis: AppAnalysis {
         permissions = try container.decodeIfPresent([String].self, forKey: .permissions) ?? []
         supportedABIs = try container.decodeIfPresent([String].self, forKey: .supportedABIs) ?? []
         signatureInfo = try container.decodeIfPresent(APKSignatureInfo.self, forKey: .signatureInfo)
+        launchableActivity = try container.decodeIfPresent(String.self, forKey: .launchableActivity)
+        launchableActivityLabel = try container.decodeIfPresent(String.self, forKey: .launchableActivityLabel)
+        supportedLocales = try container.decodeIfPresent([String].self, forKey: .supportedLocales) ?? []
+        supportsScreens = try container.decodeIfPresent([String].self, forKey: .supportsScreens) ?? []
+        densities = try container.decodeIfPresent([String].self, forKey: .densities) ?? []
+        supportsAnyDensity = try container.decodeIfPresent(Bool.self, forKey: .supportsAnyDensity)
+        requiredFeatures = try container.decodeIfPresent([String].self, forKey: .requiredFeatures) ?? []
+        optionalFeatures = try container.decodeIfPresent([String].self, forKey: .optionalFeatures) ?? []
     }
 
     func encode(to encoder: Encoder) throws {
@@ -122,6 +154,14 @@ struct APKAnalysis: AppAnalysis {
         try container.encode(permissions, forKey: .permissions)
         try container.encode(supportedABIs, forKey: .supportedABIs)
         try container.encodeIfPresent(signatureInfo, forKey: .signatureInfo)
+        try container.encodeIfPresent(launchableActivity, forKey: .launchableActivity)
+        try container.encodeIfPresent(launchableActivityLabel, forKey: .launchableActivityLabel)
+        try container.encode(supportedLocales, forKey: .supportedLocales)
+        try container.encode(supportsScreens, forKey: .supportsScreens)
+        try container.encode(densities, forKey: .densities)
+        try container.encodeIfPresent(supportsAnyDensity, forKey: .supportsAnyDensity)
+        try container.encode(requiredFeatures, forKey: .requiredFeatures)
+        try container.encode(optionalFeatures, forKey: .optionalFeatures)
     }
 }
 

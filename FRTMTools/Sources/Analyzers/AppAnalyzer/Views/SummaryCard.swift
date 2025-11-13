@@ -20,15 +20,15 @@ struct SummaryCard: View {
                     Spacer()
                 }
             }
+            
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
 
             Text(value)
                 .font(.title2)
                 .fontWeight(.bold)
                 .foregroundColor(.primary)
-
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
 
             if let subtitle = subtitle {
                 Text(subtitle)
@@ -38,8 +38,8 @@ struct SummaryCard: View {
             }
         }
         .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.controlBackgroundColor))
-        .cornerRadius(12)
+        .frame(maxWidth: .infinity, minHeight: 100, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
+        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
 }

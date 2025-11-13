@@ -13,6 +13,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
     @State private var showExtractionAlert = false
     @State private var extractionAlertMessage = ""
     @State private var showCertificateInfo = false
+    @State private var showFeatureDetails = false
 
     private let categoryColorScale: [String: Color] = [
         "Resources": .green,
@@ -261,6 +262,52 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                 }
             }
 
+            if let launchable = analysis.launchableActivity {
+                SummaryCard(
+                    title: "🚀 Launch Activity",
+                    value: analysis.launchableActivityLabel ?? shortActivityName(launchable),
+                    subtitle: launchable
+                )
+            }
+
+            if !analysis.supportedLocales.isEmpty {
+                SummaryCard(
+                    title: "🌐 Locales",
+                    value: "\(analysis.supportedLocales.count)",
+                    subtitle: listPreviewDescription(for: analysis.supportedLocales, limit: 4)
+                )
+            }
+
+            if shouldShowScreenCard(for: analysis) {
+                SummaryCard(
+                    title: "🖥️ Screen Buckets",
+                    value: screenSupportValue(for: analysis),
+                    subtitle: screenSupportSubtitle(for: analysis)
+                )
+            }
+
+            if !analysis.requiredFeatures.isEmpty || !analysis.optionalFeatures.isEmpty {
+                Button {
+                    showFeatureDetails.toggle()
+                } label: {
+                    SummaryCard(
+                        title: "🧩 Features",
+                        value: "\(analysis.requiredFeatures.count) required",
+                        subtitle: analysis.optionalFeatures.isEmpty
+                            ? "Tap to inspect hardware features"
+                            : "\(analysis.optionalFeatures.count) optional · Tap to inspect"
+                    )
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showFeatureDetails) {
+                    AndroidFeaturesPopover(
+                        requiredFeatures: analysis.requiredFeatures,
+                        optionalFeatures: analysis.optionalFeatures
+                    )
+                    .frame(width: 360, height: 320)
+                }
+            }
+
             // Image extraction card
             if let apkViewModel = viewModel as? APKDetailViewModel {
                 Button {
@@ -310,6 +357,47 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
             abiSubtitle = "ABIs: \(analysis.supportedABIs.joined(separator: ", ")) · Dex max \(largestDexLabel)"
         }
         return (dexFiles.count, nativeLibs.count, largestDex, dangerousPermissions, abiSubtitle)
+    }
+
+    private func shortActivityName(_ name: String) -> String {
+        name.components(separatedBy: ".").last ?? name
+    }
+
+    private func listPreviewDescription(for values: [String], limit: Int = 3) -> String {
+        guard !values.isEmpty else { return "—" }
+        let displayed = values.prefix(limit)
+        var summary = displayed.joined(separator: ", ")
+        let remaining = values.count - displayed.count
+        if remaining > 0 {
+            summary += " +\(remaining)"
+        }
+        return summary
+    }
+
+    private func shouldShowScreenCard(for analysis: APKAnalysis) -> Bool {
+        !analysis.supportsScreens.isEmpty || !analysis.densities.isEmpty || analysis.supportsAnyDensity != nil
+    }
+
+    private func screenSupportValue(for analysis: APKAnalysis) -> String {
+        if !analysis.supportsScreens.isEmpty {
+            return listPreviewDescription(for: analysis.supportsScreens, limit: 4)
+        }
+        if let supportsAnyDensity = analysis.supportsAnyDensity, supportsAnyDensity {
+            return "Any density"
+        }
+        return "—"
+    }
+
+    private func screenSupportSubtitle(for analysis: APKAnalysis) -> String? {
+        var parts: [String] = []
+        if !analysis.densities.isEmpty {
+            parts.append("DPI \(listPreviewDescription(for: analysis.densities, limit: 4))")
+        }
+        if let supportsAnyDensity = analysis.supportsAnyDensity {
+            parts.append(supportsAnyDensity ? "Runs on all densities" : "Limited densities")
+        }
+        guard !parts.isEmpty else { return nil }
+        return parts.joined(separator: " · ")
     }
 
     private func extractImages(from apkViewModel: APKDetailViewModel, preserveStructure: Bool) {

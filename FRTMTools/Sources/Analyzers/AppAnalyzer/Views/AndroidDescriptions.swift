@@ -346,3 +346,114 @@ struct AndroidCategoryInfoPopover: View {
         .padding()
     }
 }
+
+struct AndroidFeaturesPopover: View {
+    let requiredFeatures: [String]
+    let optionalFeatures: [String]
+
+    private var orderedRequired: [String] { requiredFeatures.sorted() }
+    private var orderedOptional: [String] { optionalFeatures.sorted() }
+    private var totalCount: Int { orderedRequired.count + orderedOptional.count }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Image(systemName: "puzzlepiece.extension")
+                    .foregroundColor(.accentColor)
+                    .font(.title2)
+
+                Text("Hardware Features")
+                    .font(.title2)
+                    .fontWeight(.bold)
+
+                Spacer()
+
+                Text("\(totalCount)")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if orderedRequired.isEmpty, orderedOptional.isEmpty {
+                        Text("No feature declarations reported by aapt.")
+                            .font(.callout)
+                            .foregroundColor(.secondary)
+                            .padding()
+                    } else {
+                        if !orderedRequired.isEmpty {
+                            featureSection(title: "Required", features: orderedRequired, isRequired: true)
+                        }
+                        if !orderedOptional.isEmpty {
+                            featureSection(title: "Optional", features: orderedOptional, isRequired: false)
+                        }
+                    }
+                }
+                .padding()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func featureSection(title: String, features: [String], isRequired: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+                .padding(.horizontal, 8)
+
+            ForEach(features, id: \.self) { feature in
+                HStack(alignment: .center, spacing: 12) {
+                    Image(systemName: icon(for: feature))
+                        .foregroundColor(isRequired ? .red : .secondary)
+                        .frame(width: 20)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(feature)
+                            .font(.body)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Text(isRequired ? "Required" : "Optional")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(Color(.controlBackgroundColor))
+                .cornerRadius(8)
+            }
+        }
+    }
+
+    private func icon(for feature: String) -> String {
+        let lower = feature.lowercased()
+        if lower.contains("camera") {
+            return "camera"
+        } else if lower.contains("location") || lower.contains("gps") {
+            return "location"
+        } else if lower.contains("bluetooth") {
+            return "wave.3.right"
+        } else if lower.contains("microphone") || lower.contains("audio") {
+            return "mic"
+        } else if lower.contains("sensors") || lower.contains("sensor") {
+            return "dot.circle.and.hand.point.up.left.fill"
+        } else if lower.contains("nfc") {
+            return "wave.3.forward"
+        } else if lower.contains("touchscreen") {
+            return "hand.tap"
+        } else if lower.contains("wifi") || lower.contains("network") {
+            return "wifi"
+        } else if lower.contains("telephony") || lower.contains("phone") {
+            return "phone"
+        } else if lower.contains("usb") {
+            return "cable.connector"
+        } else if lower.contains("vr") {
+            return "visionpro"
+        } else {
+            return "puzzlepiece.fill"
+        }
+    }
+}

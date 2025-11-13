@@ -23,6 +23,9 @@ final class APKAnalyzer: Analyzer {
     private let iconExtractor = APKIconExtractor()
     private let abiDetector = APKABIDetector()
     private let signatureAnalyzer = APKSignatureAnalyzer()
+    private let imageExtractor = APKImageExtractor()
+
+    private static let maxImagePreviewFileSize = 512 * 1024 // 512 KB per inline preview
 
     func analyze(at url: URL) async throws -> APKAnalysis? {
         guard Self.supportedExtensions.contains(url.pathExtension.lowercased()) else {
@@ -39,13 +42,15 @@ final class APKAnalyzer: Analyzer {
 
         let inspectorInfo: AndroidManifestInfo?
         if url.pathExtension.lowercased() == "apk",
-           needsAAPTMetadata(for: manifestResult.info) {
+           shouldInvokeAAPTInspector(for: manifestResult.info) {
             inspectorInfo = AndroidManifestInspector.inspect(apkURL: url)
         } else {
             inspectorInfo = nil
         }
 
         let rootFile = fileScanner.scanRoot(at: layout.resourcesRoot)
+        let imagePreviewMap = collectImagePreviewData(in: layout)
+        let enrichedRootFile = imagePreviewMap.isEmpty ? rootFile : attachImagePreviews(imagePreviewMap, to: rootFile)
         let manifestInfo = mergeManifestInfo(preferred: inspectorInfo, fallback: manifestResult.info)
         let cleanedAppLabel = manifestInfo?.appLabel?.trimmingCharacters(in: .whitespacesAndNewlines)
         let appLabel = (cleanedAppLabel?.isEmpty == false) ? cleanedAppLabel : nil
@@ -63,7 +68,7 @@ final class APKAnalyzer: Analyzer {
             fileName: url.lastPathComponent,
             executableName: appLabel ?? manifestInfo?.packageName ?? url.deletingPathExtension().lastPathComponent,
             appLabel: appLabel,
-            rootFile: rootFile,
+            rootFile: enrichedRootFile,
             image: icon,
             version: manifestInfo?.versionName,
             buildNumber: manifestInfo?.versionCode,
@@ -74,7 +79,15 @@ final class APKAnalyzer: Analyzer {
             supportedABIs: supportedABIs,
             isStripped: isStripped,
             allowsArbitraryLoads: allowsArbitraryLoads,
-            signatureInfo: signatureInfo
+            signatureInfo: signatureInfo,
+            launchableActivity: manifestInfo?.launchableActivity,
+            launchableActivityLabel: manifestInfo?.launchableActivityLabel,
+            supportedLocales: manifestInfo?.supportedLocales ?? [],
+            supportsScreens: manifestInfo?.supportsScreens ?? [],
+            densities: manifestInfo?.densities ?? [],
+            supportsAnyDensity: manifestInfo?.supportsAnyDensity,
+            requiredFeatures: manifestInfo?.requiredFeatures ?? [],
+            optionalFeatures: manifestInfo?.optionalFeatures ?? []
         )
     }
 
@@ -88,6 +101,23 @@ final class APKAnalyzer: Analyzer {
             }
         }
 
+        func updateBoolIfNil(_ keyPath: WritableKeyPath<AndroidManifestInfo, Bool?>, from source: AndroidManifestInfo?) {
+            if merged[keyPath: keyPath] == nil {
+                merged[keyPath: keyPath] = source?[keyPath: keyPath]
+            }
+        }
+
+        func appendUniqueStrings(_ keyPath: WritableKeyPath<AndroidManifestInfo, [String]>, from source: AndroidManifestInfo?) {
+            guard let sourceValues = source?[keyPath: keyPath], !sourceValues.isEmpty else { return }
+            var existing = merged[keyPath: keyPath]
+            var seen = Set(existing)
+            for value in sourceValues where !seen.contains(value) {
+                existing.append(value)
+                seen.insert(value)
+            }
+            merged[keyPath: keyPath] = existing
+        }
+
         updateIfNil(\.packageName, from: fallback)
         updateIfNil(\.versionName, from: fallback)
         updateIfNil(\.versionCode, from: fallback)
@@ -96,6 +126,9 @@ final class APKAnalyzer: Analyzer {
         updateIfNil(\.targetSDK, from: fallback)
         updateIfNil(\.iconResource, from: fallback)
         updateIfNil(\.iconPath, from: fallback)
+        updateIfNil(\.launchableActivity, from: fallback)
+        updateIfNil(\.launchableActivityLabel, from: fallback)
+        updateBoolIfNil(\.supportsAnyDensity, from: fallback)
 
         if let fallbackPermissions = fallback?.permissions {
             merged.permissions = Array(Set(merged.permissions).union(fallbackPermissions)).sorted()
@@ -103,7 +136,19 @@ final class APKAnalyzer: Analyzer {
         if let fallbackNativeCodes = fallback?.nativeCodes {
             merged.nativeCodes = Array(Set(merged.nativeCodes).union(fallbackNativeCodes)).sorted()
         }
+        appendUniqueStrings(\.supportedLocales, from: fallback)
+        appendUniqueStrings(\.supportsScreens, from: fallback)
+        appendUniqueStrings(\.densities, from: fallback)
+        appendUniqueStrings(\.requiredFeatures, from: fallback)
+        appendUniqueStrings(\.optionalFeatures, from: fallback)
         return merged
+    }
+
+    private func shouldInvokeAAPTInspector(for manifestInfo: AndroidManifestInfo?) -> Bool {
+        if needsAAPTMetadata(for: manifestInfo) {
+            return true
+        }
+        return AndroidManifestInspector.isAvailable()
     }
 
     private func needsAAPTMetadata(for manifestInfo: AndroidManifestInfo?) -> Bool {
@@ -135,6 +180,49 @@ final class APKAnalyzer: Analyzer {
             return true
         }
         return false
+    }
+
+    private func collectImagePreviewData(in layout: AndroidPackageLayout) -> [String: Data] {
+        let imageURLs = imageExtractor.findAllImages(in: layout)
+        var previews: [String: Data] = [:]
+
+        for url in imageURLs {
+            guard let relativePath = relativePath(for: url, rootURL: layout.rootURL) else { continue }
+            guard let resourceValues = try? url.resourceValues(forKeys: [.fileSizeKey]),
+                  let fileSize = resourceValues.fileSize,
+                  fileSize <= Self.maxImagePreviewFileSize else {
+                continue
+            }
+            guard let data = try? Data(contentsOf: url) else { continue }
+            previews[relativePath] = data
+        }
+
+        return previews
+    }
+
+    private func attachImagePreviews(_ previews: [String: Data], to file: FileInfo) -> FileInfo {
+        var updatedFile = file
+        if let path = file.path, let data = previews[path] {
+            updatedFile.internalImageData = data
+        }
+
+        if var children = file.subItems {
+            for index in children.indices {
+                children[index] = attachImagePreviews(previews, to: children[index])
+            }
+            updatedFile.subItems = children
+        }
+
+        return updatedFile
+    }
+
+    private func relativePath(for fileURL: URL, rootURL: URL) -> String? {
+        let rootPath = rootURL.standardizedFileURL.path
+        let filePath = fileURL.standardizedFileURL.path
+        guard filePath.hasPrefix(rootPath) else { return nil }
+        var relative = String(filePath.dropFirst(rootPath.count))
+        relative = relative.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        return relative.isEmpty ? nil : relative
     }
 }
 
@@ -264,6 +352,18 @@ extension APKAnalyzer {
     /// Legacy manifest inspector powered by `aapt dump badging`.
     /// Left here for archival purposes; the current analyzer uses local manifest parsing instead.
     enum AndroidManifestInspector {
+        nonisolated(unsafe) private static var cachedAvailability: Bool?
+
+        static func isAvailable() -> Bool {
+            if let cachedAvailability {
+                return cachedAvailability
+            }
+            let available = AndroidBuildTools.locateExecutable(named: "aapt") != nil
+                || AndroidBuildTools.locateExecutable(named: "aapt2") != nil
+            cachedAvailability = available
+            return available
+        }
+
         static func inspect(apkURL: URL) -> AndroidManifestInfo? {
             guard apkURL.pathExtension.lowercased() == "apk" else {
                 return nil
@@ -306,6 +406,8 @@ extension APKAnalyzer {
             var permissions: Set<String> = []
             var nativeCodes: [String] = []
             var iconCandidates: [(density: Int, path: String)] = []
+            var requiredFeatures: Set<String> = []
+            var optionalFeatures: Set<String> = []
 
             let lines = output.components(separatedBy: .newlines)
             for line in lines {
@@ -343,11 +445,36 @@ extension APKAnalyzer {
                 } else if trimmed.hasPrefix("native-code:") {
                     let codes = singleQuotedValues(in: trimmed)
                     nativeCodes.append(contentsOf: codes)
+                } else if trimmed.hasPrefix("launchable-activity:") {
+                    info.launchableActivity = value(for: "name", in: trimmed)
+                    if let label = value(for: "label", in: trimmed), !label.isEmpty {
+                        info.launchableActivityLabel = label
+                    }
+                } else if trimmed.hasPrefix("supports-screens:") {
+                    info.supportsScreens = singleQuotedValues(in: trimmed)
+                } else if trimmed.hasPrefix("supports-any-density:") {
+                    if let flag = singleQuotedValue(in: trimmed)?.lowercased() {
+                        info.supportsAnyDensity = (flag == "true")
+                    }
+                } else if trimmed.hasPrefix("locales:") {
+                    info.supportedLocales = singleQuotedValues(in: trimmed)
+                } else if trimmed.hasPrefix("densities:") {
+                    info.densities = singleQuotedValues(in: trimmed)
+                } else if trimmed.hasPrefix("uses-feature-not-required:") {
+                    if let feature = value(for: "name", in: trimmed) {
+                        optionalFeatures.insert(feature)
+                    }
+                } else if trimmed.hasPrefix("uses-feature:") {
+                    if let feature = value(for: "name", in: trimmed) {
+                        requiredFeatures.insert(feature)
+                    }
                 }
             }
 
             info.permissions = Array(permissions).sorted()
             info.nativeCodes = Array(Set(nativeCodes)).sorted()
+            info.requiredFeatures = Array(requiredFeatures).sorted()
+            info.optionalFeatures = Array(optionalFeatures).sorted()
             if let bestIcon = iconCandidates.sorted(by: { $0.density > $1.density }).first {
                 info.iconPath = bestIcon.path
             }
