@@ -11,7 +11,12 @@ enum CategoryType: String, CaseIterable {
     case dexFiles = "Dex Files"
     
     var displayName: String {
-        return self.rawValue
+        switch self {
+        case .binary:
+            return "Main app binary"
+        default:
+            return self.rawValue
+        }
     }
 }
 

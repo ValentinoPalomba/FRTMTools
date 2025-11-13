@@ -18,7 +18,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
     private let categoryColorScale: [String: Color] = [
         "Resources": .green,
         "Frameworks": .blue,
-        "Binary": .red,
+        "Main app binary": .red,
         "Assets": .purple,
         "Bundles": .orange,
         "Native Libraries": .teal,

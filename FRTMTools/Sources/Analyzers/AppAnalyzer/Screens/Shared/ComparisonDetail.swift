@@ -28,6 +28,7 @@ struct ComparisonDetail<Analysis: AppAnalysis>: View {
     
     @State private var isLoading = true
     @State private var comparisonResult: ComparisonResult?
+    @State private var reportLanguage: ReportLanguage = .english
 
     @State private var expandedSections: Set<String> = ["Modificati", "Aggiunti", "Rimossi"]
     @State private var searchText: String = ""
@@ -165,6 +166,15 @@ struct ComparisonDetail<Analysis: AppAnalysis>: View {
                                 )
                             }
                             .padding(.horizontal)
+                        }
+
+                        // MARK: - Textual Report
+                        if let firstIPAAnalysis = first as? IPAAnalysis, let secondIPAAnalysis = second as? IPAAnalysis {
+                            ComparisonReportView(
+                                viewModel:
+                                    ComparisonReportViewModel(first: firstIPAAnalysis, second: secondIPAAnalysis, result: result),
+                                language: $reportLanguage
+                            )
                         }
                     }
                     .padding(.vertical, 16)
