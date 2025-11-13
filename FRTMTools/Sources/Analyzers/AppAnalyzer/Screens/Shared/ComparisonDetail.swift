@@ -175,7 +175,7 @@ struct ComparisonDetail<Analysis: AppAnalysis>: View {
                                     ComparisonReportViewModel(first: firstIPAAnalysis, second: secondIPAAnalysis, result: result),
                                 language: $reportLanguage
                             )
-                        }    
+                        }
                     }
                     .padding(.vertical, 16)
                 }

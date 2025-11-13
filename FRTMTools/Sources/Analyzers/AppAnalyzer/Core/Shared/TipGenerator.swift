@@ -286,6 +286,33 @@ class TipGenerator {
                 category: .optimization
             ))
         }
+
+        if !dexFiles.isEmpty {
+            let obfuscation = APKObfuscationDetector.analyze(dexFiles: dexFiles)
+            if obfuscation.totalIdentifiers > 0 {
+                let percent = Int((Double(obfuscation.obfuscatedIdentifiers) / Double(obfuscation.totalIdentifiers)) * 100)
+                let severity: TipCategory = percent > 70 ? .security : .info
+                let message: String
+                if percent < 20 {
+                    message = "Little to no ProGuard/R8 obfuscation detected (\(percent)%). Consider enabling code shrinking to protect intellectual property."
+                } else if percent > 70 {
+                    message = "Code looks obfuscated (\(percent)% of identifiers match ProGuard/R8 patterns)."
+                } else {
+                    message = "Partial obfuscation detected (\(percent)%). Ensure sensitive modules are protected."
+                }
+                var obfuscationTip = Tip(
+                    text: message,
+                    category: severity
+                )
+                obfuscationTip.subTips.append(
+                    Tip(
+                        text: "\(obfuscation.obfuscatedIdentifiers) of \(obfuscation.totalIdentifiers) package/class names match the obfuscated pattern (e.g. a.b.c).",
+                        category: .info
+                    )
+                )
+                tips.append(obfuscationTip)
+            }
+        }
         
         let nativeLibs = files.filter { $0.name.lowercased().hasSuffix(".so") }
         if nativeLibs.count > 25 {
@@ -415,6 +442,7 @@ class TipGenerator {
         guard let fullPath = file.fullPath else { return nil }
         return hashFile(at: fullPath)
     }
+
     
     private static func duplicateSavings(for files: [FileInfo]) -> Int64 {
         guard let representative = files.first, files.count > 1 else { return 0 }
