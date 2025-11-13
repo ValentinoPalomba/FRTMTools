@@ -49,6 +49,22 @@ final class IPADetailViewModel: AppDetailViewModel {
 
     var sizeAnalyzer: IPAViewModel? { ipaViewModel }
 
+    lazy var tipImagePreviewMap: [String: Data] = {
+        var map: [String: Data] = [:]
+        let files = analysis.rootFile.flattened(includeDirectories: false)
+        for file in files {
+            guard let data = file.internalImageData, !data.isEmpty else { continue }
+            if let path = file.path {
+                map[path] = data
+            }
+            if let fullPath = file.fullPath {
+                map[fullPath] = data
+            }
+            map[file.name] = data
+        }
+        return map
+    }()
+
     func filteredCategories(searchText: String) -> [CategoryResult] {
         guard !searchText.isEmpty else { return categories }
         return categories.compactMap { category in

@@ -177,7 +177,11 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                 }
                 .padding(.horizontal)
                 
-                TipsSection(tips: TipGenerator.generateTips(for: viewModel.analysis), baseURL: viewModel.tipsBaseURL)
+                TipsSection(
+                    tips: TipGenerator.generateTips(for: viewModel.analysis),
+                    baseURL: viewModel.tipsBaseURL,
+                    imagePreviewLookup: viewModel.tipImagePreviewMap
+                )
                     .id(viewModel.analysis.id)
                     .padding(.top)
             }

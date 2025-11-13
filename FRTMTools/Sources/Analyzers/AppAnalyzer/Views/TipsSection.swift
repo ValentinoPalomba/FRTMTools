@@ -4,7 +4,14 @@ import AppKit
 struct TipsSection: View {
     let tips: [Tip]
     let baseURL: URL?
+    let imagePreviewLookup: [String: Data]
     @State private var expandedTips: Set<UUID> = []
+
+    init(tips: [Tip], baseURL: URL?, imagePreviewLookup: [String: Data] = [:]) {
+        self.tips = tips
+        self.baseURL = baseURL
+        self.imagePreviewLookup = imagePreviewLookup
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -50,10 +57,18 @@ struct TipsSection: View {
                                         let lines = subTip.text.split(whereSeparator: \.isNewline)
                                         ForEach(Array(lines.enumerated()), id: \.offset) { _, rawLine in
                                             let line = String(rawLine)
+                                            let previewFile = isPathCandidate(line) ? previewFile(for: line) : nil
                                             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                                Text(line)
-                                                    .font(.body)
-                                                    .foregroundColor(.secondary)
+                                                if let previewFile {
+                                                    Text(line)
+                                                        .font(.body)
+                                                        .foregroundColor(.secondary)
+                                                        .modifier(HoverModifier(file: previewFile, isEnabled: true, showOnlyImage: true))
+                                                } else {
+                                                    Text(line)
+                                                        .font(.body)
+                                                        .foregroundColor(.secondary)
+                                                }
                                                 if isPathCandidate(line) {
                                                     Button(action: { reveal(path: line) }) {
                                                         Image(systemName: "folder")
@@ -141,5 +156,52 @@ struct TipsSection: View {
         }
         guard fm.fileExists(atPath: candidate.path) else { return }
         NSWorkspace.shared.activateFileViewerSelecting([candidate])
+    }
+
+    private func previewFile(for rawLine: String) -> FileInfo? {
+        guard let data = imagePreviewData(for: rawLine) else { return nil }
+        let normalized = normalizedPath(from: rawLine)
+        var preview = FileInfo(
+            path: normalized,
+            fullPath: nil,
+            name: normalized ?? rawLine.trimmingCharacters(in: .whitespacesAndNewlines),
+            type: .assets,
+            size: Int64(data.count),
+            subItems: nil
+        )
+        preview.internalImageData = data
+        return preview
+    }
+
+    private func imagePreviewData(for rawLine: String) -> Data? {
+        guard !imagePreviewLookup.isEmpty else { return nil }
+        var checkedKeys = Set<String>()
+
+        func attemptLookup(_ key: String?) -> Data? {
+            guard let key, !key.isEmpty, !checkedKeys.contains(key) else { return nil }
+            checkedKeys.insert(key)
+            return imagePreviewLookup[key]
+        }
+
+        let normalized = normalizedPath(from: rawLine)
+        if let data = attemptLookup(normalized) {
+            return data
+        }
+        if let normalized {
+            let lastComponent = (normalized as NSString).lastPathComponent
+            if let data = attemptLookup(lastComponent) {
+                return data
+            }
+        }
+        let trimmed = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "'\""))
+        if let data = attemptLookup(trimmed) {
+            return data
+        }
+        let trimmedComponent = (trimmed as NSString).lastPathComponent
+        if let data = attemptLookup(trimmedComponent) {
+            return data
+        }
+        return nil
     }
 }

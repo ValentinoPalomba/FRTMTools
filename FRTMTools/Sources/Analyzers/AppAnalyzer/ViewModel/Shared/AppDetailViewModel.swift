@@ -13,8 +13,13 @@ protocol AppDetailViewModel: ObservableObject {
     var archTypesDescription: String { get }
     var buildsForApp: [Analysis] { get }
     var tipsBaseURL: URL? { get }
+    var tipImagePreviewMap: [String: Data] { get }
 
     func filteredCategories(searchText: String) -> [CategoryResult]
     func categoryName(for id: String) -> String?
     func topFiles(for categoryName: String, limit: Int) -> [FileInfo]
+}
+
+extension AppDetailViewModel {
+    var tipImagePreviewMap: [String: Data] { [:] }
 }
