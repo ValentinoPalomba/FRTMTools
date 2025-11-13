@@ -17,7 +17,10 @@ class TipGenerator {
         }
     }
     
-    private static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "webp", "gif", "bmp", "svg"]
+    private static let imageExtensions: Set<String> = [
+        "png", "jpg", "jpeg", "webp", "gif", "bmp", "svg",
+        "heic", "heif", "tif", "tiff", "pdf"
+    ]
     
     private struct DuplicateFileKey: Hashable {
         let name: String
@@ -117,6 +120,31 @@ class TipGenerator {
             }
 
             tips.append(duplicateImageTip)
+        }
+
+        let duplicateImages = duplicateImageGroups(from: allFiles)
+        if !duplicateImages.isEmpty {
+            let totalImageSavings = totalDuplicateSavings(from: duplicateImages)
+            var duplicateImagesTip = Tip(
+                text: "Found \(duplicateImages.count) sets of identical images in the IPA bundle. Removing redundant copies could save \(ByteCountFormatter.string(fromByteCount: totalImageSavings, countStyle: .file)).",
+                category: .optimization
+            )
+
+            let sortedImages = duplicateImages.values.sorted {
+                duplicateSavings(for: $0) > duplicateSavings(for: $1)
+            }
+
+            for group in sortedImages {
+                guard let sample = group.first else { continue }
+                let saving = duplicateSavings(for: group)
+                let paths = group.map(displayPath(for:)).joined(separator: "\n")
+                duplicateImagesTip.subTips.append(Tip(
+                    text: "Image '\(sample.name)' has identical copies (\(group.count) total). Potential saving: \(ByteCountFormatter.string(fromByteCount: saving, countStyle: .file))\n\(paths)",
+                    category: .optimization
+                ))
+            }
+
+            tips.append(duplicateImagesTip)
         }
 
         let imageFiles = allFiles.filter { $0.name.lowercased().hasSuffix(".png") || $0.name.lowercased().hasSuffix(".jpg") }
@@ -346,8 +374,7 @@ class TipGenerator {
         for file in files {
             let ext = (file.name as NSString).pathExtension.lowercased()
             guard imageExtensions.contains(ext) else { continue }
-            guard let fullPath = file.fullPath else { continue }
-            guard let hash = hashFile(at: fullPath) else { continue }
+            guard let hash = imageHash(for: file) else { continue }
             groups[hash, default: []].append(file)
         }
         return groups.filter { $0.value.count > 1 }
@@ -374,6 +401,19 @@ class TipGenerator {
         
         let digest = hasher.finalize()
         return digest.map { String(format: "%02x", $0) }.joined()
+    }
+    
+    private static func hashData(_ data: Data) -> String {
+        let digest = SHA256.hash(data: data)
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+    
+    private static func imageHash(for file: FileInfo) -> String? {
+        if let internalData = file.internalImageData, !internalData.isEmpty {
+            return hashData(internalData)
+        }
+        guard let fullPath = file.fullPath else { return nil }
+        return hashFile(at: fullPath)
     }
     
     private static func duplicateSavings(for files: [FileInfo]) -> Int64 {
