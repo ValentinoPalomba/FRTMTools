@@ -9,7 +9,12 @@ enum CategoryType: String, CaseIterable {
     case resources = "Resources"
     
     var displayName: String {
-        return self.rawValue
+        switch self {
+        case .binary:
+            return "Main app binary"
+        default:
+            return self.rawValue
+        }
     }
 }
 
