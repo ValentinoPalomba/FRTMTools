@@ -28,6 +28,7 @@ struct ComparisonDetail: View {
     
     @State private var isLoading = true
     @State private var comparisonResult: ComparisonResult?
+    @State private var reportLanguage: ReportLanguage = .english
 
     @State private var expandedSections: Set<String> = ["Modificati", "Aggiunti", "Rimossi"]
     @State private var searchText: String = ""
@@ -166,6 +167,12 @@ struct ComparisonDetail: View {
                             }
                             .padding(.horizontal)
                         }
+
+                        // MARK: - Textual Report
+                        ComparisonReportView(
+                            viewModel: ComparisonReportViewModel(first: first, second: second, result: result),
+                            language: $reportLanguage
+                        )
                     }
                     .padding(.vertical, 16)
                 }
