@@ -112,18 +112,24 @@ struct TipsSection: View {
         return s.contains("/") || s.hasPrefix("/")
     }
     
-    private func reveal(path rawPath: String) {
+    private func absoluteURL(for rawPath: String) -> URL? {
+        guard let normalized = normalizedPath(from: rawPath) else { return nil }
+        if normalized.hasPrefix("/") {
+            return URL(fileURLWithPath: normalized)
+        } else if let baseURL {
+            return baseURL.appendingPathComponent(normalized)
+        }
+        return nil
+    }
+    
+    private func normalizedPath(from rawPath: String) -> String? {
         let trimmed = rawPath.trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingCharacters(in: CharacterSet(charactersIn: "'\""))
-        let targetURL: URL?
-        if trimmed.hasPrefix("/") {
-            targetURL = URL(fileURLWithPath: trimmed)
-        } else if let baseURL = baseURL {
-            targetURL = baseURL.appendingPathComponent(trimmed)
-        } else {
-            targetURL = nil
-        }
-        guard let initialURL = targetURL else { return }
+        return trimmed.isEmpty ? nil : trimmed
+    }
+    
+    private func reveal(path rawPath: String) {
+        guard let initialURL = absoluteURL(for: rawPath) else { return }
         let fm = FileManager.default
         var candidate = initialURL
         var last = candidate.path

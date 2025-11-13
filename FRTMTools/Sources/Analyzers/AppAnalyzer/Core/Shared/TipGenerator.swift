@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 class TipGenerator {
     enum ExcludedFile: String, CaseIterable {
@@ -14,6 +15,14 @@ class TipGenerator {
         static var allNames: Set<String> {
             return Set(Self.allCases.map { $0.rawValue })
         }
+    }
+    
+    private static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "webp", "gif", "bmp", "svg"]
+    
+    private struct DuplicateFileKey: Hashable {
+        let name: String
+        let size: Int64
+        let internalName: String?
     }
     
     static func generateTips(for analysis: any AppAnalysis) -> [Tip] {
@@ -77,49 +86,24 @@ class TipGenerator {
             ))
         }
 
-        struct FileKey: Hashable {
-            let name: String
-            let size: Int64
-            let internalName: String?
-            
-            func hash(into hasher: inout Hasher) {
-                hasher.combine(name)
-                hasher.combine(size)
-                hasher.combine(internalName)
-            }
-            
-            static func ==(lhs: FileKey, rhs: FileKey) -> Bool {
-                return lhs.name == rhs.name &&
-                       lhs.size == rhs.size &&
-                       lhs.internalName == rhs.internalName
-            }
-        }
-
-        let duplicates = Dictionary(
-            grouping: allFiles.filter { file in
+        let duplicates = duplicateGroups(
+            from: allFiles,
+            filter: { file in
                 let url = URL(fileURLWithPath: file.path ?? "-")
                 let parentDirectory = url.deletingLastPathComponent().lastPathComponent
 
                 return !parentDirectory.hasSuffix(".lproj")
                     && file.type != .lproj
                     && !ExcludedFile.allNames.contains(file.name)
-            },
-            by: { file -> FileKey in
-                FileKey(name: file.name, size: file.size, internalName: file.internalName)
             }
         )
-        .filter { $0.value.count > 1 }
 
 
         if !duplicates.isEmpty {
-            let totalSavings = duplicates.reduce(0) { result, duplicate in
-                let key = duplicate.key
-                let files = duplicate.value
-                return result + Int((key.size * Int64(files.count - 1)))
-            }
+            let totalSavings = totalDuplicateSavings(from: duplicates)
 
             var duplicateImageTip = Tip(
-                text: "Found \(duplicates.count) sets of duplicate files, with a potential saving of \(ByteCountFormatter.string(fromByteCount: Int64(totalSavings), countStyle: .file))",
+                text: "Found \(duplicates.count) sets of duplicate files, with a potential saving of \(ByteCountFormatter.string(fromByteCount: totalSavings, countStyle: .file))",
                 category: .optimization
             )
 
@@ -196,6 +180,76 @@ class TipGenerator {
     private static func generateAPKTips(for analysis: APKAnalysis) -> [Tip] {
         var tips: [Tip] = []
         let files = analysis.rootFile.flattened(includeDirectories: false)
+
+        let abiFolders = ["armeabi", "armeabi-v7a", "arm64-v8a", "x86", "x86_64", "riscv64"]
+        let duplicateFiles = duplicateGroups(
+            from: files,
+            filter: { file in
+                guard file.size > 0 else { return false }
+                let loweredName = file.name.lowercased()
+                if loweredName == "androidmanifest.xml" || loweredName == "resources.arsc" {
+                    return false
+                }
+
+                let loweredPath = (file.path ?? "").lowercased()
+                if loweredPath.contains("/meta-inf/") {
+                    return false
+                }
+                // Ignore density/ABI folders where repeated filenames are intentional.
+                if loweredPath.contains("/res/drawable") || loweredPath.contains("/res/mipmap") {
+                    return false
+                }
+                if abiFolders.contains(where: { loweredPath.contains("/lib/\($0)/") }) {
+                    return false
+                }
+
+                return true
+            }
+        )
+
+        if !duplicateFiles.isEmpty {
+            let totalSavings = totalDuplicateSavings(from: duplicateFiles)
+            var duplicateTip = Tip(
+                text: "Found \(duplicateFiles.count) sets of duplicate files in the APK/AAB bundle. Cleaning them up could save \(ByteCountFormatter.string(fromByteCount: totalSavings, countStyle: .file)).",
+                category: .optimization
+            )
+
+            for (key, occurrences) in duplicateFiles {
+                let potentialSaving = key.size * Int64(occurrences.count - 1)
+                let paths = occurrences.map { $0.path ?? "-" }.joined(separator: "\n")
+                duplicateTip.subTips.append(Tip(
+                    text: "'\(key.name)' appears \(occurrences.count) times outside density/ABI splits. Potential saving: \(ByteCountFormatter.string(fromByteCount: potentialSaving, countStyle: .file))\n\(paths)",
+                    category: .optimization
+                ))
+            }
+
+            tips.append(duplicateTip)
+        }
+
+        let duplicateImages = duplicateImageGroups(from: files)
+        if !duplicateImages.isEmpty {
+            let totalImageSavings = totalDuplicateSavings(from: duplicateImages)
+            var duplicateImagesTip = Tip(
+                text: "Found \(duplicateImages.count) sets of identical images. Removing redundant copies (even when names differ) could save \(ByteCountFormatter.string(fromByteCount: totalImageSavings, countStyle: .file)).",
+                category: .optimization
+            )
+
+            let sortedImages = duplicateImages.values.sorted {
+                duplicateSavings(for: $0) > duplicateSavings(for: $1)
+            }
+
+            for group in sortedImages {
+                guard let sample = group.first else { continue }
+                let saving = duplicateSavings(for: group)
+                let paths = group.map(displayPath(for:)).joined(separator: "\n")
+                duplicateImagesTip.subTips.append(Tip(
+                    text: "Image data reused \(group.count) times (example: '\(sample.name)'). Potential saving: \(ByteCountFormatter.string(fromByteCount: saving, countStyle: .file))\n\(paths)",
+                    category: .optimization
+                ))
+            }
+
+            tips.append(duplicateImagesTip)
+        }
         
         let dexFiles = files.filter { $0.name.lowercased().hasSuffix(".dex") }
         if let largestDex = dexFiles.max(by: { $0.size < $1.size }), largestDex.size > 25 * 1_048_576 {
@@ -258,6 +312,91 @@ class TipGenerator {
         }
         
         return tips
+    }
+
+    private static func duplicateGroups(
+        from files: [FileInfo],
+        filter: (FileInfo) -> Bool
+    ) -> [DuplicateFileKey: [FileInfo]] {
+        Dictionary(
+            grouping: files.filter(filter),
+            by: { file in
+                DuplicateFileKey(
+                    name: file.name,
+                    size: file.size,
+                    internalName: file.internalName
+                )
+            }
+        )
+        .filter { $0.value.count > 1 }
+    }
+    
+    private static func totalDuplicateSavings(
+        from duplicates: [DuplicateFileKey: [FileInfo]]
+    ) -> Int64 {
+        duplicates.reduce(0) { result, duplicate in
+            let occurrences = duplicate.value.count
+            guard occurrences > 1 else { return result }
+            return result + duplicate.key.size * Int64(occurrences - 1)
+        }
+    }
+    
+    private static func duplicateImageGroups(from files: [FileInfo]) -> [String: [FileInfo]] {
+        var groups: [String: [FileInfo]] = [:]
+        for file in files {
+            let ext = (file.name as NSString).pathExtension.lowercased()
+            guard imageExtensions.contains(ext) else { continue }
+            guard let fullPath = file.fullPath else { continue }
+            guard let hash = hashFile(at: fullPath) else { continue }
+            groups[hash, default: []].append(file)
+        }
+        return groups.filter { $0.value.count > 1 }
+    }
+    
+    private static func hashFile(at path: String) -> String? {
+        guard let stream = InputStream(fileAtPath: path) else { return nil }
+        stream.open()
+        defer { stream.close() }
+        
+        var hasher = SHA256()
+        var buffer = [UInt8](repeating: 0, count: 64 * 1024)
+        
+        while stream.hasBytesAvailable {
+            let readCount = stream.read(&buffer, maxLength: buffer.count)
+            if readCount < 0 {
+                return nil
+            }
+            if readCount == 0 {
+                break
+            }
+            hasher.update(data: Data(bytes: buffer, count: readCount))
+        }
+        
+        let digest = hasher.finalize()
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+    
+    private static func duplicateSavings(for files: [FileInfo]) -> Int64 {
+        guard let representative = files.first, files.count > 1 else { return 0 }
+        return representative.size * Int64(files.count - 1)
+    }
+    
+    private static func displayPath(for file: FileInfo) -> String {
+        if let path = file.path, !path.isEmpty {
+            return path
+        }
+        if let fullPath = file.fullPath {
+            return fullPath
+        }
+        return file.name
+    }
+    
+    private static func totalDuplicateSavings(
+        from duplicates: [String: [FileInfo]]
+    ) -> Int64 {
+        duplicates.reduce(0) { result, entry in
+            result + duplicateSavings(for: entry.value)
+        }
     }
 
     private static func flatten(file: FileInfo) -> [FileInfo] {
