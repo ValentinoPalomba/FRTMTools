@@ -49,7 +49,7 @@ struct APKAnalyzerContentView: View {
         let displayIdentifier = identifier.isEmpty ? "Unknown Identifier" : identifier
         let builds = viewModel.groupedAnalyses[identifier] ?? []
         let latest = builds.first
-        let primaryTitle = latest?.packageName ?? displayIdentifier
+        let primaryTitle = latest?.appLabel ?? latest?.packageName ?? displayIdentifier
         let packageSubtitle = latest?.appLabel != nil ? displayIdentifier : nil
 
         HStack {
