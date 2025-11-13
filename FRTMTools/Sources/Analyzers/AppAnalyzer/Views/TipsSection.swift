@@ -95,6 +95,10 @@ struct TipsSection: View {
         case .optimization: return "🚀"
         case .warning: return "⚠️"
         case .info: return "ℹ️"
+        case .size: return "📦"
+        case .performance: return "⚡️"
+        case .security: return "🔒"
+        case .compatibility: return "✅"
         }
     }
     
