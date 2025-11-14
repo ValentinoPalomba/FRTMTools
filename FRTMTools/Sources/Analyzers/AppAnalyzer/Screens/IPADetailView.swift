@@ -2,7 +2,7 @@ import SwiftUI
 import Charts
 
 struct DetailView<ViewModel: AppDetailViewModel>: View {
-    @ObservedObject var viewModel: ViewModel
+    var viewModel: ViewModel
 
     @State private var expandedSections: Set<String> = []
     @State private var selectedCategoryName: String? = nil
@@ -178,7 +178,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                 .padding(.horizontal)
                 
                 TipsSection(
-                    tips: TipGenerator.generateTips(for: viewModel.analysis),
+                    tips: viewModel.tips,
                     baseURL: viewModel.tipsBaseURL,
                     imagePreviewLookup: viewModel.tipImagePreviewMap
                 )

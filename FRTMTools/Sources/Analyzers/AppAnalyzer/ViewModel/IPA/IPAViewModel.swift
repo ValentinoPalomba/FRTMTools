@@ -9,6 +9,7 @@ final class IPAViewModel: ObservableObject {
     // Cache for expensive per-analysis computations
     private var cachedCategories: [UUID: [CategoryResult]] = [:]
     private var cachedArchs: [UUID: ArchsResult] = [:]
+    private var cachedTips: [UUID: [Tip]] = [:]
     
     @Published var analyses: [IPAAnalysis] = []
     @Published var isLoading = false
@@ -41,6 +42,13 @@ final class IPAViewModel: ObservableObject {
         if let cached = cachedArchs[analysis.id] { return cached }
         let computed = ArchsAnalyzer.generateCategories(from: analysis.rootFile)
         cachedArchs[analysis.id] = computed
+        return computed
+    }
+
+    func tips(for analysis: IPAAnalysis) -> [Tip] {
+        if let cached = cachedTips[analysis.id] { return cached }
+        let computed = TipGenerator.generateTips(for: analysis)
+        cachedTips[analysis.id] = computed
         return computed
     }
 
@@ -106,6 +114,7 @@ final class IPAViewModel: ObservableObject {
                 self.analyses = loaded
                 self.cachedCategories.removeAll()
                 self.cachedArchs.removeAll()
+                self.cachedTips.removeAll()
                 if let first = self.analyses.first {
                     self.selectedUUID = first.id
                 }
@@ -176,6 +185,7 @@ final class IPAViewModel: ObservableObject {
                         // Precompute cached data for this analysis
                         self.cachedCategories[analysis.id] = CategoryGenerator.generateCategories(from: analysis.rootFile)
                         self.cachedArchs[analysis.id] = ArchsAnalyzer.generateCategories(from: analysis.rootFile)
+                        self.cachedTips[analysis.id] = TipGenerator.generateTips(for: analysis)
                         selectedUUID = analysis.id
                     }
                     try await fileStore.saveAnalyses(self.analyses)
@@ -204,6 +214,7 @@ final class IPAViewModel: ObservableObject {
             analyses.removeAll(where: { $0.id == id })
             cachedCategories[id] = nil
             cachedArchs[id] = nil
+            cachedTips[id] = nil
         }
     }
 

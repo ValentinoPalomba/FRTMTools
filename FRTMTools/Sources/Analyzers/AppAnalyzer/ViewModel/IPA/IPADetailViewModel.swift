@@ -47,6 +47,10 @@ final class IPADetailViewModel: AppDetailViewModel {
         return appURL
     }
 
+    var tips: [Tip] {
+        ipaViewModel.tips(for: analysis)
+    }
+
     var sizeAnalyzer: IPAViewModel? { ipaViewModel }
 
     lazy var tipImagePreviewMap: [String: Data] = {

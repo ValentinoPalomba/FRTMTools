@@ -45,6 +45,10 @@ final class APKDetailViewModel: AppDetailViewModel {
         analysis.url
     }
 
+    var tips: [Tip] {
+        apkViewModel.tips(for: analysis)
+    }
+
     func filteredCategories(searchText: String) -> [CategoryResult] {
         guard !searchText.isEmpty else { return categories }
         return categories.compactMap { category in

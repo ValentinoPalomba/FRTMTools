@@ -10,6 +10,7 @@ final class APKViewModel: ObservableObject, InstalledSizeAnalyzing {
 
     private var cachedCategories: [UUID: [CategoryResult]] = [:]
     private var cachedArchs: [UUID: ArchsResult] = [:]
+    private var cachedTips: [UUID: [Tip]] = [:]
 
     @Published var analyses: [APKAnalysis] = []
     @Published var isLoading = false
@@ -55,6 +56,13 @@ final class APKViewModel: ObservableObject, InstalledSizeAnalyzing {
             computed = ArchsResult(number: abis.count, types: abis)
         }
         cachedArchs[analysis.id] = computed
+        return computed
+    }
+
+    func tips(for analysis: APKAnalysis) -> [Tip] {
+        if let cached = cachedTips[analysis.id] { return cached }
+        let computed = TipGenerator.generateTips(for: analysis)
+        cachedTips[analysis.id] = computed
         return computed
     }
 
@@ -108,6 +116,7 @@ final class APKViewModel: ObservableObject, InstalledSizeAnalyzing {
                 self.analyses = loaded
                 self.cachedCategories.removeAll()
                 self.cachedArchs.removeAll()
+                self.cachedTips.removeAll()
                 if let first = self.analyses.first {
                     self.selectedUUID = first.id
                 }
@@ -160,6 +169,7 @@ final class APKViewModel: ObservableObject, InstalledSizeAnalyzing {
                         analyses.append(analysis)
                         cachedCategories[analysis.id] = CategoryGenerator.generateCategories(from: analysis.rootFile)
                         cachedArchs[analysis.id] = archs
+                        cachedTips[analysis.id] = TipGenerator.generateTips(for: analysis)
                         selectedUUID = analysis.id
                     }
                     try await fileStore.saveAnalyses(self.analyses)
@@ -210,6 +220,7 @@ final class APKViewModel: ObservableObject, InstalledSizeAnalyzing {
             analyses.removeAll(where: { $0.id == id })
             cachedCategories[id] = nil
             cachedArchs[id] = nil
+            cachedTips[id] = nil
         }
     }
 

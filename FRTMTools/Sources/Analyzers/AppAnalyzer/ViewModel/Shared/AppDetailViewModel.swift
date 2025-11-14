@@ -13,6 +13,7 @@ protocol AppDetailViewModel: ObservableObject {
     var archTypesDescription: String { get }
     var buildsForApp: [Analysis] { get }
     var tipsBaseURL: URL? { get }
+    var tips: [Tip] { get }
     var tipImagePreviewMap: [String: Data] { get }
 
     func filteredCategories(searchText: String) -> [CategoryResult]
@@ -21,5 +22,6 @@ protocol AppDetailViewModel: ObservableObject {
 }
 
 extension AppDetailViewModel {
+    var tips: [Tip] { [] }
     var tipImagePreviewMap: [String: Data] { [:] }
 }
