@@ -49,20 +49,6 @@ final class APKDetailViewModel: AppDetailViewModel {
         apkViewModel.tips(for: analysis)
     }
 
-    func filteredCategories(searchText: String) -> [CategoryResult] {
-        guard !searchText.isEmpty else { return categories }
-        return categories.compactMap { category in
-            let filteredItems = category.items.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
-            guard !filteredItems.isEmpty else { return nil }
-            let totalSize = filteredItems.reduce(0) { $0 + $1.size }
-            return CategoryResult(
-                type: category.type,
-                totalSize: totalSize,
-                items: filteredItems
-            )
-        }
-    }
-
     func categoryName(for id: String) -> String? {
         categories.first { $0.id == id }?.name
     }

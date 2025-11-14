@@ -24,4 +24,24 @@ protocol AppDetailViewModel: ObservableObject {
 extension AppDetailViewModel {
     var tips: [Tip] { [] }
     var tipImagePreviewMap: [String: Data] { [:] }
+
+    func filteredCategories(searchText: String) -> [CategoryResult] {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return categories }
+        let lowered = trimmed.lowercased()
+
+        return categories.compactMap { category in
+            let filteredItems = category.items.compactMap { item -> (file: FileInfo, size: Int64)? in
+                item.pruned(matchingLowercased: lowered)
+            }
+            guard !filteredItems.isEmpty else { return nil }
+            let totalSize = filteredItems.reduce(0) { $0 + $1.size }
+            let items = filteredItems.map(\.file)
+            return CategoryResult(
+                type: category.type,
+                totalSize: totalSize,
+                items: items
+            )
+        }
+    }
 }
