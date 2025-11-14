@@ -30,6 +30,9 @@ struct APKAnalysis: AppAnalysis {
     let supportsAnyDensity: Bool?
     let requiredFeatures: [String]
     let optionalFeatures: [String]
+    let components: [AndroidComponentInfo]
+    let deepLinks: [AndroidDeepLinkInfo]
+    let thirdPartyLibraries: [ThirdPartyLibraryInsight]
 
     var totalSize: Int64 {
         rootFile.size
@@ -67,7 +70,10 @@ struct APKAnalysis: AppAnalysis {
         densities: [String] = [],
         supportsAnyDensity: Bool? = nil,
         requiredFeatures: [String] = [],
-        optionalFeatures: [String] = []
+        optionalFeatures: [String] = [],
+        components: [AndroidComponentInfo] = [],
+        deepLinks: [AndroidDeepLinkInfo] = [],
+        thirdPartyLibraries: [ThirdPartyLibraryInsight] = []
     ) {
         self.id = id
         self.fileName = fileName
@@ -96,10 +102,13 @@ struct APKAnalysis: AppAnalysis {
         self.supportsAnyDensity = supportsAnyDensity
         self.requiredFeatures = requiredFeatures
         self.optionalFeatures = optionalFeatures
+        self.components = components
+        self.deepLinks = deepLinks
+        self.thirdPartyLibraries = thirdPartyLibraries
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, fileName, executableName, appLabel, url, rootFile, version, buildNumber, installedSize, imageData, isStripped, allowsArbitraryLoads, dependencyGraph, packageName, minSDK, targetSDK, permissions, supportedABIs, signatureInfo, launchableActivity, launchableActivityLabel, supportedLocales, supportsScreens, densities, supportsAnyDensity, requiredFeatures, optionalFeatures
+        case id, fileName, executableName, appLabel, url, rootFile, version, buildNumber, installedSize, imageData, isStripped, allowsArbitraryLoads, dependencyGraph, packageName, minSDK, targetSDK, permissions, supportedABIs, signatureInfo, launchableActivity, launchableActivityLabel, supportedLocales, supportsScreens, densities, supportsAnyDensity, requiredFeatures, optionalFeatures, components, deepLinks, thirdPartyLibraries
     }
 
     init(from decoder: Decoder) throws {
@@ -131,6 +140,9 @@ struct APKAnalysis: AppAnalysis {
         supportsAnyDensity = try container.decodeIfPresent(Bool.self, forKey: .supportsAnyDensity)
         requiredFeatures = try container.decodeIfPresent([String].self, forKey: .requiredFeatures) ?? []
         optionalFeatures = try container.decodeIfPresent([String].self, forKey: .optionalFeatures) ?? []
+        components = try container.decodeIfPresent([AndroidComponentInfo].self, forKey: .components) ?? []
+        deepLinks = try container.decodeIfPresent([AndroidDeepLinkInfo].self, forKey: .deepLinks) ?? []
+        thirdPartyLibraries = try container.decodeIfPresent([ThirdPartyLibraryInsight].self, forKey: .thirdPartyLibraries) ?? []
     }
 
     func encode(to encoder: Encoder) throws {
@@ -162,6 +174,9 @@ struct APKAnalysis: AppAnalysis {
         try container.encodeIfPresent(supportsAnyDensity, forKey: .supportsAnyDensity)
         try container.encode(requiredFeatures, forKey: .requiredFeatures)
         try container.encode(optionalFeatures, forKey: .optionalFeatures)
+        try container.encode(components, forKey: .components)
+        try container.encode(deepLinks, forKey: .deepLinks)
+        try container.encode(thirdPartyLibraries, forKey: .thirdPartyLibraries)
     }
 }
 

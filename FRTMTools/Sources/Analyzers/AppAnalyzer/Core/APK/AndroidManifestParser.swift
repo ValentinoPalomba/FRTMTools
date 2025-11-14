@@ -1,5 +1,57 @@
 import Foundation
 
+enum AndroidComponentType: String, Codable, Sendable {
+    case activity
+    case activityAlias
+    case service
+    case receiver
+    case provider
+    
+    init?(elementName: String) {
+        switch elementName {
+        case "activity": self = .activity
+        case "activity-alias": self = .activityAlias
+        case "service": self = .service
+        case "receiver": self = .receiver
+        case "provider": self = .provider
+        default: return nil
+        }
+    }
+}
+
+struct AndroidIntentData: Codable, Sendable {
+    var scheme: String?
+    var host: String?
+    var port: String?
+    var path: String?
+    var pathPrefix: String?
+    var pathPattern: String?
+    var mimeType: String?
+}
+
+struct AndroidIntentFilterInfo: Codable, Sendable {
+    var actions: [String]
+    var categories: [String]
+    var data: [AndroidIntentData]
+}
+
+struct AndroidComponentInfo: Codable, Sendable {
+    let type: AndroidComponentType
+    let name: String
+    let label: String?
+    let exported: Bool?
+    let intentFilters: [AndroidIntentFilterInfo]
+}
+
+struct AndroidDeepLinkInfo: Codable, Sendable, Identifiable {
+    let id = UUID()
+    let componentName: String
+    let scheme: String?
+    let host: String?
+    let path: String?
+    let mimeType: String?
+}
+
 struct AndroidManifestInfo {
     var packageName: String?
     var versionName: String?
@@ -19,6 +71,76 @@ struct AndroidManifestInfo {
     var supportsAnyDensity: Bool?
     var requiredFeatures: [String] = []
     var optionalFeatures: [String] = []
+    var components: [AndroidComponentInfo] = []
+    var deepLinks: [AndroidDeepLinkInfo] = []
+}
+
+private func normalizedComponentName(_ raw: String, packageName: String?) -> String {
+    guard !raw.isEmpty else { return raw }
+    guard let packageName, !packageName.isEmpty else {
+        return raw.hasPrefix(".") ? String(raw.dropFirst()) : raw
+    }
+    if raw.hasPrefix(".") {
+        return packageName + raw
+    }
+    if !raw.contains(".") {
+        return "\(packageName).\(raw)"
+    }
+    return raw
+}
+
+private func parseBooleanAttribute(_ value: String) -> Bool? {
+    switch value.lowercased() {
+    case "true", "1": return true
+    case "false", "0": return false
+    default: return nil
+    }
+}
+
+private func deepLinks(from component: AndroidComponentInfo) -> [AndroidDeepLinkInfo] {
+    guard component.type == .activity || component.type == .activityAlias else { return [] }
+
+    func qualifies(_ filter: AndroidIntentFilterInfo) -> Bool {
+        guard filter.actions.contains("android.intent.action.VIEW"),
+              filter.categories.contains(where: { $0 == "android.intent.category.BROWSABLE" }) else {
+            return false
+        }
+        return true
+    }
+    
+    func resolvedPath(from data: AndroidIntentData) -> String? {
+        if let path = data.path { return path }
+        if let prefix = data.pathPrefix { return "prefix:\(prefix)" }
+        if let pattern = data.pathPattern { return "pattern:\(pattern)" }
+        return nil
+    }
+    
+    var links: [AndroidDeepLinkInfo] = []
+    for filter in component.intentFilters where qualifies(filter) {
+        if filter.data.isEmpty {
+            links.append(AndroidDeepLinkInfo(
+                componentName: component.name,
+                scheme: nil,
+                host: nil,
+                path: nil,
+                mimeType: nil
+            ))
+        } else {
+            for data in filter.data {
+                if data.scheme == nil && data.host == nil && data.path == nil && data.pathPrefix == nil && data.pathPattern == nil {
+                    continue
+                }
+                links.append(AndroidDeepLinkInfo(
+                    componentName: component.name,
+                    scheme: data.scheme,
+                    host: data.host,
+                    path: resolvedPath(from: data),
+                    mimeType: data.mimeType
+                ))
+            }
+        }
+    }
+    return links
 }
 
 enum AndroidManifestParser {
@@ -64,12 +186,132 @@ enum AndroidManifestParser {
                 if let label = application.attribute(forName: "android:label")?.stringValue {
                     info.appLabel = label
                 }
+                let componentInfos = extractComponents(from: application, packageName: info.packageName)
+                info.components.append(contentsOf: componentInfos)
+                info.deepLinks.append(contentsOf: componentInfos.flatMap { deepLinks(from: $0) })
             }
             
             return info
         } catch {
             return nil
         }
+    }
+    
+    private static func extractComponents(from application: XMLElement, packageName: String?) -> [AndroidComponentInfo] {
+        guard let children = application.children else { return [] }
+        var components: [AndroidComponentInfo] = []
+        
+        for child in children {
+            guard let element = child as? XMLElement,
+                  let name = element.name,
+                  let type = AndroidComponentType(elementName: name) else { continue }
+            
+            if let component = buildComponent(from: element, type: type, packageName: packageName) {
+                components.append(component)
+            }
+        }
+        
+        return components
+    }
+    
+    private static func buildComponent(from element: XMLElement, type: AndroidComponentType, packageName: String?) -> AndroidComponentInfo? {
+        let rawName = element.attribute(forName: "android:name")?.stringValue ?? element.attribute(forName: "name")?.stringValue ?? ""
+        guard !rawName.isEmpty else { return nil }
+        let resolvedName = normalizedComponentName(rawName, packageName: packageName)
+        let label = element.attribute(forName: "android:label")?.stringValue
+        let exportedString = element.attribute(forName: "android:exported")?.stringValue
+        let exported = exportedString.flatMap(parseBooleanAttribute)
+        let filters = buildIntentFilters(from: element)
+        return AndroidComponentInfo(type: type, name: resolvedName, label: label, exported: exported, intentFilters: filters)
+    }
+    
+    private static func buildIntentFilters(from component: XMLElement) -> [AndroidIntentFilterInfo] {
+        let filters = component.elements(forName: "intent-filter")
+        return filters.compactMap { filterElement in
+            var actions: [String] = []
+            var categories: [String] = []
+            var dataEntries: [AndroidIntentData] = []
+            
+            for child in filterElement.children ?? [] {
+                guard let element = child as? XMLElement, let name = element.name else { continue }
+                switch name {
+                case "action":
+                    if let action = element.attribute(forName: "android:name")?.stringValue ?? element.attribute(forName: "name")?.stringValue {
+                        actions.append(action)
+                    }
+                case "category":
+                    if let category = element.attribute(forName: "android:name")?.stringValue ?? element.attribute(forName: "name")?.stringValue {
+                        categories.append(category)
+                    }
+                case "data":
+                    var data = AndroidIntentData()
+                    data.scheme = element.attribute(forName: "android:scheme")?.stringValue
+                    data.host = element.attribute(forName: "android:host")?.stringValue
+                    data.port = element.attribute(forName: "android:port")?.stringValue
+                    data.path = element.attribute(forName: "android:path")?.stringValue
+                    data.pathPrefix = element.attribute(forName: "android:pathPrefix")?.stringValue
+                    data.pathPattern = element.attribute(forName: "android:pathPattern")?.stringValue
+                    data.mimeType = element.attribute(forName: "android:mimeType")?.stringValue
+                    dataEntries.append(data)
+                default:
+                    continue
+                }
+            }
+            
+            return AndroidIntentFilterInfo(actions: actions, categories: categories, data: dataEntries)
+        }
+    }
+}
+
+private struct ComponentBuilder {
+    let type: AndroidComponentType
+    var rawName: String?
+    var label: String?
+    var exported: Bool?
+    var intentFilters: [AndroidIntentFilterInfo] = []
+    
+    mutating func apply(attributes: [String: String]) {
+        if let name = attributes["android:name"] ?? attributes["name"] {
+            rawName = name
+        }
+        if let labelValue = attributes["android:label"] {
+            label = labelValue
+        }
+        if let exportedValue = attributes["android:exported"], let parsed = parseBooleanAttribute(exportedValue) {
+            exported = parsed
+        }
+    }
+    
+    mutating func add(filter: AndroidIntentFilterInfo) {
+        intentFilters.append(filter)
+    }
+    
+    func build(packageName: String?) -> AndroidComponentInfo? {
+        guard let rawName, !rawName.isEmpty else { return nil }
+        let resolved = normalizedComponentName(rawName, packageName: packageName)
+        return AndroidComponentInfo(type: type, name: resolved, label: label, exported: exported, intentFilters: intentFilters)
+    }
+}
+
+private struct IntentFilterBuilder {
+    var actions: [String] = []
+    var categories: [String] = []
+    var dataEntries: [AndroidIntentData] = []
+    
+    mutating func addAction(_ value: String) {
+        actions.append(value)
+    }
+    
+    mutating func addCategory(_ value: String) {
+        categories.append(value)
+    }
+    
+    mutating func addData(_ data: AndroidIntentData) {
+        dataEntries.append(data)
+    }
+    
+    func build() -> AndroidIntentFilterInfo {
+        AndroidIntentFilterInfo(actions: actions, categories: categories, data: dataEntries)
     }
 }
 
@@ -112,6 +354,8 @@ private struct AndroidBinaryXMLParser {
     private var resourceMap: [UInt32: String] = [:]
     private var namespaceStack: [(prefix: String, uri: String)] = []
     private var info = AndroidManifestInfo()
+    private var componentStack: [ComponentBuilder] = []
+    private var intentFilterStack: [IntentFilterBuilder] = []
 
     init(data: Data) {
         self.data = data
@@ -138,6 +382,8 @@ private struct AndroidBinaryXMLParser {
                 parseEndNamespace(header: header)
             case .RES_XML_START_ELEMENT_TYPE:
                 parseStartElement(header: header)
+            case .RES_XML_END_ELEMENT_TYPE:
+                parseEndElement(header: header)
             default:
                 break // Ignore other chunk types
             }
@@ -213,6 +459,7 @@ private struct AndroidBinaryXMLParser {
         let elementName = string(at: Int(nameIdx))
         let attributesOffset = chunkStart + Int(attributeStart)
 
+        var attributes: [String: String] = [:]
         for i in 0..<Int(attributeCount) {
             let attrOffset = attributesOffset + (i * Int(attributeSize))
             guard let attrNsIdx = readInt32(at: attrOffset),
@@ -233,9 +480,22 @@ private struct AndroidBinaryXMLParser {
             }()
 
             let namespace = string(at: Int(attrNsIdx))
-            let qualifiedName = qualify(name: attributeName, namespace: namespace)
-            apply(attribute: qualifiedName, value: value, elementName: elementName)
+            if let qualifiedName = qualify(name: attributeName, namespace: namespace), let value {
+                attributes[qualifiedName] = value
+                apply(attribute: qualifiedName, value: value, elementName: elementName)
+            }
         }
+        
+        if let elementName {
+            handleElementStart(name: elementName, attributes: attributes)
+        }
+    }
+
+    private mutating func parseEndElement(header: ChunkHeader) {
+        let chunkStart = offset
+        guard let nameIdx = readInt32(at: chunkStart + 16),
+              let elementName = string(at: Int(nameIdx)) else { return }
+        handleElementEnd(name: elementName)
     }
 
     // MARK: - Data Application
@@ -264,6 +524,63 @@ private struct AndroidBinaryXMLParser {
             }
         default:
             break
+        }
+    }
+    
+    private mutating func handleElementStart(name: String, attributes: [String: String]) {
+        if let type = AndroidComponentType(elementName: name) {
+            var builder = ComponentBuilder(type: type)
+            builder.apply(attributes: attributes)
+            componentStack.append(builder)
+            return
+        }
+        
+        switch name {
+        case "intent-filter":
+            guard !componentStack.isEmpty else { return }
+            intentFilterStack.append(IntentFilterBuilder())
+        case "action":
+            guard var current = intentFilterStack.popLast(),
+                  let action = attributes["android:name"] ?? attributes["name"] else { return }
+            current.addAction(action)
+            intentFilterStack.append(current)
+        case "category":
+            guard var current = intentFilterStack.popLast(),
+                  let category = attributes["android:name"] ?? attributes["name"] else { return }
+            current.addCategory(category)
+            intentFilterStack.append(current)
+        case "data":
+            guard var current = intentFilterStack.popLast() else { return }
+            var data = AndroidIntentData()
+            data.scheme = attributes["android:scheme"]
+            data.host = attributes["android:host"]
+            data.port = attributes["android:port"]
+            data.path = attributes["android:path"]
+            data.pathPrefix = attributes["android:pathPrefix"]
+            data.pathPattern = attributes["android:pathPattern"]
+            data.mimeType = attributes["android:mimeType"]
+            current.addData(data)
+            intentFilterStack.append(current)
+        default:
+            break
+        }
+    }
+    
+    private mutating func handleElementEnd(name: String) {
+        if name == "intent-filter" {
+            guard let filter = intentFilterStack.popLast(),
+                  !componentStack.isEmpty else { return }
+            let built = filter.build()
+            componentStack[componentStack.count - 1].add(filter: built)
+            return
+        }
+        
+        if let type = AndroidComponentType(elementName: name) {
+            guard let builder = componentStack.popLast(), builder.type == type else { return }
+            if let built = builder.build(packageName: info.packageName) {
+                info.components.append(built)
+                info.deepLinks.append(contentsOf: deepLinks(from: built))
+            }
         }
     }
 

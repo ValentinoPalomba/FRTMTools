@@ -57,6 +57,7 @@ final class APKAnalyzer: Analyzer {
         let supportedABIs = abiDetector.supportedABIs(in: layout, manifestInfo: manifestInfo)
         let icon = iconExtractor.icon(in: layout, manifestInfo: manifestInfo)
         let signatureInfo = signatureAnalyzer.analyzeSignature(in: layout)
+        let thirdPartyLibraries = ThirdPartyLibraryDetector.detect(in: enrichedRootFile, manifestInfo: manifestInfo)
 
         // TODO: Da investigare - calcolare lo stripping dei binari Android
         let isStripped = false
@@ -87,7 +88,10 @@ final class APKAnalyzer: Analyzer {
             densities: manifestInfo?.densities ?? [],
             supportsAnyDensity: manifestInfo?.supportsAnyDensity,
             requiredFeatures: manifestInfo?.requiredFeatures ?? [],
-            optionalFeatures: manifestInfo?.optionalFeatures ?? []
+            optionalFeatures: manifestInfo?.optionalFeatures ?? [],
+            components: manifestInfo?.components ?? [],
+            deepLinks: manifestInfo?.deepLinks ?? [],
+            thirdPartyLibraries: thirdPartyLibraries
         )
     }
 
@@ -141,7 +145,35 @@ final class APKAnalyzer: Analyzer {
         appendUniqueStrings(\.densities, from: fallback)
         appendUniqueStrings(\.requiredFeatures, from: fallback)
         appendUniqueStrings(\.optionalFeatures, from: fallback)
+        mergeComponents(from: fallback)
+        mergeDeepLinks(from: fallback)
         return merged
+
+        func mergeComponents(from source: AndroidManifestInfo?) {
+            guard let source else { return }
+            let existing = Set(merged.components.map(\.name))
+            let additions = source.components.filter { !existing.contains($0.name) }
+            if !additions.isEmpty {
+                merged.components.append(contentsOf: additions)
+            }
+        }
+
+        func mergeDeepLinks(from source: AndroidManifestInfo?) {
+            guard let source else { return }
+            let existingKeys = Set(merged.deepLinks.map(deepLinkKey))
+            let additions = source.deepLinks.filter { !existingKeys.contains(deepLinkKey($0)) }
+            if !additions.isEmpty {
+                merged.deepLinks.append(contentsOf: additions)
+            }
+        }
+
+        func deepLinkKey(_ link: AndroidDeepLinkInfo) -> String {
+            let scheme = link.scheme ?? "-"
+            let host = link.host ?? "-"
+            let path = link.path ?? "-"
+            let mime = link.mimeType ?? "-"
+            return "\(link.componentName)|\(scheme)|\(host)|\(path)|\(mime)"
+        }
     }
 
     private func shouldInvokeAAPTInspector(for manifestInfo: AndroidManifestInfo?) -> Bool {

@@ -14,6 +14,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
     @State private var extractionAlertMessage = ""
     @State private var showCertificateInfo = false
     @State private var showFeatureDetails = false
+    @State private var showSDKList = false
 
     private let categoryColorScale: [String: Color] = [
         "Resources": .green,
@@ -209,7 +210,8 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
     @ViewBuilder
     private func androidSummarySection(for analysis: APKAnalysis) -> some View {
         let stats = androidStats(for: analysis)
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
+        return VStack(spacing: 16) {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
             if let minSDK = analysis.minSDK, let targetSDK = analysis.targetSDK {
                 SummaryCard(
                     title: "🎯 SDK Targets",
@@ -342,6 +344,9 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                     Text(extractionAlertMessage)
                 }
             }
+            }
+            
+            manifestInsights(for: analysis)
         }
     }
 
@@ -361,6 +366,159 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
             abiSubtitle = "ABIs: \(analysis.supportedABIs.joined(separator: ", ")) · Dex max \(largestDexLabel)"
         }
         return (dexFiles.count, nativeLibs.count, largestDex, dangerousPermissions, abiSubtitle)
+    }
+
+    @ViewBuilder
+    private func manifestInsights(for analysis: APKAnalysis) -> some View {
+        let thirdPartyLibraries = analysis.thirdPartyLibraries
+        let deepLinks = analysis.deepLinks
+        let activityComponents = analysis.components.filter {
+            ($0.type == .activity || $0.type == .activityAlias) && !$0.intentFilters.isEmpty
+        }
+        let exportedComponents = analysis.components.filter { $0.exported == true }
+        
+        if thirdPartyLibraries.isEmpty && deepLinks.isEmpty && activityComponents.isEmpty && exportedComponents.isEmpty {
+            EmptyView()
+        } else {
+            VStack(spacing: 16) {
+                if !thirdPartyLibraries.isEmpty {
+                    manifestInfoCard(
+                        title: "📦 Third-party SDKs",
+                        trailingButton: AnyView(
+                            Button("View All") {
+                                showSDKList.toggle()
+                            }
+                            .buttonStyle(.borderless)
+                        )
+                    ) {
+                        let displayed = Array(thirdPartyLibraries.prefix(6))
+                        ForEach(displayed) { lib in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(lib.name)
+                                    .font(.body)
+                                    .bold()
+                                HStack(spacing: 12) {
+                                    Text("Version: \(lib.version ?? "Unknown")")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text(formatSize(lib.estimatedSize))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            if lib.id != displayed.last?.id {
+                                Divider()
+                            }
+                        }
+                        if thirdPartyLibraries.count > displayed.count {
+                            Text("+\(thirdPartyLibraries.count - displayed.count) more SDKs")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
+                if !deepLinks.isEmpty {
+                    manifestInfoCard(title: "🔗 Deep Links") {
+                        let displayed = Array(deepLinks.prefix(6))
+                        ForEach(displayed) { link in
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(deepLinkDisplay(link))
+                                    .font(.body)
+                                Text(link.componentName)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            if link.id != displayed.last?.id {
+                                Divider()
+                            }
+                        }
+                        if deepLinks.count > displayed.count {
+                            Text("+\(deepLinks.count - displayed.count) more")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
+                if !activityComponents.isEmpty {
+                    manifestInfoCard(title: "🧭 Activity Intent Filters") {
+                        let displayedComponents = Array(activityComponents.prefix(3))
+                        ForEach(displayedComponents.indices, id: \.self) { index in
+                            let component = displayedComponents[index]
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(component.name)
+                                    .font(.subheadline)
+                                    .bold()
+                                let filters = component.intentFilters.prefix(2)
+                                ForEach(filters.indices, id: \.self) { filterIndex in
+                                    let filter = filters[filterIndex]
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        if !filter.actions.isEmpty {
+                                            Text("Actions: \(filter.actions.joined(separator: ", "))")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        if !filter.categories.isEmpty {
+                                            Text("Categories: \(filter.categories.joined(separator: ", "))")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        if let dataSummary = intentDataSummary(filter.data) {
+                                            Text("Data: \(dataSummary)")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                }
+                            }
+                            if index < displayedComponents.count - 1 {
+                                Divider()
+                            }
+                        }
+                        if activityComponents.count > displayedComponents.count {
+                            Text("+\(activityComponents.count - displayedComponents.count) more activities")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
+                if !exportedComponents.isEmpty {
+                    manifestInfoCard(title: "⚠️ Exported Components") {
+                        let displayed = Array(exportedComponents.prefix(6))
+                        ForEach(displayed.indices, id: \.self) { index in
+                            let component = displayed[index]
+                            HStack(spacing: 8) {
+                                Image(systemName: componentIcon(for: component.type))
+                                    .foregroundColor(.orange)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(component.name)
+                                        .font(.body)
+                                    if let label = component.label {
+                                        Text(label)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                            }
+                            if index < displayed.count - 1 {
+                                Divider()
+                            }
+                        }
+                        if exportedComponents.count > displayed.count {
+                            Text("+\(exportedComponents.count - displayed.count) more exported components")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showSDKList) {
+                ThirdPartyLibrariesListView(libraries: analysis.thirdPartyLibraries)
+                    .frame(width: 520, height: 600)
+            }
+        }
     }
 
     private func shortActivityName(_ name: String) -> String {
@@ -402,6 +560,94 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
         }
         guard !parts.isEmpty else { return nil }
         return parts.joined(separator: " · ")
+    }
+    
+    @ViewBuilder
+    private func manifestInfoCard<Content: View>(title: String, trailingButton: AnyView? = nil, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(title)
+                    .font(.headline)
+                Spacer()
+                if let trailingButton {
+                    trailingButton
+                }
+            }
+            content()
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
+        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+    }
+    
+    private func deepLinkDisplay(_ link: AndroidDeepLinkInfo) -> String {
+        var parts: [String] = []
+        if let scheme = link.scheme {
+            parts.append("\(scheme)://")
+        }
+        if let host = link.host {
+            parts.append(host)
+        }
+        if let path = link.path {
+            if !path.hasPrefix("/") && !path.hasPrefix("prefix:") && !path.hasPrefix("pattern:") {
+                parts.append("/\(path)")
+            } else {
+                parts.append(path)
+            }
+        }
+        var result = parts.joined()
+        if result.isEmpty {
+            result = link.componentName
+        }
+        if let mime = link.mimeType {
+            result += " (\(mime))"
+        }
+        return result
+    }
+    
+    private func intentDataSummary(_ entries: [AndroidIntentData]) -> String? {
+        guard !entries.isEmpty else { return nil }
+        let summaries = entries.compactMap { entry -> String? in
+            var components: [String] = []
+            if let scheme = entry.scheme {
+                components.append("\(scheme)://")
+            }
+            if let host = entry.host {
+                components.append(host)
+            }
+            if let path = entry.path {
+                components.append(path)
+            } else if let prefix = entry.pathPrefix {
+                components.append("prefix:\(prefix)")
+            } else if let pattern = entry.pathPattern {
+                components.append("pattern:\(pattern)")
+            }
+            if components.isEmpty, let mime = entry.mimeType {
+                components.append(mime)
+            }
+            return components.isEmpty ? nil : components.joined()
+        }
+        guard !summaries.isEmpty else { return nil }
+        return summaries.joined(separator: ", ")
+    }
+    
+    private func componentIcon(for type: AndroidComponentType) -> String {
+        switch type {
+        case .activity, .activityAlias:
+            return "rectangle.and.arrow.up.right.and.arrow.down.left.slash"
+        case .service:
+            return "gearshape.fill"
+        case .receiver:
+            return "antenna.radiowaves.left.and.right"
+        case .provider:
+            return "externaldrive.fill.badge.checkmark"
+        }
+    }
+    
+    private func formatSize(_ size: Int64) -> String {
+        guard size > 0 else { return "Size: —" }
+        return "Size: " + ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
     }
 
     private func extractImages(from apkViewModel: APKDetailViewModel, preserveStructure: Bool) {
