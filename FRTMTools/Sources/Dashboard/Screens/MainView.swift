@@ -9,6 +9,7 @@ struct MainView: View {
     @StateObject private var securityScannerViewModel = SecurityScannerViewModel()
     @StateObject private var deadCodeViewModel = DeadCodeViewModel()
     @StateObject private var ipaToolViewModel = IPAToolViewModel()
+    @StateObject private var playStoreToolViewModel = PlayStoreToolViewModel()
     
     enum Tool: String, Hashable, Identifiable, CaseIterable {
         case ipaAnalyzer = "IPA Analyzer"
@@ -16,6 +17,7 @@ struct MainView: View {
         //case securityScanner = "Security Scanner"
         case deadCodeScanner = "Dead Code Scanner"
         case ipatool = "App Store"
+        case playStore = "Play Store"
         
         var id: String { rawValue }
         
@@ -26,6 +28,7 @@ struct MainView: View {
             //case .securityScanner: return "shield.lefthalf.filled"
             case .deadCodeScanner: return "text.magnifyingglass"
             case .ipatool: return "bag.badge.plus"
+            case .playStore: return "cart.badge.plus"
             }
         }
         
@@ -36,6 +39,7 @@ struct MainView: View {
             //case .securityScanner: return .red
             case .deadCodeScanner: return .orange
             case .ipatool: return .green
+            case .playStore: return .cyan
             }
         }
     }
@@ -75,6 +79,8 @@ struct MainView: View {
                 DeadCodeContentView(viewModel: deadCodeViewModel)
             case .ipatool:
                 IPAToolContentView(viewModel: ipaToolViewModel)
+            case .playStore:
+                PlayStoreToolContentView(viewModel: playStoreToolViewModel)
             case .none:
                 Text("Select an item to see details.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -91,6 +97,8 @@ struct MainView: View {
                 DeadCodeResultView(viewModel: deadCodeViewModel)
             case .ipatool:
                 IPAToolSelectionDetailView(viewModel: ipaToolViewModel)
+            case .playStore:
+                PlayStoreToolSelectionDetailView(viewModel: playStoreToolViewModel)
             case .none:
                 Text("Select an item to see details.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -144,11 +152,15 @@ struct MainView: View {
         .onChange(of: selectedTool) { oldValue, newValue in
             if newValue == .ipatool {
                 ipaToolViewModel.refreshInstallationState()
+            } else if newValue == .playStore {
+                playStoreToolViewModel.refreshInstallationState()
             }
         }
         .onAppear {
             if selectedTool == .ipatool {
                 ipaToolViewModel.refreshInstallationState()
+            } else if selectedTool == .playStore {
+                playStoreToolViewModel.refreshInstallationState()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .clearIPAToolMetadataCache)) { _ in
