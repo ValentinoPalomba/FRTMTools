@@ -109,14 +109,17 @@ class TipGenerator {
                 text: "Found \(duplicates.count) sets of duplicate files, with a potential saving of \(ByteCountFormatter.string(fromByteCount: totalSavings, countStyle: .file))",
                 category: .optimization
             )
+            duplicateImageTip.kind = .duplicateFiles
 
             for (key, files) in duplicates {
                 let potentialSaving = key.size * Int64(files.count - 1)
                 let paths = files.map { $0.path ?? "-" }.joined(separator: "\n")
-                duplicateImageTip.subTips.append(Tip(
+                var subTip = Tip(
                     text: "'\(key.name)' is duplicated \(files.count) times. Potential saving: \(ByteCountFormatter.string(fromByteCount: potentialSaving, countStyle: .file))\n\(paths)",
                     category: .optimization
-                ))
+                )
+                subTip.kind = .duplicateFiles
+                duplicateImageTip.subTips.append(subTip)
             }
 
             tips.append(duplicateImageTip)
@@ -129,6 +132,7 @@ class TipGenerator {
                 text: "Found \(duplicateImages.count) sets of identical images in the IPA bundle. Removing redundant copies could save \(ByteCountFormatter.string(fromByteCount: totalImageSavings, countStyle: .file)).",
                 category: .optimization
             )
+            duplicateImagesTip.kind = .duplicateImages
 
             let sortedImages = duplicateImages.values.sorted {
                 duplicateSavings(for: $0) > duplicateSavings(for: $1)
@@ -138,10 +142,12 @@ class TipGenerator {
                 guard let sample = group.first else { continue }
                 let saving = duplicateSavings(for: group)
                 let paths = group.map(displayPath(for:)).joined(separator: "\n")
-                duplicateImagesTip.subTips.append(Tip(
+                var subTip = Tip(
                     text: "Image '\(sample.name)' has identical copies (\(group.count) total). Potential saving: \(ByteCountFormatter.string(fromByteCount: saving, countStyle: .file))\n\(paths)",
                     category: .optimization
-                ))
+                )
+                subTip.kind = .duplicateImages
+                duplicateImagesTip.subTips.append(subTip)
             }
 
             tips.append(duplicateImagesTip)
@@ -241,14 +247,17 @@ class TipGenerator {
                 text: "Found \(duplicateFiles.count) sets of duplicate files in the APK/AAB bundle. Cleaning them up could save \(ByteCountFormatter.string(fromByteCount: totalSavings, countStyle: .file)).",
                 category: .optimization
             )
+            duplicateTip.kind = .duplicateFiles
 
             for (key, occurrences) in duplicateFiles {
                 let potentialSaving = key.size * Int64(occurrences.count - 1)
                 let paths = occurrences.map { $0.path ?? "-" }.joined(separator: "\n")
-                duplicateTip.subTips.append(Tip(
+                var subTip = Tip(
                     text: "'\(key.name)' appears \(occurrences.count) times outside density/ABI splits. Potential saving: \(ByteCountFormatter.string(fromByteCount: potentialSaving, countStyle: .file))\n\(paths)",
                     category: .optimization
-                ))
+                )
+                subTip.kind = .duplicateFiles
+                duplicateTip.subTips.append(subTip)
             }
 
             tips.append(duplicateTip)
@@ -261,6 +270,7 @@ class TipGenerator {
                 text: "Found \(duplicateImages.count) sets of identical images. Removing redundant copies (even when names differ) could save \(ByteCountFormatter.string(fromByteCount: totalImageSavings, countStyle: .file)).",
                 category: .optimization
             )
+            duplicateImagesTip.kind = .duplicateImages
 
             let sortedImages = duplicateImages.values.sorted {
                 duplicateSavings(for: $0) > duplicateSavings(for: $1)
@@ -270,10 +280,12 @@ class TipGenerator {
                 guard let sample = group.first else { continue }
                 let saving = duplicateSavings(for: group)
                 let paths = group.map(displayPath(for:)).joined(separator: "\n")
-                duplicateImagesTip.subTips.append(Tip(
+                var subTip = Tip(
                     text: "Image data reused \(group.count) times (example: '\(sample.name)'). Potential saving: \(ByteCountFormatter.string(fromByteCount: saving, countStyle: .file))\n\(paths)",
                     category: .optimization
-                ))
+                )
+                subTip.kind = .duplicateImages
+                duplicateImagesTip.subTips.append(subTip)
             }
 
             tips.append(duplicateImagesTip)

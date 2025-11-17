@@ -26,11 +26,27 @@ struct TipsSection: View {
                         Text(emoji(for: tip.category))
                             .font(.title3)
                         VStack(alignment: .leading) {
-                            Text(tip.category.rawValue)
-                                .font(.headline)
-                            Text(tip.text)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(tip.category.rawValue)
+                                        .font(.headline)
+                                    Text(tip.text)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                if shouldShowTipCopyButton(tip),
+                                   let bundle = copyableTipText(from: tip) {
+                                    Button {
+                                        copyPaths(bundle)
+                                    } label: {
+                                        Image(systemName: "doc.on.doc")
+                                    }
+                                    .buttonStyle(.plain)
+                                    .font(.system(size: 12))
+                                    .help("Copy entire tip")
+                                }
+                            }
                         }
                         
                         Spacer()
@@ -57,7 +73,8 @@ struct TipsSection: View {
                                         let lines = subTip.text.split(whereSeparator: \.isNewline)
                                         ForEach(Array(lines.enumerated()), id: \.offset) { _, rawLine in
                                             let line = String(rawLine)
-                                            let previewFile = isPathCandidate(line) ? previewFile(for: line) : nil
+                                            let isPath = isPathCandidate(line)
+                                            let previewFile = isPath ? previewFile(for: line) : nil
                                             HStack(alignment: .firstTextBaseline, spacing: 6) {
                                                 if let previewFile {
                                                     Text(line)
@@ -69,7 +86,7 @@ struct TipsSection: View {
                                                         .font(.body)
                                                         .foregroundColor(.secondary)
                                                 }
-                                                if isPathCandidate(line) {
+                                                if isPath {
                                                     Button(action: { reveal(path: line) }) {
                                                         Image(systemName: "folder")
                                                     }
@@ -78,6 +95,15 @@ struct TipsSection: View {
                                                     .help("Reveal in Finder")
                                                 }
                                             }
+                                        }
+                                        if shouldShowCopyButton(parentTip: tip),
+                                           let paths = copyablePaths(in: subTip.text) {
+                                            Button(action: { copyPaths(paths) }) {
+                                                Image(systemName: "doc.on.doc")
+                                            }
+                                            .buttonStyle(.plain)
+                                            .font(.system(size: 12))
+                                            .help("Copy paths to clipboard")
                                         }
                                     }
                                     Spacer()
@@ -203,5 +229,45 @@ struct TipsSection: View {
             return data
         }
         return nil
+    }
+
+    private func shouldShowCopyButton(parentTip: Tip) -> Bool { false }
+    
+    private func copyablePaths(in text: String) -> [String]? {
+        let lines = text.split(whereSeparator: \.isNewline).map { String($0) }
+        let paths = lines.filter { isPathCandidate($0) }
+        return paths.isEmpty ? nil : paths
+    }
+
+    private func formattedReportLine(from rawLine: String, isPath: Bool) -> String {
+        guard isPath else { return rawLine }
+        let trimmed = rawLine.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return rawLine }
+        return "    \(trimmed)"
+    }
+
+    private func reportTextWithIndentedPaths(_ text: String) -> String {
+        let components = text.components(separatedBy: CharacterSet.newlines)
+        let processed = components.map { line -> String in
+            let isPath = isPathCandidate(line)
+            return formattedReportLine(from: line, isPath: isPath)
+        }
+        return processed.joined(separator: "\n")
+    }
+    
+    private func copyPaths(_ paths: [String]) {
+        let content = paths.joined(separator: "\n")
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(content, forType: .string)
+    }
+    
+    private func shouldShowTipCopyButton(_ tip: Tip) -> Bool {
+        tip.kind == .duplicateImages
+    }
+    
+    private func copyableTipText(from tip: Tip) -> [String]? {
+        let texts = tip.subTips.map { reportTextWithIndentedPaths($0.text) }
+        return texts.isEmpty ? nil : texts
     }
 }
