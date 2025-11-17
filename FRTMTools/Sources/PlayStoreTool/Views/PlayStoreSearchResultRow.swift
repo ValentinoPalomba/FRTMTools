@@ -23,7 +23,7 @@ struct PlayStoreSearchResultRow: View {
             }
             Spacer()
             if let version = app.version {
-                ChipView(label: version)
+                ChipView(title: version, systemImage: "info.circle", style: .dark)
             }
         }
         .padding(12)
