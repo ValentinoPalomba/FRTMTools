@@ -29,6 +29,7 @@ struct ComparisonDetail<Analysis: AppAnalysis>: View {
     @State private var isLoading = true
     @State private var comparisonResult: ComparisonResult?
     @State private var reportLanguage: ReportLanguage = .english
+    @State private var showAIChat = false
 
     @State private var expandedSections: Set<String> = ["Modificati", "Aggiunti", "Rimossi"]
     @State private var searchText: String = ""
@@ -40,6 +41,7 @@ struct ComparisonDetail<Analysis: AppAnalysis>: View {
             } else if let result = comparisonResult {
                 ScrollView {
                     VStack(spacing: 24) {
+                        comparisonHeader(result: result)
                         
                         // MARK: - Overview Categorie
                         VStack(alignment: .leading, spacing: 16) {
@@ -185,6 +187,65 @@ struct ComparisonDetail<Analysis: AppAnalysis>: View {
         .task {
             await processComparison()
         }
+        .sheet(isPresented: $showAIChat) {
+            if let result = comparisonResult {
+                let firstDetails = analysisContext(for: first)
+                let secondDetails = analysisContext(for: second)
+                let context = ComparisonContextBuilder()
+                    .buildContext(
+                        first: first,
+                        second: second,
+                        result: result,
+                        firstAnalysisContext: firstDetails.context,
+                        secondAnalysisContext: secondDetails.context,
+                        firstCategories: firstDetails.categories,
+                        secondCategories: secondDetails.categories
+                    )
+                AIChatView(context: context)
+                    .frame(minWidth: 640, minHeight: 560)
+            } else {
+                Text("Comparison still running…")
+                    .padding()
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func comparisonHeader(result: ComparisonResult) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Comparison Overview")
+                    .font(.title2).bold()
+                Text("\(first.fileName) → \(second.fileName)")
+                    .foregroundColor(.secondary)
+                    .font(.subheadline)
+                Text("Modified \(result.modifiedFiles.count) · Added \(result.addedFiles.count) · Removed \(result.removedFiles.count)")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+            }
+            Spacer()
+            Button {
+                showAIChat = true
+            } label: {
+                Label("AI Insights", systemImage: "sparkles")
+            }
+            .help("Ask questions about this comparison")
+        }
+        .padding(.horizontal)
+    }
+    
+    private func analysisContext(for analysis: Analysis) -> (context: AnalysisContext, categories: [CategoryResult]) {
+        let categories = CategoryGenerator.generateCategories(from: analysis.rootFile)
+        let archs = ArchsAnalyzer.generateCategories(from: analysis.rootFile)
+        let tips = TipGenerator.generateTips(for: analysis)
+        let context = AnalysisContextBuilder()
+            .buildContext(
+                for: analysis,
+                categories: categories,
+                tips: tips,
+                archs: archs
+            )
+        return (context, categories)
     }
     
     private func processComparison() async {

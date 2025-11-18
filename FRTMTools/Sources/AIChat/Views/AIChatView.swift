@@ -10,6 +10,13 @@ struct AIChatView: View {
 
     private let displayContext: AnalysisContext
 
+    init(context: AnalysisContext) {
+        let store = LocalAIConfigurationStore.shared
+        _viewModel = StateObject(wrappedValue: AIChatViewModel(context: context, configurationStore: store))
+        _configurationStore = ObservedObject(initialValue: store)
+        self.displayContext = context
+    }
+
     init(
         analysis: any AppAnalysis,
         categories: [CategoryResult],
@@ -18,10 +25,7 @@ struct AIChatView: View {
     ) {
         let context = AnalysisContextBuilder()
             .buildContext(for: analysis, categories: categories, tips: tips, archs: archs)
-        let store = LocalAIConfigurationStore.shared
-        _viewModel = StateObject(wrappedValue: AIChatViewModel(context: context, configurationStore: store))
-        _configurationStore = ObservedObject(initialValue: store)
-        self.displayContext = context
+        self.init(context: context)
     }
 
     var body: some View {
