@@ -109,6 +109,7 @@ struct IPAAnalyzerContentView: View {
 
 struct IPAAnalyzerDetailView: View {
     @ObservedObject var viewModel: IPAViewModel
+    @State private var showAIChat = false
 
     var body: some View {
         VStack {
@@ -152,6 +153,14 @@ struct IPAAnalyzerDetailView: View {
                         withAnimation { viewModel.compareMode.toggle() }
                     }
                 }
+                if viewModel.selectedAnalysis != nil {
+                    Button {
+                        showAIChat = true
+                    } label: {
+                        Label("AI Insights", systemImage: "sparkles")
+                    }
+                    .help("Chat with a local model about this analysis")
+                }
             }
         }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
@@ -165,6 +174,20 @@ struct IPAAnalyzerDetailView: View {
                 }
             }
             return true
+        }
+        .sheet(isPresented: $showAIChat) {
+            if let analysis = viewModel.selectedAnalysis {
+                AIChatView(
+                    analysis: analysis,
+                    categories: viewModel.categories(for: analysis),
+                    tips: viewModel.tips(for: analysis),
+                    archs: viewModel.archs(for: analysis)
+                )
+                .frame(minWidth: 640, minHeight: 560)
+            } else {
+                Text("Select an analysis to start chatting.")
+                    .padding()
+            }
         }
     }
 }
