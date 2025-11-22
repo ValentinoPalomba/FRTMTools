@@ -1,7 +1,8 @@
 import Foundation
 
-@MainActor
-final class IPADetailViewModel: ObservableObject {
+final class IPADetailViewModel: AppDetailViewModel {
+    typealias Analysis = IPAAnalysis
+    typealias SizeAnalyzer = IPAViewModel
     let analysis: IPAAnalysis
     private let ipaViewModel: IPAViewModel
 
@@ -46,23 +47,27 @@ final class IPADetailViewModel: ObservableObject {
         return appURL
     }
 
-    var sizeAnalyzer: IPAViewModel {
-        ipaViewModel
+    var tips: [Tip] {
+        ipaViewModel.tips(for: analysis)
     }
 
-    func filteredCategories(searchText: String) -> [CategoryResult] {
-        guard !searchText.isEmpty else { return categories }
-        return categories.compactMap { category in
-            let filteredItems = category.items.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
-            guard !filteredItems.isEmpty else { return nil }
-            let totalSize = filteredItems.reduce(0) { $0 + $1.size }
-            return CategoryResult(
-                type: category.type,
-                totalSize: totalSize,
-                items: filteredItems
-            )
+    var sizeAnalyzer: IPAViewModel? { ipaViewModel }
+
+    lazy var tipImagePreviewMap: [String: Data] = {
+        var map: [String: Data] = [:]
+        let files = analysis.rootFile.flattened(includeDirectories: false)
+        for file in files {
+            guard let data = file.internalImageData, !data.isEmpty else { continue }
+            if let path = file.path {
+                map[path] = data
+            }
+            if let fullPath = file.fullPath {
+                map[fullPath] = data
+            }
+            map[file.name] = data
         }
-    }
+        return map
+    }()
 
     func categoryName(for id: String) -> String? {
         categories.first { $0.id == id }?.name

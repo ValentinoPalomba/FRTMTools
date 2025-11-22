@@ -1,12 +1,22 @@
 
 import SwiftUI
 
-// Modern IPA Row
-struct IPAAnalysisRow: View {
-    let analysis: IPAAnalysis
+/// Shared row for IPA/APK analyses.
+struct AppAnalysisRow<Analysis: AppAnalysis>: View {
+    let analysis: Analysis
     let role: SelectionRole?
 
     var body: some View {
+        let apkAnalysis = analysis as? APKAnalysis
+        let primaryName = {
+            if let apkAnalysis {
+                return apkAnalysis.packageName ?? apkAnalysis.fileName
+            } else {
+                return analysis.fileName
+            }
+        }()
+        let secondaryName = apkAnalysis?.appLabel != nil ? analysis.fileName : nil
+
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 if let image = analysis.image {
@@ -18,22 +28,36 @@ struct IPAAnalysisRow: View {
                             .cornerRadius(8)
                             .shadow(radius: 2)
                         
-                        Text("\(analysis.fileName)")
+                        Text(primaryName)
                             .font(.headline)
                             .lineLimit(1)
                     }
                 } else {
-                    Text("📦 \(analysis.fileName)")
+                    Text("📦 \(primaryName)")
                         .font(.headline)
                         .lineLimit(1)
                 }
-                
-                if let buildNumber = analysis.buildNumber {
-                    Text("Build number: \(buildNumber)")
-                        .font(.caption)
+
+                if let secondaryName {
+                    Text(secondaryName)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
                 }
+                
+                if let packageName = apkAnalysis?.packageName {
+                    Text(packageName)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+                
                 if let version = analysis.version {
                     Text("Version: \(version)")
+                        .font(.caption)
+                }
+                if let buildNumber = analysis.buildNumber {
+                    Text("Build number: \(buildNumber)")
                         .font(.caption)
                 }
                 

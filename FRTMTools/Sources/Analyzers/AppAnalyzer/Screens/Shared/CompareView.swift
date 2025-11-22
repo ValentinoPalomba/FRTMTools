@@ -3,8 +3,8 @@ import SwiftUI
 
 // MARK: - CompareView
 
-struct CompareView: View {
-    let analyses: [IPAAnalysis]
+struct CompareView<Analysis: AppAnalysis>: View {
+    let analyses: [Analysis]
     @State private var baseId: UUID?
     @State private var compareId: UUID?
 
@@ -13,7 +13,7 @@ struct CompareView: View {
             if baseId == nil || compareId == nil {
                 List(analyses) { analysis in
                     let role = getRole(for: analysis.id)
-                    IPAAnalysisRow(analysis: analysis, role: role)
+                    AppAnalysisRow(analysis: analysis, role: role)
                         .onTapGesture {
                             toggleSelection(analysis.id)
                         }

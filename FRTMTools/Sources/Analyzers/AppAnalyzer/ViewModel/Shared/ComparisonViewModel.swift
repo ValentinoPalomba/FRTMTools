@@ -7,9 +7,9 @@
 
 import Foundation
 
-struct ComparisonViewModel {
-    let analysis1: IPAAnalysis
-    let analysis2: IPAAnalysis
+struct ComparisonViewModel<Analysis: AppAnalysis> {
+    let analysis1: Analysis
+    let analysis2: Analysis
 
     var fileDiffs: [FileDiff] {
         var diffs: [FileDiff] = []

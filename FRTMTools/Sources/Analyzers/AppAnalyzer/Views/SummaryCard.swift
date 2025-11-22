@@ -5,20 +5,37 @@ import SwiftUI
 struct SummaryCard: View {
     let title: String
     let value: String
-    let subtitle: String
-    
+    var subtitle: String?
+    var icon: String?
+    var color: Color?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            if let icon = icon, let color = color {
+                HStack {
+                    Image(systemName: icon)
+                        .foregroundColor(color)
+                        .font(.title3)
+
+                    Spacer()
+                }
+            }
+            
             Text(title)
-                .font(.subheadline)
+                .font(.caption)
                 .foregroundColor(.secondary)
+
             Text(value)
-                .font(.title)
+                .font(.title2)
                 .fontWeight(.bold)
                 .foregroundColor(.primary)
-            Text(subtitle)
-                .font(.footnote)
-                .foregroundColor(.secondary)
+
+            if let subtitle = subtitle {
+                Text(subtitle)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+            }
         }
         .padding()
         .frame(maxWidth: .infinity, minHeight: 100, alignment: .leading)

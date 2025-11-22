@@ -17,4 +17,11 @@ enum FileType: String, Codable, Sendable {
     case binary
     case plist
     case lproj
+
+    // Android APK specific types
+    case dex          // Dalvik Executable
+    case so           // Native shared library
+    case xml          // Android XML resource
+    case arsc         // Compiled resources
+    case apk          // APK file
 }

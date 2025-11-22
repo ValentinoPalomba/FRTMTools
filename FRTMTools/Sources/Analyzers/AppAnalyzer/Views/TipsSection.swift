@@ -4,7 +4,14 @@ import AppKit
 struct TipsSection: View {
     let tips: [Tip]
     let baseURL: URL?
+    let imagePreviewLookup: [String: Data]
     @State private var expandedTips: Set<UUID> = []
+
+    init(tips: [Tip], baseURL: URL?, imagePreviewLookup: [String: Data] = [:]) {
+        self.tips = tips
+        self.baseURL = baseURL
+        self.imagePreviewLookup = imagePreviewLookup
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -19,11 +26,27 @@ struct TipsSection: View {
                         Text(emoji(for: tip.category))
                             .font(.title3)
                         VStack(alignment: .leading) {
-                            Text(tip.category.rawValue)
-                                .font(.headline)
-                            Text(tip.text)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(tip.category.rawValue)
+                                        .font(.headline)
+                                    Text(tip.text)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                if shouldShowTipCopyButton(tip),
+                                   let bundle = copyableTipText(from: tip) {
+                                    Button {
+                                        copyPaths(bundle)
+                                    } label: {
+                                        Image(systemName: "doc.on.doc")
+                                    }
+                                    .buttonStyle(.plain)
+                                    .font(.system(size: 12))
+                                    .help("Copy entire tip")
+                                }
+                            }
                         }
                         
                         Spacer()
@@ -50,11 +73,20 @@ struct TipsSection: View {
                                         let lines = subTip.text.split(whereSeparator: \.isNewline)
                                         ForEach(Array(lines.enumerated()), id: \.offset) { _, rawLine in
                                             let line = String(rawLine)
+                                            let isPath = isPathCandidate(line)
+                                            let previewFile = isPath ? previewFile(for: line) : nil
                                             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                                Text(line)
-                                                    .font(.body)
-                                                    .foregroundColor(.secondary)
-                                                if isPathCandidate(line) {
+                                                if let previewFile {
+                                                    Text(line)
+                                                        .font(.body)
+                                                        .foregroundColor(.secondary)
+                                                        .modifier(HoverModifier(file: previewFile, isEnabled: true, showOnlyImage: true))
+                                                } else {
+                                                    Text(line)
+                                                        .font(.body)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                                if isPath {
                                                     Button(action: { reveal(path: line) }) {
                                                         Image(systemName: "folder")
                                                     }
@@ -63,6 +95,15 @@ struct TipsSection: View {
                                                     .help("Reveal in Finder")
                                                 }
                                             }
+                                        }
+                                        if shouldShowCopyButton(parentTip: tip),
+                                           let paths = copyablePaths(in: subTip.text) {
+                                            Button(action: { copyPaths(paths) }) {
+                                                Image(systemName: "doc.on.doc")
+                                            }
+                                            .buttonStyle(.plain)
+                                            .font(.system(size: 12))
+                                            .help("Copy paths to clipboard")
                                         }
                                     }
                                     Spacer()
@@ -95,6 +136,10 @@ struct TipsSection: View {
         case .optimization: return "🚀"
         case .warning: return "⚠️"
         case .info: return "ℹ️"
+        case .size: return "📦"
+        case .performance: return "⚡️"
+        case .security: return "🔒"
+        case .compatibility: return "✅"
         }
     }
     
@@ -108,18 +153,24 @@ struct TipsSection: View {
         return s.contains("/") || s.hasPrefix("/")
     }
     
-    private func reveal(path rawPath: String) {
+    private func absoluteURL(for rawPath: String) -> URL? {
+        guard let normalized = normalizedPath(from: rawPath) else { return nil }
+        if normalized.hasPrefix("/") {
+            return URL(fileURLWithPath: normalized)
+        } else if let baseURL {
+            return baseURL.appendingPathComponent(normalized)
+        }
+        return nil
+    }
+    
+    private func normalizedPath(from rawPath: String) -> String? {
         let trimmed = rawPath.trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingCharacters(in: CharacterSet(charactersIn: "'\""))
-        let targetURL: URL?
-        if trimmed.hasPrefix("/") {
-            targetURL = URL(fileURLWithPath: trimmed)
-        } else if let baseURL = baseURL {
-            targetURL = baseURL.appendingPathComponent(trimmed)
-        } else {
-            targetURL = nil
-        }
-        guard let initialURL = targetURL else { return }
+        return trimmed.isEmpty ? nil : trimmed
+    }
+    
+    private func reveal(path rawPath: String) {
+        guard let initialURL = absoluteURL(for: rawPath) else { return }
         let fm = FileManager.default
         var candidate = initialURL
         var last = candidate.path
@@ -131,5 +182,92 @@ struct TipsSection: View {
         }
         guard fm.fileExists(atPath: candidate.path) else { return }
         NSWorkspace.shared.activateFileViewerSelecting([candidate])
+    }
+
+    private func previewFile(for rawLine: String) -> FileInfo? {
+        guard let data = imagePreviewData(for: rawLine) else { return nil }
+        let normalized = normalizedPath(from: rawLine)
+        var preview = FileInfo(
+            path: normalized,
+            fullPath: nil,
+            name: normalized ?? rawLine.trimmingCharacters(in: .whitespacesAndNewlines),
+            type: .assets,
+            size: Int64(data.count),
+            subItems: nil
+        )
+        preview.internalImageData = data
+        return preview
+    }
+
+    private func imagePreviewData(for rawLine: String) -> Data? {
+        guard !imagePreviewLookup.isEmpty else { return nil }
+        var checkedKeys = Set<String>()
+
+        func attemptLookup(_ key: String?) -> Data? {
+            guard let key, !key.isEmpty, !checkedKeys.contains(key) else { return nil }
+            checkedKeys.insert(key)
+            return imagePreviewLookup[key]
+        }
+
+        let normalized = normalizedPath(from: rawLine)
+        if let data = attemptLookup(normalized) {
+            return data
+        }
+        if let normalized {
+            let lastComponent = (normalized as NSString).lastPathComponent
+            if let data = attemptLookup(lastComponent) {
+                return data
+            }
+        }
+        let trimmed = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "'\""))
+        if let data = attemptLookup(trimmed) {
+            return data
+        }
+        let trimmedComponent = (trimmed as NSString).lastPathComponent
+        if let data = attemptLookup(trimmedComponent) {
+            return data
+        }
+        return nil
+    }
+
+    private func shouldShowCopyButton(parentTip: Tip) -> Bool { false }
+    
+    private func copyablePaths(in text: String) -> [String]? {
+        let lines = text.split(whereSeparator: \.isNewline).map { String($0) }
+        let paths = lines.filter { isPathCandidate($0) }
+        return paths.isEmpty ? nil : paths
+    }
+
+    private func formattedReportLine(from rawLine: String, isPath: Bool) -> String {
+        guard isPath else { return rawLine }
+        let trimmed = rawLine.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return rawLine }
+        return "    \(trimmed)"
+    }
+
+    private func reportTextWithIndentedPaths(_ text: String) -> String {
+        let components = text.components(separatedBy: CharacterSet.newlines)
+        let processed = components.map { line -> String in
+            let isPath = isPathCandidate(line)
+            return formattedReportLine(from: line, isPath: isPath)
+        }
+        return processed.joined(separator: "\n")
+    }
+    
+    private func copyPaths(_ paths: [String]) {
+        let content = paths.joined(separator: "\n")
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(content, forType: .string)
+    }
+    
+    private func shouldShowTipCopyButton(_ tip: Tip) -> Bool {
+        tip.kind == .duplicateImages
+    }
+    
+    private func copyableTipText(from tip: Tip) -> [String]? {
+        let texts = tip.subTips.map { reportTextWithIndentedPaths($0.text) }
+        return texts.isEmpty ? nil : texts
     }
 }

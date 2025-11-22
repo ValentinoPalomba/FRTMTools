@@ -3,7 +3,7 @@ import AppKit
 
 // MARK: - Models
 
-struct IPAAnalysis: Identifiable, Codable, Sendable {
+struct IPAAnalysis: AppAnalysis {
     let id: UUID
     let fileName: String
     let executableName: String?
@@ -11,13 +11,7 @@ struct IPAAnalysis: Identifiable, Codable, Sendable {
     let rootFile: FileInfo
     let version: String?
     let buildNumber: String?
-    struct InstalledSize: Codable, Sendable {
-        let total: Int
-        let binaries: Int
-        let frameworks: Int
-        let resources: Int
-    }
-    var installedSize: InstalledSize?
+    var installedSize: InstalledSizeMetrics?
 
     struct StartupTime: Codable, Sendable {
         let averageTime: Double
@@ -35,6 +29,7 @@ struct IPAAnalysis: Identifiable, Codable, Sendable {
     }
     var startupTime: StartupTime?
 
+
     private let imageData: Data?
     let isStripped: Bool
     let allowsArbitraryLoads: Bool
@@ -49,7 +44,21 @@ struct IPAAnalysis: Identifiable, Codable, Sendable {
         return NSImage(data: data)
     }
 
-    init(id: UUID = UUID(), url: URL, fileName: String, executableName: String?, rootFile: FileInfo, image: NSImage?, version: String?, buildNumber: String?, isStripped: Bool, allowsArbitraryLoads: Bool, installedSize: InstalledSize? = nil, startupTime: StartupTime? = nil, dependencyGraph: DependencyGraph? = nil) {
+    init(
+        id: UUID = UUID(),
+        url: URL,
+        fileName: String,
+        executableName: String?,
+        rootFile: FileInfo,
+        image: NSImage?,
+        version: String?,
+        buildNumber: String?,
+        isStripped: Bool,
+        allowsArbitraryLoads: Bool,
+        installedSize: InstalledSizeMetrics? = nil,
+        startupTime: StartupTime? = nil,
+        dependencyGraph: DependencyGraph? = nil
+    ) {
         self.id = id
         self.fileName = fileName
         self.executableName = executableName
@@ -70,26 +79,4 @@ struct IPAAnalysis: Identifiable, Codable, Sendable {
     }
 }
 
-extension IPAAnalysis: Exportable {
-    func export() throws -> String {
-        let header = "Path,Type,Size (Bytes)\n"
-        let rows = flatten(file: rootFile).map {
-            "\($0.name),\($0.type),\($0.size)"
-        }
-        return header + rows.joined(separator: "\n")
-    }
-
-    private func flatten(file: FileInfo, prefix: String = "") -> [FileInfo] {
-        let currentPath = "\(prefix)/\(file.name)"
-        var result = [FileInfo(
-            name: file.name,
-            type: file.type,
-            size: file.size
-        )]
-        
-        for child in file.subItems ?? [] {
-            result.append(contentsOf: flatten(file: child, prefix: currentPath))
-        }
-        return result
-    }
-}
+extension IPAAnalysis: Exportable {}

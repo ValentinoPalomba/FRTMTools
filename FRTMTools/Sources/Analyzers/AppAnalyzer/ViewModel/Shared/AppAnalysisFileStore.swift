@@ -1,7 +1,7 @@
 import Foundation
 import FRTMCore
 
-actor IPAFileStore {
+actor AppAnalysisFileStore<Analysis: AppAnalysis> {
     private let fm = FileManager.default
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
@@ -12,28 +12,28 @@ actor IPAFileStore {
     init(appDirectory: URL, analysesDirectoryURL: URL) {
         self.appDirectory = appDirectory
         self.analysesDirectoryURL = analysesDirectoryURL
-        IPAFileStore.ensureDirectoryExists(appDirectory)
-        IPAFileStore.ensureDirectoryExists(analysesDirectoryURL)
+        Self.ensureDirectoryExists(appDirectory)
+        Self.ensureDirectoryExists(analysesDirectoryURL)
     }
 
-    func loadAnalyses() throws -> [IPAAnalysis] {
+    func loadAnalyses() throws -> [Analysis] {
         let files = try fm.contentsOfDirectory(at: analysesDirectoryURL, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
-        var loaded: [IPAAnalysis] = []
+        var loaded: [Analysis] = []
         for file in files where file.pathExtension.lowercased() == "json" {
             let data = try Data(contentsOf: file)
-            let item = try decoder.decode(IPAAnalysis.self, from: data)
+            let item = try decoder.decode(Analysis.self, from: data)
             loaded.append(item)
         }
         return loaded
     }
 
-    func saveAnalyses(_ analyses: [IPAAnalysis]) throws {
+    func saveAnalyses(_ analyses: [Analysis]) throws {
         for analysis in analyses {
             try saveAnalysis(analysis)
         }
     }
 
-    func saveAnalysis(_ analysis: IPAAnalysis) throws {
+    func saveAnalysis(_ analysis: Analysis) throws {
         let url = fileURL(for: analysis.id)
         let data = try encoder.encode(analysis)
         try data.write(to: url, options: .atomic)
@@ -57,3 +57,6 @@ actor IPAFileStore {
         }
     }
 }
+
+typealias IPAFileStore = AppAnalysisFileStore<IPAAnalysis>
+typealias APKFileStore = AppAnalysisFileStore<APKAnalysis>

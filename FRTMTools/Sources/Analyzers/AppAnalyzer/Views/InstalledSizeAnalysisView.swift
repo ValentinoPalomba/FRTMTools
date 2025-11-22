@@ -1,9 +1,8 @@
 import SwiftUI
 
-struct InstalledSizeAnalysisView: View {
-    @ObservedObject var viewModel: IPAViewModel
-    let analysis: IPAAnalysis
-    
+struct InstalledSizeAnalysisView<ViewModel: InstalledSizeAnalyzing, Analysis: AppAnalysis>: View where ViewModel.Analysis == Analysis {
+    @ObservedObject var viewModel: ViewModel
+    let analysis: Analysis
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -51,7 +50,7 @@ struct InstalledSizeAnalysisView: View {
                 }
             } else {
                 Button(action: {
-                    viewModel.analyzeSize()
+                    viewModel.analyzeSize(for: analysis.id)
                 }) {
                     Text("Analyze Size")
                         .font(.subheadline)
