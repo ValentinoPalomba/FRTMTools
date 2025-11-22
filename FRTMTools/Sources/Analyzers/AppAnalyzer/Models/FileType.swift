@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum FileType: String, Codable {
+enum FileType: String, Codable, Sendable {
     case file
     case directory
     case app

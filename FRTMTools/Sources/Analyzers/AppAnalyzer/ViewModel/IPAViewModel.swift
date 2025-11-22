@@ -13,10 +13,13 @@ final class IPAViewModel: ObservableObject {
     @Published var analyses: [IPAAnalysis] = []
     @Published var isLoading = false
     @Published var isSizeLoading = false
+    @Published var isStartupTimeLoading = false
     @Published var compareMode = false
     @Published var selectedUUID = UUID()
     @Published var sizeAnalysisProgress = ""
     @Published var sizeAnalysisAlert: AlertContent?
+    @Published var startupTimeProgress = ""
+    @Published var startupTimeAlert: AlertContent?
     @Published var expandedExecutables: Set<String> = []
     
     @Dependency var persistenceManager: PersistenceManager
@@ -149,6 +152,123 @@ final class IPAViewModel: ObservableObject {
                 }
                 sizeAnalysisAlert = AlertContent(
                     title: "Size Analysis Failed",
+                    message: message
+                )
+            }
+        }
+    }
+
+    func analyzeStartupTime(from logURLs: [URL]) {
+        Task { @MainActor in
+            guard let analysisIndex = analyses.firstIndex(where: { $0.id == selectedUUID }) else {
+                return
+            }
+            isStartupTimeLoading = true
+            startupTimeProgress = ""
+            defer { isStartupTimeLoading = false }
+            do {
+                // Convert URLs to paths with security-scoped access
+                let logPaths = try logURLs.map { url -> String in
+                    guard url.startAccessingSecurityScopedResource() else {
+                        throw StartupTimeAnalysisError.logImportFailed("Could not access file: \(url.lastPathComponent)")
+                    }
+                    defer { url.stopAccessingSecurityScopedResource() }
+                    return url.path
+                }
+
+                let analyzer = IPADeviceStartupTimeAnalyzer()
+                let result = try await analyzer.analyzeFromLogs(
+                    ipaPath: analyses[analysisIndex].url.path(),
+                    logPaths: logPaths
+                ) { @Sendable progressUpdate in
+                    Task { @MainActor in
+                        self.startupTimeProgress = progressUpdate
+                    }
+                }
+
+                // Update the analysis with startup time data
+                if let avgTime = result.averageStartupTime {
+                    analyses[analysisIndex].startupTime = IPAAnalysis.StartupTime(
+                        averageTime: avgTime,
+                        minTime: result.minStartupTime,
+                        maxTime: result.maxStartupTime,
+                        measurements: result.logBasedResults.count,
+                        warnings: result.warnings
+                    )
+                    try await fileStore.saveAnalyses(self.analyses)
+                } else {
+                    // Show detailed error with warnings
+                    var message = "Could not extract startup time from the provided logs.\n\n"
+
+                    if !result.warnings.isEmpty {
+                        message += "Issues found:\n"
+                        for warning in result.warnings.prefix(3) {
+                            message += "• \(warning)\n"
+                        }
+                        message += "\n"
+                    }
+
+                    message += "Possible reasons:\n"
+                    message += "• The app crashed during launch\n"
+                    message += "• Logs don't cover the full launch sequence\n"
+                    message += "• Logs are from wrong device/simulator\n\n"
+                    message += "Try using 'Install & Launch' on a simulator for automatic measurement."
+
+                    startupTimeAlert = AlertContent(
+                        title: "No Startup Data Found",
+                        message: message
+                    )
+                }
+            } catch {
+                let message: String
+                if let localizedError = error as? LocalizedError, let description = localizedError.errorDescription, !description.isEmpty {
+                    message = description
+                } else {
+                    message = error.localizedDescription
+                }
+                startupTimeAlert = AlertContent(
+                    title: "Startup Time Analysis Failed",
+                    message: message
+                )
+            }
+        }
+    }
+
+    func installAndMeasureStartupTime(deviceUDID: String, launchCount: Int) {
+        Task { @MainActor in
+            guard let analysisIndex = analyses.firstIndex(where: { $0.id == selectedUUID }) else {
+                return
+            }
+
+            isStartupTimeLoading = true
+            startupTimeProgress = ""
+            defer { isStartupTimeLoading = false }
+
+            do {
+                let analyzer = IPAStartupTimeAnalyzer()
+                let (appName, bundleID) = try await analyzer.installOnly(
+                    ipaPath: analyses[analysisIndex].url.path(),
+                    deviceUDID: deviceUDID
+                ) { @Sendable progressUpdate in
+                    Task { @MainActor in
+                        self.startupTimeProgress = progressUpdate
+                    }
+                }
+
+                // Show success message with next steps
+                startupTimeAlert = AlertContent(
+                    title: "Installation Complete",
+                    message: "App '\(appName)' has been installed successfully!\n\nNext steps:\n1. Manually launch the app on the device/simulator\n2. Use Console.app to capture logs during launch\n3. Export the logs and use 'Import Logs' to measure startup time\n\nBundle ID: \(bundleID)"
+                )
+            } catch {
+                let message: String
+                if let localizedError = error as? LocalizedError, let description = localizedError.errorDescription, !description.isEmpty {
+                    message = description
+                } else {
+                    message = error.localizedDescription
+                }
+                startupTimeAlert = AlertContent(
+                    title: "Installation Failed",
                     message: message
                 )
             }
