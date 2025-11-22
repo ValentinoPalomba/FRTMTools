@@ -34,22 +34,27 @@ struct DetailView: View {
                         value: ByteCountFormatter.string(fromByteCount: viewModel.analysis.totalSize, countStyle: .file),
                         subtitle: viewModel.analysis.fileName
                     )
-                    
+
                     InstalledSizeAnalysisView(
                         viewModel: viewModel.sizeAnalyzer,
                         analysis: viewModel.analysis
                     )
-                    
+
                     SummaryCard(
                         title: "📂 Categories",
                         value: "\(viewModel.categoriesCount)",
                         subtitle: "Main groups"
                     )
-                    
+
                     SummaryCard(
                         title: "📐 Architectures",
                         value: "\(viewModel.archs.number)",
                         subtitle: viewModel.archTypesDescription
+                    )
+
+                    StartupTimeAnalysisView(
+                        viewModel: viewModel.sizeAnalyzer,
+                        analysis: viewModel.analysis
                     )
                 }
                 .padding(.horizontal)

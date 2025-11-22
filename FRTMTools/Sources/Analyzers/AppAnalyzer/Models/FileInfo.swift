@@ -7,7 +7,7 @@
 
 import Foundation
 import AppKit
-struct FileInfo: Identifiable, Codable {
+struct FileInfo: Identifiable, Codable, Sendable {
     let id: UUID
     let name: String
     let type: FileType

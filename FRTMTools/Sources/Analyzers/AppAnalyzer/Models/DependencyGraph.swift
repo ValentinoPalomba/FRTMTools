@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Dependency Graph Models
 
-struct DependencyNode: Identifiable, Codable, Hashable {
+struct DependencyNode: Identifiable, Codable, Hashable, Sendable {
     let id: String
     let name: String
     let type: DependencyNodeType
@@ -33,7 +33,7 @@ struct DependencyNode: Identifiable, Codable, Hashable {
     }
 }
 
-enum DependencyNodeType: String, Codable {
+enum DependencyNodeType: String, Codable, Sendable {
     case mainApp = "Main App"
     case framework = "Framework"
     case dynamicLibrary = "Dynamic Library"
@@ -42,7 +42,7 @@ enum DependencyNodeType: String, Codable {
     case appExtension = "App Extension"
 }
 
-struct DependencyEdge: Identifiable, Codable, Hashable {
+struct DependencyEdge: Identifiable, Codable, Hashable, Sendable {
     let id: String
     let fromId: String
     let toId: String
@@ -56,13 +56,13 @@ struct DependencyEdge: Identifiable, Codable, Hashable {
     }
 }
 
-enum DependencyEdgeType: String, Codable {
+enum DependencyEdgeType: String, Codable, Sendable {
     case links = "Links"
     case embeds = "Embeds"
     case loads = "Loads"
 }
 
-struct DependencyGraph: Codable {
+struct DependencyGraph: Codable, Sendable {
     let nodes: Set<DependencyNode>
     let edges: Set<DependencyEdge>
 
