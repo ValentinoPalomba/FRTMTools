@@ -104,6 +104,8 @@ class CategoryGenerator {
         
         return categoryItems.compactMap { (type, items) -> CategoryResult? in
             guard !items.isEmpty else { return nil }
+            // Ensure Android-only categories are never included in iOS analysis
+            guard type != .dexFiles && type != .nativeLibs else { return nil }
             let totalSize = items.reduce(0) { $0 + $1.size }
             return CategoryResult(type: type, totalSize: totalSize, items: items)
         }
@@ -148,6 +150,8 @@ class CategoryGenerator {
 
     private static func appendCategory(_ type: CategoryType, items: [FileInfo], to categories: inout [CategoryResult], usedIds: inout Set<UUID>) {
         guard !items.isEmpty else { return }
+        // Ensure iOS-only categories are never included in Android analysis
+        guard type != .frameworks && type != .bundles && type != .appClips else { return }
         let ids = items.flatMap { $0.flattened(includeDirectories: true).map(\.id) }
         usedIds.formUnion(ids)
         let total = items.reduce(0) { $0 + $1.size }

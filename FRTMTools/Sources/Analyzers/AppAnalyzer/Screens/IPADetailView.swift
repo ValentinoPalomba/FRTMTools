@@ -26,7 +26,10 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
         "Dex Files": .pink
     ]
 
-    private var categoryColorDomain: [String] { Array(categoryColorScale.keys) }
+    private var categoryColorDomain: [String] {
+        // Only include categories that actually exist in the current analysis
+        viewModel.categories.map { $0.name }
+    }
     private var categoryColorRange: [Color] { categoryColorDomain.compactMap { categoryColorScale[$0] } }
 
     private var filteredCategories: [CategoryResult] {
@@ -45,19 +48,6 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                         subtitle: viewModel.analysis.fileName
                     )
 
-                    if let sizeAnalyzer = viewModel.sizeAnalyzer {
-                        InstalledSizeAnalysisView(
-                            viewModel: sizeAnalyzer,
-                            analysis: viewModel.analysis
-                        )
-                    }
-
-                    SummaryCard(
-                        title: "📂 Categories",
-                        value: "\(viewModel.categoriesCount)",
-                        subtitle: "Main groups"
-                    )
-
                     SummaryCard(
                         title: "📐 Architectures",
                         value: "\(viewModel.archs.number)",
@@ -66,6 +56,11 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
 
                     if let ipaViewModel = viewModel.sizeAnalyzer as? IPAViewModel,
                        let ipaAnalysis = viewModel.analysis as? IPAAnalysis {
+                        InstalledSizeAnalysisView(
+                            viewModel: ipaViewModel,
+                            analysis: ipaAnalysis
+                        )
+
                         StartupTimeAnalysisView(
                             viewModel: ipaViewModel,
                             analysis: ipaAnalysis
