@@ -27,4 +27,14 @@ struct FileInfo: Identifiable, Codable, Sendable {
         self.size = size
         self.subItems = subItems
     }
+
+    var sizeText: String {
+        let itemCount: Int
+        if let subItems = subItems {
+            itemCount = subItems.filter { $0.type == .framework }.count
+        } else {
+            itemCount = 0
+        }
+        return SizeTextFormatter.formatSize(size, categoryName: name, itemCount: itemCount)
+    }
 }

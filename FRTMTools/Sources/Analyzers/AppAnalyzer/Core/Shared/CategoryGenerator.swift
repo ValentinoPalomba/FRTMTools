@@ -25,9 +25,13 @@ struct CategoryResult: Identifiable {
     let type: CategoryType
     let totalSize: Int64
     let items: [FileInfo]
-    
+
     var name: String {
         return type.displayName
+    }
+
+    var sizeText: String {
+        SizeTextFormatter.formatSize(totalSize, categoryName: name, itemCount: items.count)
     }
 }
 

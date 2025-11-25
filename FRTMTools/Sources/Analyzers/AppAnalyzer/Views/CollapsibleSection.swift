@@ -12,7 +12,7 @@ struct CollapsibleSection: View {
 
     private func emoji(for category: String) -> String {
         let lowercasedCategory = category.lowercased()
-        
+
         switch lowercasedCategory {
         case "frameworks": return "📦"
         case "binary", "binaries": return "⚙️"
@@ -33,7 +33,7 @@ struct CollapsibleSection: View {
                         Text("\(emoji(for: category.name)) \(category.name)")
                             .font(.headline)
                         Spacer()
-                        Text(ByteCountFormatter.string(fromByteCount: category.totalSize, countStyle: .file))
+                        Text(category.sizeText)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                         Image(systemName: expandedSections.contains(category.id) ? "chevron.up" : "chevron.down")

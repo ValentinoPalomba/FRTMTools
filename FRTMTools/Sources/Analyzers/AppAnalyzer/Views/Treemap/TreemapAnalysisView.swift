@@ -260,7 +260,7 @@ private struct TreemapCell: View {
                             .font(.system(size: 11, weight: file.name == "[Other Files]" ? .semibold : .bold))
                             .foregroundColor(.white)
                             .lineLimit(1)
-                        Text(ByteCountFormatter.string(fromByteCount: file.size, countStyle: .file))
+                        Text(file.sizeText)
                             .font(.system(size: 9, weight: .medium))
                             .foregroundColor(.white.opacity(0.8))
                     }
