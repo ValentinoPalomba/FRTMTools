@@ -10,14 +10,16 @@ struct MainView: View {
     @StateObject private var securityScannerViewModel = SecurityScannerViewModel()
     @StateObject private var deadCodeViewModel = DeadCodeViewModel()
     @StateObject private var ipaToolViewModel = IPAToolViewModel()
+    @StateObject private var badWordScannerViewModel = BadWordScannerViewModel()
     
     enum Tool: String, Hashable, Identifiable, CaseIterable {
         case ipaAnalyzer = "IPA Analyzer"
         case apkAnalyzer = "APK/ABB Analyzer"
         case unusedAssets = "Unused Assets Analyzer"
-        //case securityScanner = "Security Scanner"
+        case securityScanner = "Security Scanner"
         case deadCodeScanner = "Dead Code Scanner"
         case ipatool = "App Store"
+        case badWordScanner = "Bad Word Scanner"
         
         var id: String { rawValue }
         
@@ -26,9 +28,10 @@ struct MainView: View {
             case .ipaAnalyzer: return "app.badge"
             case .apkAnalyzer: return "shippingbox"
             case .unusedAssets: return "trash"
-            //case .securityScanner: return "shield.lefthalf.filled"
+            case .securityScanner: return "shield.lefthalf.filled"
             case .deadCodeScanner: return "text.magnifyingglass"
             case .ipatool: return "bag.badge.plus"
+            case .badWordScanner: return "exclamationmark.bubble"
             }
         }
         
@@ -37,9 +40,10 @@ struct MainView: View {
             case .ipaAnalyzer: return .blue
             case .apkAnalyzer: return .green
             case .unusedAssets: return .purple
-            //case .securityScanner: return .red
+            case .securityScanner: return .red
             case .deadCodeScanner: return .orange
             case .ipatool: return .green
+            case .badWordScanner: return .pink
             }
         }
     }
@@ -75,12 +79,14 @@ struct MainView: View {
                 APKAnalyzerContentView(viewModel: apkViewModel)
             case .unusedAssets:
                 UnusedAssetsContentView(viewModel: unusedAssetsViewModel)
-//            case .securityScanner:
-//                SecurityScannerContentView(viewModel: securityScannerViewModel)
+            case .securityScanner:
+                SecurityScannerContentView(viewModel: securityScannerViewModel)
             case .deadCodeScanner:
                 DeadCodeContentView(viewModel: deadCodeViewModel)
             case .ipatool:
                 IPAToolContentView(viewModel: ipaToolViewModel)
+            case .badWordScanner:
+                BadWordScannerContentView(viewModel: badWordScannerViewModel)
             case .none:
                 Text("Select an item to see details.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -93,12 +99,14 @@ struct MainView: View {
                 APKAnalyzerDetailView(viewModel: apkViewModel)
             case .unusedAssets:
                 UnusedAssetsResultView(viewModel: unusedAssetsViewModel)
-//            case .securityScanner:
-//                SecurityScannerResultView(viewModel: securityScannerViewModel)
+            case .securityScanner:
+                SecurityScannerResultView(viewModel: securityScannerViewModel)
             case .deadCodeScanner:
                 DeadCodeResultView(viewModel: deadCodeViewModel)
             case .ipatool:
                 IPAToolSelectionDetailView(viewModel: ipaToolViewModel)
+            case .badWordScanner:
+                BadWordScannerDetailView(viewModel: badWordScannerViewModel)
             case .none:
                 Text("Select an item to see details.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
