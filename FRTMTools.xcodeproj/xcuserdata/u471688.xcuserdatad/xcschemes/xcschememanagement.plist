@@ -9,6 +9,11 @@
 			<key>orderHint</key>
 			<integer>1</integer>
 		</dict>
+		<key>FRTMToolsCLI.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>2</integer>
+		</dict>
 		<key>FRTMTools_Release.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
