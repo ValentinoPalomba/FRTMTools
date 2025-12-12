@@ -8,6 +8,7 @@ struct SummaryCard: View {
     var subtitle: String?
     var icon: String?
     var color: Color?
+    var backgroundColor: Color = Color(NSColor.controlBackgroundColor)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -39,7 +40,7 @@ struct SummaryCard: View {
         }
         .padding()
         .frame(maxWidth: .infinity, minHeight: 100, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
+        .background(RoundedRectangle(cornerRadius: 16).fill(backgroundColor))
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
 }

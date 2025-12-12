@@ -35,6 +35,166 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
     private var filteredCategories: [CategoryResult] {
         viewModel.filteredCategories(searchText: searchText)
     }
+
+    @ViewBuilder
+    private func androidSummary(for apkAnalysis: APKAnalysis) -> some View {
+        if let installCard = installedSizeCardContent(for: apkAnalysis) {
+            SummaryCard(
+                title: "📲 Installed Size",
+                value: installCard.value,
+                subtitle: installCard.subtitle
+            )
+        }
+
+        if let downloadCard = downloadSizeCardContent(for: apkAnalysis) {
+            SummaryCard(
+                title: "⬇️ Download Size",
+                value: downloadCard.value,
+                subtitle: downloadCard.subtitle,
+                backgroundColor: downloadCard.backgroundColor
+            )
+        }
+
+        if let minSDK = apkAnalysis.minSDK, let targetSDK = apkAnalysis.targetSDK {
+            SummaryCard(
+                title: "🎯 SDK Targets",
+                value: "\(minSDK) ▸ \(targetSDK)",
+                subtitle: "Min ▸ Target"
+            )
+        }
+
+        let stats = androidStats(for: apkAnalysis)
+        SummaryCard(
+            title: "📚 Dex vs Native",
+            value: "\(stats.dexCount) dex / \(stats.nativeLibCount) so",
+            subtitle: stats.abiSubtitle
+        )
+
+        if apkAnalysis.permissions.isEmpty {
+            SummaryCard(
+                title: "🔐 Permissions",
+                value: "\(apkAnalysis.permissions.count)",
+                subtitle: "\(stats.dangerousPermissions) dangerous"
+            )
+        } else {
+            Button {
+                showPermissionsDetails.toggle()
+            } label: {
+                SummaryCard(
+                    title: "🔐 Permissions",
+                    value: "\(apkAnalysis.permissions.count)",
+                    subtitle: "\(stats.dangerousPermissions) dangerous"
+                )
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showPermissionsDetails) {
+                AndroidPermissionsPopover(permissions: apkAnalysis.permissions)
+                    .frame(width: 420, height: 360)
+            }
+        }
+
+        if let signatureInfo = apkAnalysis.signatureInfo {
+            Button {
+                showCertificateInfo.toggle()
+            } label: {
+                let certStatus = signatureInfo.isDebugSigned ? "Debug" :
+                                (signatureInfo.primaryCertificate?.isValid == true ? "Valid" : "Invalid")
+                SummaryCard(
+                    title: "🔐 Certificate",
+                    value: certStatus,
+                    subtitle: signatureInfo.signatureSchemesDescription
+                )
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showCertificateInfo) {
+                CertificateInfoPopover(signatureInfo: signatureInfo)
+            }
+        }
+
+        if let launchable = apkAnalysis.launchableActivity {
+            SummaryCard(
+                title: "🚀 Launch Activity",
+                value: apkAnalysis.launchableActivityLabel ?? shortActivityName(launchable),
+                subtitle: launchable
+            )
+        }
+
+        if !apkAnalysis.supportedLocales.isEmpty {
+            SummaryCard(
+                title: "🌐 Locales",
+                value: "\(apkAnalysis.supportedLocales.count)",
+                subtitle: listPreviewDescription(for: apkAnalysis.supportedLocales, limit: 4)
+            )
+        }
+
+        if shouldShowScreenCard(for: apkAnalysis) {
+            SummaryCard(
+                title: "🖥️ Screen Buckets",
+                value: screenSupportValue(for: apkAnalysis),
+                subtitle: screenSupportSubtitle(for: apkAnalysis)
+            )
+        }
+
+        if !apkAnalysis.requiredFeatures.isEmpty || !apkAnalysis.optionalFeatures.isEmpty {
+            Button {
+                showFeatureDetails.toggle()
+            } label: {
+                SummaryCard(
+                    title: "🧩 Features",
+                    value: "\(apkAnalysis.requiredFeatures.count) required",
+                    subtitle: apkAnalysis.optionalFeatures.isEmpty
+                        ? "Tap to inspect hardware features"
+                        : "\(apkAnalysis.optionalFeatures.count) optional · Tap to inspect"
+                )
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showFeatureDetails) {
+                AndroidFeaturesPopover(
+                    requiredFeatures: apkAnalysis.requiredFeatures,
+                    optionalFeatures: apkAnalysis.optionalFeatures
+                )
+                .frame(width: 360, height: 320)
+            }
+        }
+
+        if let apkViewModel = viewModel as? APKDetailViewModel {
+            Button {
+                showImageExtractionOptions.toggle()
+            } label: {
+                SummaryCard(
+                    title: "🖼️ Images",
+                    value: "\(apkViewModel.imageCount)",
+                    subtitle: extractionInProgress ? "Extracting..." : "Tap to extract"
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(extractionInProgress)
+            .confirmationDialog("Extract Images", isPresented: $showImageExtractionOptions) {
+                Button("Extract with folder structure") {
+                    extractImages(from: apkViewModel, preserveStructure: true)
+                }
+                Button("Extract all to one folder") {
+                    extractImages(from: apkViewModel, preserveStructure: false)
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Choose how to extract \(apkViewModel.imageCount) images from the APK")
+            }
+            .alert("Image Extraction", isPresented: $showExtractionAlert) {
+                Button("OK") { }
+            } message: {
+                Text(extractionAlertMessage)
+            }
+        }
+    }
+
+    private let byteFormatter: ByteCountFormatter = {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        formatter.includesUnit = true
+        formatter.isAdaptive = true
+        return formatter
+    }()
     
     var body: some View {
         ScrollView {
@@ -65,13 +225,30 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                             viewModel: ipaViewModel,
                             analysis: ipaAnalysis
                         )
+                    } else if let apkAnalysis = viewModel.analysis as? APKAnalysis {
+                        androidSummary(for: apkAnalysis)
                     }
                 }
                 .padding(.horizontal)
-                
+
                 if let apkAnalysis = viewModel.analysis as? APKAnalysis {
-                    androidSummarySection(for: apkAnalysis)
+                    
+                    if !apkAnalysis.playAssetPacks.isEmpty {
+                        assetPackSummaryView(for: apkAnalysis)
+                    }
+
+                    manifestInsights(for: apkAnalysis)
                         .padding(.horizontal)
+
+                    // Package breakdown disabled (attribution currently off)
+
+                    if !apkAnalysis.dynamicFeatures.isEmpty {
+                        dynamicFeatureDetails(for: apkAnalysis)
+                    }
+
+                    if !apkAnalysis.playAssetPacks.isEmpty {
+                        playAssetPackDetails(for: apkAnalysis)
+                    }
                 }
                 
                 if viewModel.analysis.totalSize > 0 {
@@ -198,8 +375,6 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
         }
     }
     
-    @State private var showAISummary: Bool = false
-    
     private func updateSelectedCategory() {
         withAnimation {
             if let expandedID = expandedSections.first {
@@ -210,147 +385,60 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
         }
     }
 
-    @ViewBuilder
-    private func androidSummarySection(for analysis: APKAnalysis) -> some View {
-        let stats = androidStats(for: analysis)
-        return VStack(spacing: 16) {
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
-            if let minSDK = analysis.minSDK, let targetSDK = analysis.targetSDK {
-                SummaryCard(
-                    title: "🎯 SDK Targets",
-                    value: "\(analysis.minSDK ?? "—") ▸ \(analysis.targetSDK ?? "—")",
-                    subtitle: "Min ▸ Target"
-                )
-            }
-
-            SummaryCard(
-                title: "📚 Dex vs Native",
-                value: "\(stats.dexCount) dex / \(stats.nativeLibCount) so",
-                subtitle: stats.abiSubtitle
-            )
-
-            if analysis.permissions.isEmpty {
-                SummaryCard(
-                    title: "🔐 Permissions",
-                    value: "\(analysis.permissions.count)",
-                    subtitle: "\(stats.dangerousPermissions) dangerous"
-                )
-            } else {
-                Button {
-                    showPermissionsDetails.toggle()
-                } label: {
-                    SummaryCard(
-                        title: "🔐 Permissions",
-                        value: "\(analysis.permissions.count)",
-                        subtitle: "\(stats.dangerousPermissions) dangerous"
-                    )
-                }
-                .buttonStyle(.plain)
-                .popover(isPresented: $showPermissionsDetails) {
-                    AndroidPermissionsPopover(permissions: analysis.permissions)
-                        .frame(width: 420, height: 360)
-                }
-            }
-
-            // Certificate info card
-            if let signatureInfo = analysis.signatureInfo {
-                Button {
-                    showCertificateInfo.toggle()
-                } label: {
-                    let certStatus = signatureInfo.isDebugSigned ? "Debug" :
-                                    (signatureInfo.primaryCertificate?.isValid == true ? "Valid" : "Invalid")
-                    SummaryCard(
-                        title: "🔐 Certificate",
-                        value: certStatus,
-                        subtitle: signatureInfo.signatureSchemesDescription
-                    )
-                }
-                .buttonStyle(.plain)
-                .popover(isPresented: $showCertificateInfo) {
-                    CertificateInfoPopover(signatureInfo: signatureInfo)
-                }
-            }
-
-            if let launchable = analysis.launchableActivity {
-                SummaryCard(
-                    title: "🚀 Launch Activity",
-                    value: analysis.launchableActivityLabel ?? shortActivityName(launchable),
-                    subtitle: launchable
-                )
-            }
-
-            if !analysis.supportedLocales.isEmpty {
-                SummaryCard(
-                    title: "🌐 Locales",
-                    value: "\(analysis.supportedLocales.count)",
-                    subtitle: listPreviewDescription(for: analysis.supportedLocales, limit: 4)
-                )
-            }
-
-            if shouldShowScreenCard(for: analysis) {
-                SummaryCard(
-                    title: "🖥️ Screen Buckets",
-                    value: screenSupportValue(for: analysis),
-                    subtitle: screenSupportSubtitle(for: analysis)
-                )
-            }
-
-            if !analysis.requiredFeatures.isEmpty || !analysis.optionalFeatures.isEmpty {
-                Button {
-                    showFeatureDetails.toggle()
-                } label: {
-                    SummaryCard(
-                        title: "🧩 Features",
-                        value: "\(analysis.requiredFeatures.count) required",
-                        subtitle: analysis.optionalFeatures.isEmpty
-                            ? "Tap to inspect hardware features"
-                            : "\(analysis.optionalFeatures.count) optional · Tap to inspect"
-                    )
-                }
-                .buttonStyle(.plain)
-                .popover(isPresented: $showFeatureDetails) {
-                    AndroidFeaturesPopover(
-                        requiredFeatures: analysis.requiredFeatures,
-                        optionalFeatures: analysis.optionalFeatures
-                    )
-                    .frame(width: 360, height: 320)
-                }
-            }
-
-            // Image extraction card
-            if let apkViewModel = viewModel as? APKDetailViewModel {
-                Button {
-                    showImageExtractionOptions.toggle()
-                } label: {
-                    SummaryCard(
-                        title: "🖼️ Images",
-                        value: "\(apkViewModel.imageCount)",
-                        subtitle: extractionInProgress ? "Extracting..." : "Tap to extract"
-                    )
-                }
-                .buttonStyle(.plain)
-                .disabled(extractionInProgress)
-                .confirmationDialog("Extract Images", isPresented: $showImageExtractionOptions) {
-                    Button("Extract with folder structure") {
-                        extractImages(from: apkViewModel, preserveStructure: true)
-                    }
-                    Button("Extract all to one folder") {
-                        extractImages(from: apkViewModel, preserveStructure: false)
-                    }
-                    Button("Cancel", role: .cancel) {}
-                } message: {
-                    Text("Choose how to extract \(apkViewModel.imageCount) images from the APK")
-                }
-                .alert("Image Extraction", isPresented: $showExtractionAlert) {
-                    Button("OK") { }
-                } message: {
-                    Text(extractionAlertMessage)
-                }
-            }
-            }
-            
-            manifestInsights(for: analysis)
+    private func installedSizeCardContent(for analysis: APKAnalysis) -> (value: String, subtitle: String)? {
+        if let installBytes = analysis.bundletoolInstallSizeBytes {
+            let value = byteFormatter.string(fromByteCount: installBytes)
+            let subtitle = "bundletool install estimate"
+            return (value, subtitle)
         }
+
+        if let metrics = analysis.installedSize {
+            return (
+                value: "\(metrics.total) MB",
+                subtitle: installedSizeBreakdownSubtitle(for: metrics)
+            )
+        }
+
+        return nil
+    }
+
+    private func downloadSizeCardContent(for analysis: APKAnalysis) -> (value: String, subtitle: String, backgroundColor: Color)? {
+        guard let downloadBytes = analysis.bundletoolDownloadSizeBytes else {
+            return nil
+        }
+        let value = byteFormatter.string(fromByteCount: downloadBytes)
+        let subtitle: String
+        if let installBytes = analysis.bundletoolInstallSizeBytes {
+            subtitle = "Install \(byteFormatter.string(fromByteCount: installBytes))"
+        } else {
+            subtitle = "bundletool download estimate"
+        }
+
+        let downloadMegabytes = Double(downloadBytes) / 1_048_576.0
+        let backgroundColor: Color
+        if downloadMegabytes >= 200 {
+            backgroundColor = Color.red.opacity(0.2)
+        } else if downloadMegabytes >= 180 {
+            backgroundColor = Color.orange.opacity(0.2)
+        } else {
+            backgroundColor = Color(NSColor.controlBackgroundColor)
+        }
+
+        return (value, subtitle, backgroundColor)
+    }
+
+    private func installedSizeBreakdownSubtitle(for metrics: InstalledSizeMetrics) -> String {
+        var parts: [String] = []
+        if metrics.binaries > 0 {
+            parts.append("Bin \(metrics.binaries) MB")
+        }
+        if metrics.frameworks > 0 {
+            parts.append("Native \(metrics.frameworks) MB")
+        }
+        if metrics.resources > 0 {
+            parts.append("Res \(metrics.resources) MB")
+        }
+        return parts.isEmpty ? "Estimated footprint" : parts.joined(separator: " · ")
     }
 
     private func androidStats(for analysis: APKAnalysis) -> (dexCount: Int, nativeLibCount: Int, largestDexSize: Int64, dangerousPermissions: Int, abiSubtitle: String) {
@@ -524,6 +612,96 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
         }
     }
 
+    @ViewBuilder
+    private func assetPackSummaryView(for analysis: APKAnalysis) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Play Asset Delivery")
+                .font(.title3)
+                .bold()
+            Text("\(analysis.playAssetPacks.count) asset pack\(analysis.playAssetPacks.count == 1 ? "" : "s") included")
+                .foregroundColor(.secondary)
+            Text(assetPackPreviewDescription(for: analysis.playAssetPacks))
+                .font(.subheadline)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
+        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .padding(.horizontal)
+    }
+
+    @ViewBuilder
+    private func playAssetPackDetails(for analysis: APKAnalysis) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Asset Packs")
+                .font(.headline)
+            ForEach(analysis.playAssetPacks) { pack in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(pack.name)
+                            .font(.body)
+                            .bold()
+                        Spacer()
+                        Text(byteFormatter.string(fromByteCount: pack.compressedSizeBytes))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Text(pack.deliveryType.displayName)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                if pack.id != analysis.playAssetPacks.last?.id {
+                    Divider()
+                }
+            }
+        }
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
+        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .padding(.horizontal)
+    }
+
+    private func assetPackPreviewDescription(for packs: [PlayAssetPackInfo]) -> String {
+        let names = packs.map(\.name)
+        return listPreviewDescription(for: names, limit: 4)
+    }
+
+    @ViewBuilder
+    private func dynamicFeatureDetails(for analysis: APKAnalysis) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Dynamic Feature Modules")
+                .font(.headline)
+            ForEach(analysis.dynamicFeatures) { feature in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(feature.name)
+                            .font(.body)
+                            .bold()
+                        Spacer()
+                        Text(byteFormatter.string(fromByteCount: feature.estimatedSizeBytes))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Text(feature.deliveryType.displayName)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                if feature.id != analysis.dynamicFeatures.last?.id {
+                    Divider()
+                }
+            }
+        }
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
+        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .padding(.horizontal)
+    }
+
+    private func dynamicFeaturePreviewDescription(for features: [DynamicFeatureInfo]) -> String {
+        let names = features.map(\.name)
+        return listPreviewDescription(for: names, limit: 4)
+    }
+
     private func shortActivityName(_ name: String) -> String {
         name.components(separatedBy: ".").last ?? name
     }
@@ -564,7 +742,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
         guard !parts.isEmpty else { return nil }
         return parts.joined(separator: " · ")
     }
-    
+
     @ViewBuilder
     private func manifestInfoCard<Content: View>(title: String, trailingButton: AnyView? = nil, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -583,7 +761,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
         .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
         .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
     }
-    
+
     private func deepLinkDisplay(_ link: AndroidDeepLinkInfo) -> String {
         var parts: [String] = []
         if let scheme = link.scheme {
