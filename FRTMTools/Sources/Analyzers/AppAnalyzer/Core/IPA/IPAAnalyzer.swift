@@ -56,17 +56,21 @@ final class IPAAnalyzer: Analyzer {
     let dependencyAnalyzer = DependencyAnalyzer()
     
     func analyze(at url: URL) async throws -> IPAAnalysis? {
+        try await analyze(at: url, progress: nil)
+    }
+
+    func analyze(at url: URL, progress: (@Sendable (String) -> Void)? = nil) async throws -> IPAAnalysis? {
         switch url.pathExtension.lowercased() {
         case "ipa":
-                return analyzeIPA(at: url)
+                return analyzeIPA(at: url, progress: progress)
         case "app":
-            return performAnalysisOnAppBundle(appBundleURL: url, originalFileName: url.lastPathComponent)
+            return performAnalysisOnAppBundle(appBundleURL: url, originalFileName: url.lastPathComponent, progress: progress)
         default:
             return nil
         }
     }
     
-    private func analyzeIPA(at url: URL) -> IPAAnalysis? {
+    private func analyzeIPA(at url: URL, progress: (@Sendable (String) -> Void)? = nil) -> IPAAnalysis? {
         let fm = FileManager.default
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         
@@ -75,6 +79,8 @@ final class IPAAnalyzer: Analyzer {
         
         do {
             try fm.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+            progress?("Unzipping \(url.lastPathComponent)…")
             
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
@@ -100,7 +106,8 @@ final class IPAAnalyzer: Analyzer {
             try? fm.copyItem(at: appBundleURL, to: persistentAppURL)
             let finalAppURL = fm.fileExists(atPath: persistentAppURL.path) ? persistentAppURL : appBundleURL
             
-            return performAnalysisOnAppBundle(appBundleURL: finalAppURL, originalFileName: url.lastPathComponent, originalURL: finalAppURL)
+            progress?("Scanning extracted app bundle…")
+            return performAnalysisOnAppBundle(appBundleURL: finalAppURL, originalFileName: url.lastPathComponent, originalURL: finalAppURL, progress: progress)
         } catch {
             print("Error analyzing IPA: \(error)")
             return nil
@@ -109,11 +116,11 @@ final class IPAAnalyzer: Analyzer {
     
     // MARK: - Core analysis
     
-    private func performAnalysisOnAppBundle(appBundleURL: URL, originalFileName: String, originalURL: URL? = nil) -> IPAAnalysis? {
+    private func performAnalysisOnAppBundle(appBundleURL: URL, originalFileName: String, originalURL: URL? = nil, progress: (@Sendable (String) -> Void)? = nil) -> IPAAnalysis? {
         let layout = detectLayout(for: appBundleURL)
         
         // Scan resources
-        let rootFile = scan(url: layout.resourcesRoot, rootURL: layout.resourcesRoot, appBundleURL: layout.appURL, layout: layout)
+        let rootFile = scan(url: layout.resourcesRoot, rootURL: layout.resourcesRoot, appBundleURL: layout.appURL, layout: layout, progress: progress)
         
         // Metadata
         let plist = extractInfoPlist(from: layout)
@@ -131,7 +138,6 @@ final class IPAAnalyzer: Analyzer {
 
         // Analyze dependencies
         let dependencyGraph = dependencyAnalyzer.analyzeDependencies(rootFile: rootFile, layout: layout, plist: plist)
-
         return IPAAnalysis(
             url: originalURL ?? layout.appURL,
             fileName: originalFileName,
@@ -146,7 +152,7 @@ final class IPAAnalyzer: Analyzer {
         )
     }
     
-    private func detectLayout(for appBundleURL: URL) -> AppBundleLayout {
+    func detectLayout(for appBundleURL: URL) -> AppBundleLayout {
         let contents = appBundleURL.appendingPathComponent("Contents")
         if FileManager.default.fileExists(atPath: contents.path) {
             return .macOS(
@@ -161,7 +167,7 @@ final class IPAAnalyzer: Analyzer {
     
     // MARK: - File scan
     
-    private func scan(url: URL, rootURL: URL, appBundleURL: URL, layout: AppBundleLayout) -> FileInfo {
+    private func scan(url: URL, rootURL: URL, appBundleURL: URL, layout: AppBundleLayout, progress: (@Sendable (String) -> Void)? = nil) -> FileInfo {
         let fm = FileManager.default
         var isDir: ObjCBool = false
         fm.fileExists(atPath: url.path, isDirectory: &isDir)
@@ -185,7 +191,7 @@ final class IPAAnalyzer: Analyzer {
         let subItems: [FileInfo]?
         if isDir.boolValue {
             subItems = (try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: .skipsHiddenFiles))?
-                .map { scan(url: $0, rootURL: rootURL, appBundleURL: appBundleURL, layout: layout) }
+                .map { scan(url: $0, rootURL: rootURL, appBundleURL: appBundleURL, layout: layout, progress: progress) }
                 .sorted(by: { $0.size > $1.size })
         } else {
             subItems = nil
@@ -299,4 +305,3 @@ final class IPAAnalyzer: Analyzer {
         return binaryAnalyzer.isBinaryStripped(at: binaryURL)
     }
 }
-
