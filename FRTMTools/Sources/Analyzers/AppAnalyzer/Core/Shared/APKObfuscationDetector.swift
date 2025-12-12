@@ -11,10 +11,11 @@ struct APKObfuscationDetector {
         var obfuscated = 0
         
         for dex in dexFiles {
-            guard let path = dex.fullPath,
-                  let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else { continue }
-            
-            let classNames = DexFileInspector.classDescriptors(from: data)
+            guard let path = dex.fullPath else { continue }
+            let fileURL = URL(fileURLWithPath: path)
+            guard let data = try? Data(contentsOf: fileURL) else { continue }
+
+            let classNames = DexFileInspector.classDescriptors(from: data, fileURL: fileURL)
             guard !classNames.isEmpty else { continue }
             
             for descriptor in classNames {

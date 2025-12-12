@@ -108,13 +108,13 @@ enum ThirdPartyLibraryDetector {
         )
     ]
     
-    static func detect(in rootFile: FileInfo, manifestInfo: AndroidManifestInfo?) -> [ThirdPartyLibraryInsight] {
+    static func detect(in rootFile: FileInfo, manifestInfo: AndroidManifestInfo?, classNameSanitizer: ClassNameSanitizer?) -> [ThirdPartyLibraryInsight] {
         let files = rootFile.flattened(includeDirectories: false)
         let dexFiles = files.filter { $0.name.lowercased().hasSuffix(".dex") }
         let nativeLibs = files.filter { $0.name.lowercased().hasSuffix(".so") }
         
         let versionEntries = collectVersionEntries(from: files)
-        let packageStats = buildPackageStats(from: dexFiles)
+        let packageStats = buildPackageStats(from: dexFiles, classNameSanitizer: classNameSanitizer)
         let manifestComponents = manifestInfo?.components ?? []
         
         var insights: [ThirdPartyLibraryInsight] = []
@@ -216,18 +216,20 @@ enum ThirdPartyLibraryDetector {
         return Array(seen.values)
     }
     
-    private static func buildPackageStats(from dexFiles: [FileInfo]) -> (packageCounts: [String: Int], totalClasses: Int, totalDexSize: Int64) {
+    private static func buildPackageStats(from dexFiles: [FileInfo], classNameSanitizer: ClassNameSanitizer?) -> (packageCounts: [String: Int], totalClasses: Int, totalDexSize: Int64) {
         var counts: [String: Int] = [:]
         var totalClasses = 0
         var totalDexSize: Int64 = 0
         
         for dex in dexFiles {
             totalDexSize += dex.size
-            guard let path = dex.fullPath,
-                  let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else { continue }
-            let descriptors = DexFileInspector.classDescriptors(from: data)
+            guard let path = dex.fullPath else { continue }
+            let fileURL = URL(fileURLWithPath: path)
+            guard let data = try? Data(contentsOf: fileURL) else { continue }
+            let descriptors = DexFileInspector.classDescriptors(from: data, fileURL: fileURL)
             for descriptor in descriptors {
-                let packageName = package(from: descriptor)
+                let sanitized = classNameSanitizer?.sanitize(descriptor) ?? descriptor
+                let packageName = package(from: sanitized)
                 counts[packageName, default: 0] += 1
                 totalClasses += 1
             }
