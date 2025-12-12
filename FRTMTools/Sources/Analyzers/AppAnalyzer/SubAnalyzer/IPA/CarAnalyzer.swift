@@ -7,7 +7,9 @@
 
 
 import Foundation
+#if AppDesktop
 import CartoolKit
+#endif
 import AppKit
 
 
@@ -99,7 +101,7 @@ class CarAnalyzer: @unchecked Sendable {
         }
     }
     
-    
+    #if AppDesktop
     func extractAllImagesData(at url: URL) -> [ImageData] {
         do {
             let reader: Reader<LazyRendition> = try Reader(.init(url))
@@ -119,6 +121,12 @@ class CarAnalyzer: @unchecked Sendable {
             return []
         }
     }
+    #else
+    func extractAllImagesData(at url: URL) -> [ImageData] {
+        // CartoolKit is unavailable; skip image extraction.
+        return []
+    }
+    #endif
 }
 
 
