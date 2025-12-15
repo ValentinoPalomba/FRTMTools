@@ -110,7 +110,7 @@ class CategoryGenerator {
             guard !items.isEmpty else { return nil }
             // Ensure Android-only categories are never included in iOS analysis
             guard type != .dexFiles && type != .nativeLibs else { return nil }
-            let totalSize = items.reduce(0) { $0 + $1.size }
+            let totalSize = CategoryGenerator.categoryTotalSize(for: items)
             return CategoryResult(type: type, totalSize: totalSize, items: items)
         }
         .sorted { $0.totalSize > $1.totalSize }
@@ -158,10 +158,10 @@ class CategoryGenerator {
         guard type != .frameworks && type != .bundles && type != .appClips else { return }
         let ids = items.flatMap { $0.flattened(includeDirectories: true).map(\.id) }
         usedIds.formUnion(ids)
-        let total = items.reduce(0) { $0 + $1.size }
+        let total = categoryTotalSize(for: items)
         if let index = categories.firstIndex(where: { $0.type == type }) {
             let mergedItems = categories[index].items + items
-            let mergedTotal = mergedItems.reduce(0) { $0 + $1.size }
+            let mergedTotal = categoryTotalSize(for: mergedItems)
             categories[index] = CategoryResult(type: type, totalSize: mergedTotal, items: mergedItems)
         } else {
             categories.append(CategoryResult(type: type, totalSize: total, items: items))
@@ -172,5 +172,23 @@ class CategoryGenerator {
         let files = rootFile.flattened(includeDirectories: true)
         return files.contains(where: { $0.name.lowercased() == "androidmanifest.xml" })
             || files.contains(where: { $0.name.lowercased().hasSuffix(".dex") })
+    }
+
+    private static func categoryTotalSize(for items: [FileInfo]) -> Int64 {
+        var seen = Set<UUID>()
+        return items.reduce(Int64(0)) { partial, item in
+            partial + aggregatedSize(for: item, seen: &seen)
+        }
+    }
+
+    private static func aggregatedSize(for item: FileInfo, seen: inout Set<UUID>) -> Int64 {
+        guard seen.insert(item.id).inserted else { return 0 }
+        if let children = item.subItems, !children.isEmpty {
+            let childSum = children.reduce(Int64(0)) { $0 + aggregatedSize(for: $1, seen: &seen) }
+            if childSum > 0 {
+                return childSum
+            }
+        }
+        return item.size
     }
 }

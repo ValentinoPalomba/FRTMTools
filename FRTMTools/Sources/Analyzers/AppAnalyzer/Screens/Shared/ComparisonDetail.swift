@@ -1,27 +1,6 @@
 import SwiftUI
 import Charts
 
-struct FileInfoSequence: Sequence, IteratorProtocol {
-    private var stack: [FileInfo]
-
-    init(root: FileInfo) {
-        self.stack = [root]
-    }
-
-    mutating func next() -> FileInfo? {
-        while !stack.isEmpty {
-            let current = stack.removeLast()
-            if let children = current.subItems {
-                stack.append(contentsOf: children)
-            } else {
-                return current
-            }
-        }
-        return nil
-    }
-}
-
-
 struct ComparisonDetail<Analysis: AppAnalysis>: View {
     let first: Analysis
     let second: Analysis
@@ -249,56 +228,8 @@ struct ComparisonDetail<Analysis: AppAnalysis>: View {
     }
     
     private func processComparison() async {
-        let result = await Task.detached { () -> ComparisonResult in
-            // Load files in parallel
-            async let firstFiles = Array(FileInfoSequence(root: first.rootFile))
-            async let secondFiles = Array(FileInfoSequence(root: second.rootFile))
-            
-            let (files1, files2) = await (firstFiles, secondFiles)
-            
-            // --- Categories ---
-            let firstCats = CategoryGenerator.generateCategories(
-                from: first.rootFile
-            )
-            let secondCats = CategoryGenerator.generateCategories(from: second.rootFile)
-            let allCatNames = Set(firstCats.map { $0.name } + secondCats.map { $0.name })
-            
-            let categories = allCatNames.map { name -> ComparisonCategory in
-                let size1 = firstCats.first { $0.name == name }?.totalSize ?? 0
-                let size2 = secondCats.first { $0.name == name }?.totalSize ?? 0
-                return ComparisonCategory(name: name, size1: size1, size2: size2)
-            }.sorted { $0.name < $1.name }
-
-            // --- File Diffs ---
-            let files1Set = Dictionary(files1.map { ($0.name, $0.size) }, uniquingKeysWith: { (first, _) in first })
-            let files2Set = Dictionary(files2.map { ($0.name, $0.size) }, uniquingKeysWith: { (first, _) in first })
-            let allFileNames = Set(files1Set.keys).union(files2Set.keys)
-
-            var modifiedFiles: [FileDiff] = []
-            var addedFiles: [FileDiff] = []
-            var removedFiles: [FileDiff] = []
-
-            for name in allFileNames {
-                let size1 = files1Set[name]
-                let size2 = files2Set[name]
-
-                if let s1 = size1, let s2 = size2 {
-                    if s1 != s2 {
-                        modifiedFiles.append(FileDiff(name: name, size1: s1, size2: s2))
-                    }
-                } else if size1 == nil, let s2 = size2 {
-                    addedFiles.append(FileDiff(name: name, size1: 0, size2: s2))
-                } else if let s1 = size1, size2 == nil {
-                    removedFiles.append(FileDiff(name: name, size1: s1, size2: 0))
-                }
-            }
-            
-            return ComparisonResult(
-                categories: categories,
-                modifiedFiles: modifiedFiles.sorted { $0.name < $1.name },
-                addedFiles: addedFiles.sorted { $0.name < $1.name },
-                removedFiles: removedFiles.sorted { $0.name < $1.name }
-            )
+        let result = await Task.detached {
+            ComparisonAnalyzer.compare(first: first, second: second)
         }.value
         
         await MainActor.run {
@@ -306,18 +237,4 @@ struct ComparisonDetail<Analysis: AppAnalysis>: View {
             self.isLoading = false
         }
     }
-}
-
-struct ComparisonResult {
-    let categories: [ComparisonCategory]
-    let modifiedFiles: [FileDiff]
-    let addedFiles: [FileDiff]
-    let removedFiles: [FileDiff]
-}
-
-struct ComparisonCategory: Identifiable {
-    let id = UUID()
-    let name: String
-    let size1: Int64
-    let size2: Int64
 }
