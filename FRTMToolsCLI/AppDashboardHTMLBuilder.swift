@@ -51,6 +51,7 @@ class AppDashboardHTMLBuilder {
     private let treemapRoot: TreemapNode
     private let categoryDataset: [CategoryDatum]
     private let tips: [Tip]
+    private lazy var duplicateInsightSections: [DuplicateInsightSection] = buildDuplicateInsightSections()
     private lazy var flattenedFiles: [FileInfo] = analysis.rootFile.flattened(includeDirectories: false)
     private lazy var flattenedFilesIncludingDirectories: [FileInfo] = analysis.rootFile.flattened(includeDirectories: true)
     private lazy var fileEntries: [FileEntry] = flattenedFiles.enumerated().map { index, file in
@@ -125,31 +126,33 @@ class AppDashboardHTMLBuilder {
 
     func build() -> String {
         let icon = renderIcon()
-        let navigation = renderNavigation()
-        let hero = renderHeroSection(iconHTML: icon)
+        let header = renderHeroSection(iconHTML: icon)
         let footer = renderFooter()
         let dataScript = renderDashboardDataScriptTag()
         let clientScripts = renderClientScripts()
 
+        let breakdownSection = renderBreakdownStack()
         let mainContent: String
         if platform.apkAnalysis != nil {
-            let breakdown = renderBreakdownStack()
             let insights = renderInsightsSection()
             let dynamicFeatures = renderDynamicFeaturesPanel()
             mainContent = renderAndroidTabContainer(
-                breakdownContent: breakdown,
+                breakdownContent: breakdownSection,
                 insightsContent: insights,
                 dynamicContent: dynamicFeatures
             )
+        } else if !tips.isEmpty {
+            let insights = renderInsightsSection()
+            mainContent = renderTabScaffold(tabs: [
+                TabItem(id: "tab-breakdown", label: "Breakdown", content: breakdownSection, emptyMessage: "No breakdown data available."),
+                TabItem(id: "tab-insights", label: "Insights", content: insights, emptyMessage: "No insights available for this build.")
+            ])
         } else {
-            mainContent = renderBreakdownStack()
+            mainContent = breakdownSection
         }
 
-        let sectionsMarkup = [
-            navigation,
-            hero,
-            mainContent,
-            footer
+        let contentMarkup = [
+            mainContent
         ]
         .filter { !$0.isEmpty }
         .joined(separator: "\n")
@@ -162,789 +165,32 @@ class AppDashboardHTMLBuilder {
             <meta name="viewport" content="width=device-width, initial-scale=1" />
             <title>FRTMTools • \(analysis.fileName.htmlEscaped)</title>
             <style>
-                :root {
-                    font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                    line-height: 1.5;
-                    --surface: #ffffff;
-                    --surface-soft: #f8fafc;
-                    --surface-pop: #ffffff;
-                    --border: rgba(15, 23, 42, 0.08);
-                    --text-strong: #0f172a;
-                    --text: #1f2937;
-                    --muted: #64748b;
-                    --accent: #6366f1;
-                    --accent-secondary: #14b8a6;
-                    --page-gutter: clamp(28px, 5vw, 72px);
-                }
-                *, *::before, *::after {
-                    box-sizing: border-box;
-                }
-                body {
-                    margin: 0;
-                    padding: 0;
-                    background: #f8fafc;
-                    color: var(--text);
-                    font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                    font-size: 16px;
-                    min-height: 100vh;
-                    -webkit-font-smoothing: antialiased;
-                }
-                .page {
-                    width: min(1280px, 100vw);
-                    min-height: 100vh;
-                    margin: 0 auto;
-                    background: #ffffff;
-                    padding: var(--page-gutter);
-                }
-                .page-stack {
-                    display: flex;
-                    flex-direction: column;
-                    gap: clamp(24px, 3vw, 40px);
-                }
-                .page-stack > section {
-                    width: 100%;
-                }
-                .top-nav {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 32px;
-                }
-                .nav-brand {
-                    font-size: 1.35rem;
-                    font-weight: 700;
-                    letter-spacing: 0.05em;
-                    color: var(--text-strong);
-                }
-                .nav-pill {
-                    padding: 6px 16px;
-                    border-radius: 999px;
-                    background: rgba(99, 102, 241, 0.12);
-                    color: #4338ca;
-                    font-size: 0.85rem;
-                    font-weight: 600;
-                }
-                .hero-panel {
-                    display: grid;
-                    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-                    gap: 24px;
-                    padding: 28px;
-                    border-radius: 24px;
-                    background: #f9fafb;
-                    border: 1px solid rgba(15, 23, 42, 0.06);
-                }
-                .hero-meta {
-                    display: flex;
-                    gap: 16px;
-                    align-items: center;
-                }
-                .app-icon img {
-                    width: 96px;
-                    height: 96px;
-                    border-radius: 20px;
-                    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
-                    object-fit: cover;
-                }
-                .fallback-icon {
-                    width: 96px;
-                    height: 96px;
-                    border-radius: 20px;
-                    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-                    color: #fff;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 28px;
-                    font-weight: 600;
-                }
-                .hero-title {
-                    margin: 0;
-                    font-size: 2.4rem;
-                    color: #0f172a;
-                    letter-spacing: -0.5px;
-                }
-                .hero-subtitle {
-                    margin: 6px 0 0;
-                    color: #475569;
-                    font-size: 0.95rem;
-                }
-                .badge {
-                    border-radius: 999px;
-                    padding: 6px 16px;
-                    font-size: 0.85rem;
-                    font-weight: 600;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                }
-                .badge-success {
-                    background: rgba(34, 197, 94, 0.15);
-                    color: #15803d;
-                }
-                .badge-warning {
-                    background: rgba(234, 179, 8, 0.18);
-                    color: #92400e;
-                }
-                .badge-critical {
-                    background: rgba(239, 68, 68, 0.18);
-                    color: #b91c1c;
-                }
-                .hero-badges {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 12px;
-                    margin-top: 16px;
-                }
-                .hero-actions {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 16px;
-                    align-items: flex-end;
-                    justify-content: space-between;
-                }
-                .hero-actions .action-text {
-                    color: #475569;
-                    font-size: 0.9rem;
-                    text-align: right;
-                }
-                .hero-actions a,
-                .hero-actions button {
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    border-radius: 14px;
-                    padding: 12px 20px;
-                    font-size: 0.95rem;
-                    font-weight: 600;
-                    text-decoration: none;
-                    border: 1px solid rgba(15, 23, 42, 0.15);
-                    background: #ffffff;
-                    color: #0f172a;
-                    cursor: pointer;
-                }
-                .tab-container {
-                    margin-top: 36px;
-                }
-                .tab-nav {
-                    display: inline-flex;
-                    gap: 12px;
-                    margin-bottom: 24px;
-                    border: 1px solid rgba(15, 23, 42, 0.1);
-                    border-radius: 999px;
-                    padding: 4px;
-                    background: #f8fafc;
-                }
-                .tab-button {
-                    border: none;
-                    background: transparent;
-                    padding: 10px 20px;
-                    border-radius: 999px;
-                    font-weight: 600;
-                    color: #475569;
-                    cursor: pointer;
-                    transition: background 0.2s ease, color 0.2s ease;
-                }
-                .tab-button.active {
-                    background: #0f172a;
-                    color: #ffffff;
-                }
-                .tab-content {
-                    display: none;
-                    animation: fadeIn 0.25s ease;
-                }
-                .tab-content.active {
-                    display: block;
-                }
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(12px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                .cards {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-                    gap: 16px;
-                    margin: 36px 0;
-                }
-                .card {
-                    background: linear-gradient(140deg, #ffffff 0%, #f8fafc 100%);
-                    border-radius: 20px;
-                    padding: 20px;
-                    border: 1px solid rgba(15, 23, 42, 0.08);
-                    box-shadow: 0 15px 25px rgba(15, 23, 42, 0.07);
-                }
-                .card.card-warning {
-                    background: linear-gradient(140deg, #fff7ed 0%, #ffeeda 100%);
-                    border-color: rgba(251, 146, 60, 0.45);
-                }
-                .card.card-danger {
-                    background: linear-gradient(140deg, #fef2f2 0%, #fee2e2 100%);
-                    border-color: rgba(239, 68, 68, 0.45);
-                }
-                .card h3 {
-                    margin: 0;
-                    text-transform: uppercase;
-                    font-size: 0.75rem;
-                    letter-spacing: 0.08em;
-                    color: #94a3b8;
-                }
-                .card .value {
-                    margin-top: 10px;
-                    font-size: 1.6rem;
-                    font-weight: 600;
-                    color: #0f172a;
-                }
-                .card .meta {
-                    margin-top: 6px;
-                    color: #64748b;
-                    font-size: 0.85rem;
-                }
-                .cards .card {
-                    position: relative;
-                }
-                .viz-section,
-                .treemap-section,
-                .platform-section {
-                    margin: 0;
-                    padding: clamp(24px, 3vw, 40px);
-                    border-radius: 28px;
-                    background: #ffffff;
-                    border: 1px solid rgba(15, 23, 42, 0.06);
-                    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.05);
-                }
-                .detail-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-                    gap: 16px;
-                    margin-top: 16px;
-                }
-                .detail-card {
-                    border-radius: 16px;
-                    border: 1px solid rgba(15, 23, 42, 0.08);
-                    padding: 16px;
-                    background: #f8fafc;
-                }
-                .detail-card h3 {
-                    margin: 0;
-                    font-size: 0.85rem;
-                    text-transform: uppercase;
-                    letter-spacing: 0.08em;
-                    color: #94a3b8;
-                }
-                .detail-card .value {
-                    margin-top: 8px;
-                    font-size: 1.1rem;
-                    font-weight: 600;
-                    color: #0f172a;
-                }
-                .detail-card .meta {
-                    margin-top: 4px;
-                    font-size: 0.85rem;
-                    color: #94a3b8;
-                }
-                .insight-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-                    gap: 18px;
-                }
-                .insight-card {
-                    border-radius: 20px;
-                    border: 1px solid rgba(15, 23, 42, 0.08);
-                    padding: 20px;
-                    background: linear-gradient(140deg, #ffffff 0%, #fef9c3 100%);
-                    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
-                }
-                .insight-category {
-                    display: inline-flex;
-                    padding: 4px 12px;
-                    border-radius: 999px;
-                    font-size: 0.75rem;
-                    font-weight: 600;
-                    letter-spacing: 0.04em;
-                    background: rgba(15, 23, 42, 0.08);
-                    color: #0f172a;
-                    text-transform: uppercase;
-                    margin-bottom: 12px;
-                }
-                .insight-text {
-                    font-size: 0.95rem;
-                    color: #0f172a;
-                    line-height: 1.5;
-                }
-                .insight-subtips {
-                    margin-top: 12px;
-                    padding-top: 12px;
-                    border-top: 1px solid rgba(15, 23, 42, 0.1);
-                    font-size: 0.85rem;
-                    color: #475569;
-                }
-                .feature-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                    gap: 18px;
-                }
-                .feature-card {
-                    border: 1px solid rgba(15, 23, 42, 0.08);
-                    border-radius: 20px;
-                    padding: 18px;
-                    background: #fdf2f8;
-                }
-                .feature-card-header {
-                    display: flex;
-                    justify-content: space-between;
-                    gap: 12px;
-                    margin-bottom: 12px;
-                }
-                .feature-card-header .name {
-                    font-size: 1rem;
-                    font-weight: 600;
-                    color: #0f172a;
-                }
-                .feature-card-header .meta {
-                    font-size: 0.8rem;
-                    color: #475569;
-                }
-                .feature-size {
-                    font-weight: 600;
-                    color: #0f172a;
-                }
-                .inventory-section {
-                    margin: 0;
-                    padding: clamp(24px, 3vw, 40px);
-                    border-radius: 28px;
-                    background: #ffffff;
-                    border: 1px solid rgba(15, 23, 42, 0.06);
-                    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
-                }
-                section#file-explorer {
-                    margin: 0;
-                    padding: clamp(24px, 3vw, 40px);
-                    border-radius: 28px;
-                    background: #ffffff;
-                    border: 1px solid rgba(15, 23, 42, 0.06);
-                    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.05);
-                }
-                .inventory-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-                    gap: 18px;
-                }
-                .inventory-card {
-                    border-radius: 18px;
-                    border: 1px solid rgba(15, 23, 42, 0.08);
-                    padding: 20px;
-                    background: #f8fafc;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                }
-                .inventory-card .tag-section {
-                    margin-top: 0;
-                }
-                .inventory-card .meta {
-                    font-size: 0.85rem;
-                    color: #94a3b8;
-                }
-                .inventory-card-header {
-                    display: flex;
-                    justify-content: space-between;
-                    gap: 12px;
-                    align-items: baseline;
-                }
-                .inventory-card-header h3 {
-                    margin: 0;
-                    font-size: 1rem;
-                    color: #0f172a;
-                }
-                .inventory-card-header span {
-                    font-size: 0.85rem;
-                    color: #94a3b8;
-                }
-                .tag-section {
-                    margin-top: 20px;
-                }
-                .tag-section h3 {
-                    margin: 0 0 8px;
-                    font-size: 0.95rem;
-                    color: #334155;
-                }
-                .tag-section .meta {
-                    margin-top: 8px;
-                    font-size: 0.85rem;
-                    color: #94a3b8;
-                }
-                .tag-list {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 8px;
-                    margin: 0;
-                    padding: 0;
-                    list-style: none;
-                }
-                .tag {
-                    border-radius: 999px;
-                    padding: 6px 12px;
-                    background: rgba(99, 102, 241, 0.1);
-                    color: #312e81;
-                    font-size: 0.85rem;
-                    font-weight: 600;
-                }
-                .viz-section-content {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 32px;
-                    align-items: center;
-                    justify-content: space-between;
-                }
-                #categoryChart {
-                    width: 260px;
-                    height: 260px;
-                }
-                .category-legend {
-                    list-style: none;
-                    padding: 0;
-                    margin: 0;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 10px;
-                    min-width: 220px;
-                }
-                .category-legend li {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    gap: 12px;
-                    padding: 8px 12px;
-                    border-radius: 16px;
-                    background: rgba(15, 23, 42, 0.04);
-                    font-size: 0.9rem;
-                    cursor: pointer;
-                    transition: transform 0.2s ease, background 0.2s ease;
-                }
-                .category-legend li:hover {
-                    transform: translateX(4px);
-                    background: rgba(99, 102, 241, 0.12);
-                }
-                .category-legend li[data-active="false"] {
-                    opacity: 0.45;
-                }
-                .legend-color {
-                    width: 14px;
-                    height: 14px;
-                    border-radius: 999px;
-                }
-                .legend-value {
-                    font-weight: 600;
-                    color: #0f172a;
-                }
-                .treemap-wrapper {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                    flex: 1;
-                }
-                .treemap-controls {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: 12px;
-                }
-                .treemap-breadcrumb {
-                    font-size: 0.9rem;
-                    color: #475569;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                }
-                .treemap-reset {
-                    border: none;
-                    padding: 6px 14px;
-                    border-radius: 999px;
-                    background: rgba(15, 23, 42, 0.08);
-                    color: #0f172a;
-                    font-weight: 600;
-                    cursor: pointer;
-                }
-                .treemap {
-                    position: relative;
-                    width: 100%;
-                    height: 340px;
-                    border-radius: 18px;
-                    overflow: hidden;
-                    background: #f8fafc;
-                }
-                .treemap-tile {
-                    position: absolute;
-                    border-radius: 0;
-                    padding: 8px;
-                    box-sizing: border-box;
-                    font-size: 0.78rem;
-                    color: #0f172a;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                    border: 1px solid rgba(15, 23, 42, 0.08);
-                    transition: transform 0.2s ease, box-shadow 0.2s ease;
-                }
-                .treemap-tile:hover {
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
-                }
-                .treemap-tile .tile-name {
-                    font-weight: 600;
-                }
-                .treemap-tile .tile-size {
-                    font-size: 0.72rem;
-                    color: #475569;
-                }
-                section {
-                    margin: 36px 0 0;
-                    background: #ffffff;
-                    border-radius: 20px;
-                    padding: 24px;
-                    border: 1px solid rgba(15, 23, 42, 0.05);
-                    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
-                }
-                .section-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 24px;
-                }
-                .section-header h2 {
-                    margin: 0;
-                    font-size: 1.4rem;
-                    color: #0f172a;
-                }
-                .section-controls {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 12px;
-                    align-items: center;
-                    margin-bottom: 16px;
-                }
-                .filter-toggle {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 8px;
-                    font-size: 0.85rem;
-                    color: #475569;
-                }
-                .filter-toggle input {
-                    accent-color: #6366f1;
-                }
-                .search-group {
-                    flex: 1 1 240px;
-                    display: flex;
-                    align-items: center;
-                    border: 1px solid rgba(15, 23, 42, 0.12);
-                    border-radius: 999px;
-                    padding: 0 14px;
-                    background: #f8fafc;
-                    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-                }
-                .search-group:focus-within {
-                    border-color: #6366f1;
-                    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-                }
-                .search-group input {
-                    flex: 1;
-                    border: none;
-                    background: transparent;
-                    font-size: 0.95rem;
-                    padding: 10px 0;
-                    outline: none;
-                    color: #0f172a;
-                }
-                .search-hint {
-                    font-size: 0.8rem;
-                    color: #94a3b8;
-                }
-                .filter-select select {
-                    border-radius: 999px;
-                    border: 1px solid rgba(15, 23, 42, 0.12);
-                    padding: 8px 14px;
-                    background: #f8fafc;
-                    font-weight: 600;
-                    color: #0f172a;
-                }
-                .sort-buttons {
-                    display: inline-flex;
-                    border: 1px solid rgba(15, 23, 42, 0.12);
-                    border-radius: 999px;
-                    overflow: hidden;
-                }
-                .sort-button {
-                    background: transparent;
-                    border: none;
-                    padding: 8px 16px;
-                    cursor: pointer;
-                    font-weight: 600;
-                    color: #475569;
-                    transition: background 0.2s ease, color 0.2s ease;
-                }
-                .sort-button.active {
-                    background: #6366f1;
-                    color: #fff;
-                }
-                .sort-button:not(:last-child) {
-                    border-right: 1px solid rgba(15, 23, 42, 0.12);
-                }
-                .search-status {
-                    margin-top: 12px;
-                    font-size: 0.85rem;
-                    color: #94a3b8;
-                    text-align: right;
-                }
-                .path-main {
-                    font-weight: 600;
-                    color: var(--text-strong);
-                    word-break: break-word;
-                }
-                .path-meta {
-                    font-size: 0.8rem;
-                    color: #94a3b8;
-                    margin-top: 2px;
-                }
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                }
-                .table-wrapper {
-                    overflow-x: auto;
-                    border-radius: 18px;
-                    border: 1px solid rgba(15, 23, 42, 0.08);
-                    background: #ffffff;
-                    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
-                }
-                .table-wrapper.compact {
-                    border-radius: 14px;
-                    box-shadow: none;
-                }
-                th, td {
-                    padding: 12px;
-                    text-align: left;
-                    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-                }
-                th {
-                    font-size: 0.85rem;
-                    text-transform: uppercase;
-                    letter-spacing: 0.08em;
-                    color: #94a3b8;
-                }
-                td {
-                    color: #1e293b;
-                    font-size: 0.95rem;
-                }
-                .type-pill {
-                    padding: 4px 10px;
-                    border-radius: 999px;
-                    background: rgba(99, 102, 241, 0.15);
-                    color: #3730a3;
-                    font-weight: 600;
-                    font-size: 0.8rem;
-                }
-                .library-tags {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 6px;
-                }
-                .library-tag {
-                    padding: 4px 8px;
-                    border-radius: 999px;
-                    background: rgba(99, 102, 241, 0.12);
-                    color: #312e81;
-                    font-size: 0.78rem;
-                    font-weight: 600;
-                }
-                .library-tag.muted {
-                    background: rgba(148, 163, 184, 0.22);
-                    color: #475569;
-                }
-                .feature-file-table .name {
-                    font-weight: 600;
-                    color: #0f172a;
-                }
-                .feature-file-table .meta {
-                    font-size: 0.8rem;
-                    color: #94a3b8;
-                }
-                .feature-file-table .numeric {
-                    text-align: right;
-                    font-weight: 600;
-                }
-                .manifest-pill {
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    border-radius: 999px;
-                    padding: 4px 12px;
-                    font-size: 0.8rem;
-                    background: rgba(148, 163, 184, 0.25);
-                    color: #475569;
-                    font-weight: 600;
-                }
-                .manifest-pill.yes {
-                    background: rgba(16, 185, 129, 0.2);
-                    color: #047857;
-                }
-                .empty-state {
-                    color: #94a3b8;
-                    font-style: italic;
-                    text-align: center;
-                }
-                .empty-state.compact {
-                    margin: 0;
-                    padding: 8px 0;
-                    text-align: left;
-                }
-                footer {
-                    margin-top: 48px;
-                    text-align: center;
-                    font-size: 0.85rem;
-                    color: #94a3b8;
-                }
-                footer p {
-                    margin: 0;
-                }
-                @media (max-width: 720px) {
-                    .page {
-                        padding: 24px 20px 48px;
-                    }
-                    .hero-panel {
-                        grid-template-columns: 1fr;
-                    }
-                    .viz-section-content {
-                        flex-direction: column;
-                    }
-                    .section-controls {
-                        flex-direction: column;
-                        align-items: stretch;
-                    }
-                .search-status {
-                    text-align: left;
-                }
-            }
+            \(DashboardHTMLStyle.baseCSS)
             </style>
         </head>
-        <body>
-            <main class="page" role="main">
-                <div class="page-stack">
-                    \(sectionsMarkup)
-                </div>
-            </main>
+        <body class="dashboard">
+            <div class="dashboard-shell">
+                \(header)
+                <main class="dashboard-main" role="main">
+                    \(contentMarkup)
+                </main>
+                \(footer)
+            </div>
             \(dataScript)
             \(clientScripts)
         </body>
         </html>
         """
+
     }
 
     private func renderIcon() -> String {
         if let data = analysis.image?.toData(), data.isEmpty == false {
             let base64 = data.base64EncodedString()
             return """
-            <div class="app-icon">
-                <img src="data:image/png;base64,\(base64)" alt="App icon" />
-            </div>
+                <div class="app-icon">
+                    <img src="data:image/png;base64,\(base64)" alt="App icon" />
+                </div>
             """
         }
 
@@ -954,49 +200,62 @@ class AppDashboardHTMLBuilder {
         """
     }
 
-    private func renderNavigation() -> String {
-        let versionLabel = versionSummaryText() ?? "Latest build snapshot"
-        return """
-        <nav class="top-nav">
-            <div class="nav-brand">FRTMTools</div>
-            <div class="nav-pill">\("\(platform.label) • \(versionLabel)".htmlEscaped)</div>
-        </nav>
-        """
-    }
-
     private func renderHeroSection(iconHTML: String) -> String {
         let heroBadges = [
             renderBadge(title: analysis.isStripped ? "Binary stripped" : "Binary not stripped", type: analysis.isStripped ? .success : .warning),
             renderBadge(title: analysis.allowsArbitraryLoads ? "ATS relaxed" : "ATS enforced", type: analysis.allowsArbitraryLoads ? .warning : .success)
         ].joined(separator: "\n")
 
-        let executable = analysis.executableName ?? "Unknown executable"
+        let title = analysis.executableName ?? analysis.fileName
         let versionLine = versionSummaryText() ?? "No version metadata available"
-        let sourcePath = analysis.url.path.htmlEscaped
+        let sourcePath = analysis.url.path
+        let sourceLine = sourcePath.isEmpty ? "" : "<p class=\"hero-source\">Source: \(sourcePath.htmlEscaped)</p>"
         let platformSubtitle = platform.subtitleLines
             .map { "<p class=\"hero-subtitle\">\($0.htmlEscaped)</p>" }
             .joined()
         let actionText = "Analyzed \(fileEntries.count) files · \(formattedBytes(analysis.totalSize)) uncompressed"
+        let generated = iso8601String()
 
         return """
-        <section class="hero-panel">
-            <div class="hero-meta">
+        <header class="dashboard-header">
+            <div class="header-main">
                 \(iconHTML)
-                <div>
-                    <h1 class="hero-title">\(executable.htmlEscaped)</h1>
-                    <p class="hero-subtitle">\(analysis.fileName.htmlEscaped)</p>
-                    <p class="hero-subtitle">\(versionLine.htmlEscaped)</p>
+                <div class="hero-text">
+                    <p class="hero-eyebrow">\(platform.label.htmlEscaped)</p>
+                    <h1 class="hero-title">\(title.htmlEscaped)</h1>
+                    <p class="hero-subtitle">Bundle \(analysis.fileName.htmlEscaped) · \(versionLine.htmlEscaped)</p>
                     \(platformSubtitle)
                     <div class="hero-badges">
                         \(heroBadges)
                     </div>
                 </div>
             </div>
-            <div class="hero-actions">
-                <div class="action-text">\(actionText.htmlEscaped)</div>
-                <button type="button" onclick="const section=document.getElementById('file-explorer'); if(section){ section.scrollIntoView({behavior: 'smooth', block: 'start'}); }">Jump to explorer</button>
+            <div class="header-meta">
+                <dl class="meta-list">
+                    <div>
+                        <dt>Version</dt>
+                        <dd>\((analysis.version ?? "—").htmlEscaped)</dd>
+                    </div>
+                    <div>
+                        <dt>Build</dt>
+                        <dd>\((analysis.buildNumber ?? "n/a").htmlEscaped)</dd>
+                    </div>
+                    <div>
+                        <dt>Bundle Size</dt>
+                        <dd>\(formattedBytes(analysis.totalSize).htmlEscaped)</dd>
+                    </div>
+                    <div>
+                        <dt>Generated</dt>
+                        <dd>\(generated)</dd>
+                    </div>
+                </dl>
+                <div class="header-actions">
+                    <p class="header-note">\(actionText.htmlEscaped)</p>
+                    <button class="link-button" type="button" onclick="const section=document.getElementById('file-explorer'); if(section){ section.scrollIntoView({behavior: 'smooth', block: 'start'}); }">Jump to explorer</button>
+                    \(sourceLine)
+                </div>
             </div>
-        </section>
+        </header>
         """
     }
 
@@ -1014,49 +273,118 @@ class AppDashboardHTMLBuilder {
             renderLibraryExplorerSection(),
             renderFileExplorerSection()
         ].filter { !$0.isEmpty }
-        return sections.joined(separator: "\n")
+        return wrapSectionStack(sections)
     }
 
     private func renderAndroidTabContainer(breakdownContent: String, insightsContent: String, dynamicContent: String) -> String {
-        let breakdown = breakdownContent.isEmpty ? "<div class=\"empty-state\">No breakdown data available.</div>" : breakdownContent
-        let insights = insightsContent.isEmpty ? "<div class=\"empty-state\">No insights available for this build.</div>" : insightsContent
-        let dynamics = dynamicContent.isEmpty ? "<div class=\"empty-state\">No dynamic features were detected in this bundle.</div>" : dynamicContent
-
-        return """
-        <div class="tab-container">
-            <div class="tab-nav">
-                <button class="tab-button active" type="button" data-tab-target="tab-breakdown">Breakdown</button>
-                <button class="tab-button" type="button" data-tab-target="tab-insights">Insights</button>
-                <button class="tab-button" type="button" data-tab-target="tab-dynamic">Dynamic Features</button>
-            </div>
-            <div class="tab-content active" id="tab-breakdown">
-                \(breakdown)
-            </div>
-            <div class="tab-content" id="tab-insights">
-                \(insights)
-            </div>
-            <div class="tab-content" id="tab-dynamic">
-                \(dynamics)
-            </div>
-        </div>
-        """
+        let tabs = [
+            TabItem(id: "tab-breakdown", label: "Breakdown", content: breakdownContent, emptyMessage: "No breakdown data available."),
+            TabItem(id: "tab-insights", label: "Insights", content: insightsContent, emptyMessage: "No insights available for this build."),
+            TabItem(id: "tab-dynamic", label: "Dynamic Features", content: dynamicContent, emptyMessage: "No dynamic features were detected in this bundle.")
+        ]
+        return renderTabScaffold(tabs: tabs)
     }
 
     private func renderInsightsSection() -> String {
         guard !tips.isEmpty else {
             return ""
         }
-        let cards = tips.map { tipCard(for: $0) }.joined(separator: "\n")
-        return """
-        <section class="platform-section insights">
-            <div class="section-header">
-                <h2>Insights</h2>
-                <span>Heuristic recommendations generated from the APK contents</span>
-            </div>
-            <div class="insight-grid">
+        let duplicatesMarkup = duplicateInsightSections.isEmpty ? "" : renderDuplicateInsightsPanel(sections: duplicateInsightSections)
+        let duplicateKinds: Set<Tip.Kind> = [.duplicateFiles, .duplicateImages]
+        let standardTips = tips.filter { tip in
+            !duplicateKinds.contains(tip.kind)
+        }
+        let cards = standardTips.map { tipCard(for: $0) }.joined(separator: "\n")
+        let cardsMarkup = cards.isEmpty ? "" : """
+            <div class=\"insight-grid\">
                 \(cards)
             </div>
+        """
+        if duplicatesMarkup.isEmpty && cardsMarkup.isEmpty {
+            return ""
+        }
+        let contextDescription: String = platform.apkAnalysis != nil
+            ? "Heuristic recommendations generated from the Android bundle contents."
+            : "Heuristic recommendations generated from the bundle contents."
+        return wrapSectionStack([
+        """
+        <section class=\"platform-section insights\">
+            <div class=\"section-header\">
+                <h2>Insights</h2>
+                <span>\(contextDescription.htmlEscaped)</span>
+            </div>
+            \(duplicatesMarkup)
+            \(cardsMarkup)
         </section>
+        """
+        ])
+    }
+
+    private func renderDuplicateInsightsPanel(sections: [DuplicateInsightSection]) -> String {
+        guard !sections.isEmpty else { return "" }
+        let cards = sections.map { duplicateCard(for: $0) }.joined(separator: "\n")
+        return """
+        <div class=\"duplicate-panel\">
+            \(cards)
+        </div>
+        """
+    }
+
+    private func duplicateCard(for section: DuplicateInsightSection) -> String {
+        let previewLimit = 5
+        let visibleEntries = section.entries.prefix(previewLimit)
+        let overflowCount = section.entries.count - visibleEntries.count
+        let entryMarkup = visibleEntries.map { duplicateEntryMarkup(for: $0) }.joined(separator: "\n")
+        let overflowNote = overflowCount > 0
+            ? "<p class=\"duplicate-more\">+\(overflowCount) additional groups are included in the export.</p>"
+            : ""
+        let exportLink: String
+        if section.exportPayload.isEmpty {
+            exportLink = ""
+        } else {
+            exportLink = """
+            <a class=\"ghost-button\" href=\"\(section.exportPayload.htmlAttributeEscaped)\" download=\"\(section.exportFileName.htmlAttributeEscaped)\">Export list</a>
+            """
+        }
+        let body: String
+        if entryMarkup.isEmpty {
+            body = "<p class=\"empty-state\">No duplicate details available.</p>"
+        } else {
+            body = """
+            <ol class=\"duplicate-list\">
+                \(entryMarkup)
+            </ol>
+            \(overflowNote)
+            """
+        }
+        return """
+        <article class=\"duplicate-card\">
+            <div class=\"duplicate-card-header\">
+                <div>
+                    <p class=\"duplicate-eyebrow\">\(section.title.htmlEscaped)</p>
+                    <h3>\(section.summary.htmlEscaped)</h3>
+                </div>
+                \(exportLink)
+            </div>
+            \(body)
+        </article>
+        """
+    }
+
+    private func duplicateEntryMarkup(for entry: DuplicateEntry) -> String {
+        let paths = entry.paths.map { path in
+            "<li><code>\(path.htmlEscaped)</code></li>"
+        }.joined(separator: "\n")
+        let pathList = paths.isEmpty ? "" : """
+            <ul class=\"duplicate-paths\">
+                \(paths)
+            </ul>
+        """
+        return """
+        <li class=\"duplicate-entry\">
+            <p class=\"duplicate-entry-title\">\(entry.summary.htmlEscaped)</p>
+            \(pathList)
+        </li>
         """
     }
 
@@ -1083,6 +411,81 @@ class AppDashboardHTMLBuilder {
         """
     }
 
+    private func buildDuplicateInsightSections() -> [DuplicateInsightSection] {
+        guard !tips.isEmpty else { return [] }
+        let orderedKinds: [Tip.Kind] = [.duplicateFiles, .duplicateImages]
+        let baseName = sanitizedReportName()
+        var sections: [DuplicateInsightSection] = []
+        for kind in orderedKinds {
+            guard let tip = tips.first(where: { $0.kind == kind }) else { continue }
+            let entries = duplicateEntries(from: tip)
+            guard !entries.isEmpty else { continue }
+            let suffix = kind == .duplicateFiles ? "duplicate-files" : "duplicate-images"
+            let exportFileName = baseName.isEmpty ? "duplicates.txt" : "\(baseName)-\(suffix).txt"
+            let exportPayload = exportDataURI(for: entries, heading: tip.text)
+            sections.append(DuplicateInsightSection(
+                kind: kind,
+                title: duplicateTitle(for: kind),
+                summary: tip.text,
+                entries: entries,
+                exportFileName: exportFileName,
+                exportPayload: exportPayload
+            ))
+        }
+        return sections
+    }
+
+    private func duplicateEntries(from tip: Tip) -> [DuplicateEntry] {
+        tip.subTips.compactMap { subTip in
+            let lines = subTip.text
+                .components(separatedBy: CharacterSet.newlines)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            guard let summary = lines.first else { return nil }
+            let paths = Array(lines.dropFirst())
+            return DuplicateEntry(summary: summary, paths: paths)
+        }
+    }
+
+    private func exportDataURI(for entries: [DuplicateEntry], heading: String) -> String {
+        var lines: [String] = []
+        lines.append("Report: \(analysis.fileName)")
+        lines.append(heading)
+        lines.append("")
+        for entry in entries {
+            lines.append(entry.summary)
+            for path in entry.paths {
+                lines.append(" - \(path)")
+            }
+            lines.append("")
+        }
+        let payload = lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !payload.isEmpty, let data = payload.data(using: .utf8) else { return "" }
+        return "data:text/plain;base64,\(data.base64EncodedString())"
+    }
+
+    private func sanitizedReportName() -> String {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
+        let components = analysis.fileName.components(separatedBy: allowed.inverted).filter { !$0.isEmpty }
+        let joined = components.joined(separator: "-")
+        if joined.isEmpty {
+            return "frtm-report"
+        }
+        let condensed = joined.replacingOccurrences(of: "-+", with: "-", options: .regularExpression)
+        return condensed.lowercased()
+    }
+
+    private func duplicateTitle(for kind: Tip.Kind) -> String {
+        switch kind {
+        case .duplicateFiles:
+            return "Duplicate Files"
+        case .duplicateImages:
+            return "Duplicate Images"
+        default:
+            return "Duplicates"
+        }
+    }
+
     private func renderDynamicFeaturesPanel() -> String {
         guard let apk = platform.apkAnalysis else {
             return ""
@@ -1093,7 +496,7 @@ class AppDashboardHTMLBuilder {
         if sections.isEmpty {
             return "<section class=\"platform-section\"><div class=\"empty-state\">No dynamic feature modules were bundled.</div></section>"
         }
-        return sections.joined(separator: "\n")
+        return wrapSectionStack(sections)
     }
 
     private func renderDynamicFeatureFileListsSection(for apk: APKAnalysis) -> String {
@@ -1158,6 +561,56 @@ class AppDashboardHTMLBuilder {
         """
     }
 
+    private func wrapSectionStack(_ sections: [String]) -> String {
+        let filtered = sections.filter { !$0.isEmpty }
+        guard !filtered.isEmpty else { return "" }
+        return """
+        <div class="section-stack">
+            \(filtered.joined(separator: "\n"))
+        </div>
+        """
+    }
+
+    private func renderTabScaffold(tabs: [TabItem]) -> String {
+        let normalized = tabs.map { tab -> (id: String, label: String, content: String) in
+            let trimmed = tab.content.trimmingCharacters(in: .whitespacesAndNewlines)
+            let content: String
+            if trimmed.isEmpty {
+                content = wrapSectionStack([
+                """
+                <section>
+                    <div class="empty-state">\(tab.emptyMessage.htmlEscaped)</div>
+                </section>
+                """
+                ])
+            } else {
+                content = tab.content
+            }
+            return (id: tab.id, label: tab.label, content: content)
+        }
+        guard !normalized.isEmpty else { return "" }
+        let navButtons = normalized.enumerated().map { index, tab in
+            let activeClass = index == 0 ? " active" : ""
+            return "<button class=\"tab-button\(activeClass)\" type=\"button\" data-tab-target=\"\(tab.id)\">\(tab.label.htmlEscaped)</button>"
+        }.joined(separator: "\n")
+        let sections = normalized.enumerated().map { index, tab in
+            let activeClass = index == 0 ? " active" : ""
+            return """
+            <div class="tab-content\(activeClass)" id="\(tab.id)">
+                \(tab.content)
+            </div>
+            """
+        }.joined(separator: "\n")
+        return """
+        <div class="tab-container">
+            <div class="tab-nav">
+                \(navButtons)
+            </div>
+            \(sections)
+        </div>
+        """
+    }
+
     private func renderSummaryCards() -> String {
         var entries: [SummaryCardEntry] = [
             SummaryCardEntry(title: "Uncompressed Size", value: formattedBytes(analysis.totalSize), meta: analysis.fileName, extraClass: nil),
@@ -1179,15 +632,28 @@ class AppDashboardHTMLBuilder {
         let cards = entries.map { entry in
             let extraClass = entry.extraClass.map { " \($0)" } ?? ""
             return """
-            <div class="card\(extraClass)">
-                <h3>\(entry.title.htmlEscaped)</h3>
-                <div class="value">\(entry.value.htmlEscaped)</div>
-                <div class="meta">\(entry.meta.htmlEscaped)</div>
-            </div>
+            <article class="kpi\(extraClass)">
+                <p class="kpi-label">\(entry.title.htmlEscaped)</p>
+                <p class="kpi-value">\(entry.value.htmlEscaped)</p>
+                <p class="kpi-meta">\(entry.meta.htmlEscaped)</p>
+            </article>
             """
         }.joined(separator: "\n")
 
-        return "<div class=\"cards\">\(cards)</div>"
+        return """
+        <section class="kpi-section">
+            <div class="section-header">
+                <div>
+                    <p class="section-eyebrow">Summary</p>
+                    <h2>Build Snapshot</h2>
+                </div>
+                <span>Key metadata for this build</span>
+            </div>
+            <div class="kpi-strip">
+                \(cards)
+            </div>
+        </section>
+        """
     }
 
     private func renderTechnicalInventorySection() -> String {
@@ -1769,7 +1235,8 @@ class AppDashboardHTMLBuilder {
             ("Resources", metrics.resources)
         ].filter { $0.value > 0 || metrics.total > 0 }
         guard !rows.isEmpty else { return "" }
-        let total = max(metrics.total, 1)
+        let rawSum = rows.reduce(0) { $0 + $1.value }
+        let total = max(rawSum > 0 ? rawSum : metrics.total, 1)
         let tableRows = rows.map { row in
             let percentage = Double(row.value) / Double(total) * 100
             return """
@@ -1889,14 +1356,22 @@ class AppDashboardHTMLBuilder {
 
 
     private func renderCategoryVisualizationSection() -> String {
+        let totalReadable = formattedBytes(analysis.totalSize).htmlEscaped
         return """
         <section class="viz-section" id="category-visualization">
             <div class="section-header">
                 <h2>Distribution by Category</h2>
-                <span>Tap legend to isolate categories</span>
+                <span>Hover segments for details, tap legend to isolate</span>
             </div>
             <div class="viz-section-content">
-                <canvas id="categoryChart" width="320" height="320"></canvas>
+                <div class="category-chart-shell">
+                    <canvas id="categoryChart" aria-label="Category distribution donut chart"></canvas>
+                    <div class="category-chart-label" id="categoryChartLabel">
+                        <p class="chart-label-title" data-chart-label-title>All categories</p>
+                        <p class="chart-label-value" data-chart-label-value>\(totalReadable)</p>
+                    </div>
+                    <div class="category-tooltip" id="categoryChartTooltip" aria-hidden="true"></div>
+                </div>
                 <ul class="category-legend" id="categoryLegend"></ul>
             </div>
         </section>
@@ -2080,7 +1555,7 @@ class AppDashboardHTMLBuilder {
 
     private func renderFooter() -> String {
         return """
-        <footer>
+        <footer class="dashboard-footer">
             <p>Crafted with FRTMTools CLI • \(iso8601String())</p>
             <p>\(analysis.fileName.htmlEscaped) · \(analysis.url.path.htmlEscaped)</p>
         </footer>
@@ -2350,17 +1825,39 @@ class AppDashboardHTMLBuilder {
             function renderCategoryChart() {
                 const canvas = document.getElementById('categoryChart');
                 const legend = document.getElementById('categoryLegend');
+                const label = document.getElementById('categoryChartLabel');
+                const labelTitle = label ? label.querySelector('[data-chart-label-title]') : null;
+                const labelValue = label ? label.querySelector('[data-chart-label-value]') : null;
+                const tooltip = document.getElementById('categoryChartTooltip');
                 if (!canvas || !legend || !categories.length) { return; }
 
                 const ctx = canvas.getContext('2d');
-                const radius = Math.min(canvas.width, canvas.height) / 2 - 10;
-                const centerX = canvas.width / 2;
-                const centerY = canvas.height / 2;
-
                 const palette = ['#6366f1', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#0ea5e9', '#22c55e', '#facc15'];
                 const activeSegments = new Set(categories.map(function (_item, index) { return index; }));
+                const totalBytes = categories.reduce(function (acc, item) {
+                    return acc + (item.size || 0);
+                }, 0);
+                let segmentsMeta = [];
+                let hoveredIndex = null;
+                let hoverSource = null;
+
+                function resizeCanvas() {
+                    const size = canvas.parentElement ? canvas.parentElement.clientWidth - 20 : 320;
+                    const resolved = Math.max(Math.min(size, 420), 220);
+                    canvas.width = resolved;
+                    canvas.height = resolved;
+                }
+
+                resizeCanvas();
+                window.addEventListener('resize', function () {
+                    resizeCanvas();
+                    drawChart();
+                });
 
                 function drawChart() {
+                    const radius = canvas.width / 2 - 12;
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     const activeItems = categories.filter(function (_category, index) {
                         return activeSegments.has(index);
@@ -2369,55 +1866,208 @@ class AppDashboardHTMLBuilder {
                         return acc + (item.size || 0);
                     }, 0) || 1;
                     let startAngle = -Math.PI / 2;
+                    let runningFraction = 0;
+                    segmentsMeta = [];
+                    const highlightActive = hoveredIndex !== null && activeSegments.has(hoveredIndex);
+
                     categories.forEach(function (category, index) {
                         if (!activeSegments.has(index)) { return; }
-                        const color = palette[index % palette.length];
-                        const value = Math.max((category.size || 0) / total, 0);
-                        const sweep = Math.max(0.01, value * Math.PI * 2);
+                        const value = Math.max(category.size || 0, 0);
+                        if (value <= 0) { return; }
+                        const fraction = value / total;
+                        const sweep = Math.max(fraction * Math.PI * 2, 0.01);
+                        const isHovered = hoveredIndex === index;
                         ctx.beginPath();
                         ctx.moveTo(centerX, centerY);
                         ctx.arc(centerX, centerY, radius, startAngle, startAngle + sweep);
                         ctx.closePath();
-                        ctx.fillStyle = color;
+                        ctx.fillStyle = palette[index % palette.length];
+                        ctx.globalAlpha = highlightActive && !isHovered ? 0.35 : 1;
                         ctx.fill();
+                        ctx.globalAlpha = 1;
+
+                        segmentsMeta.push({
+                            index: index,
+                            startFraction: runningFraction,
+                            endFraction: runningFraction + fraction,
+                            color: palette[index % palette.length],
+                            size: category.size || 0,
+                            percent: (category.percent || 0) * 100
+                        });
+
+                        runningFraction += fraction;
                         startAngle += sweep;
                     });
 
                     ctx.beginPath();
-                    ctx.arc(centerX, centerY, radius * 0.55, 0, Math.PI * 2);
+                    ctx.arc(centerX, centerY, radius * 0.5, 0, Math.PI * 2);
                     ctx.fillStyle = '#f8fafc';
                     ctx.fill();
                 }
 
+                function updateLabel(index) {
+                    if (!labelTitle || !labelValue) { return; }
+                    if (index === null || !categories[index]) {
+                        labelTitle.textContent = 'All categories';
+                        labelValue.textContent = formatBytes(totalBytes);
+                        return;
+                    }
+                    const category = categories[index];
+                    labelTitle.textContent = category.name || 'Category';
+                    labelValue.textContent = formatBytes(category.size || 0);
+                }
+
                 function renderLegend() {
-                    legend.innerHTML = categories.map(function (category, index) {
+                    const markup = categories.map(function (category, index) {
                         const color = palette[index % palette.length];
                         const percent = Math.round((category.percent || 0) * 1000) / 10;
                         const isActive = activeSegments.has(index);
-                        return '<li data-index="' + index + '" data-active="' + isActive + '">' +
+                        return '<li role="button" tabindex="0" data-index="' + index + '" data-active="' + isActive + '" aria-pressed="' + isActive + '">' +
                             '<span class="legend-color" style="background:' + color + '"></span>' +
-                            '<span>' + escapeHTML(category.name) + '</span>' +
+                            '<span>' + escapeHTML(category.name || 'Unknown') + '</span>' +
                             '<span class="legend-value">' + percent + '%</span>' +
                         '</li>';
                     }).join('');
+                    legend.innerHTML = markup;
+                    updateLegendState();
                 }
 
-                legend.addEventListener('click', function (event) {
-                    const target = event.target.closest('li[data-index]');
-                    if (!target) { return; }
-                    const index = Number(target.dataset.index);
+                function updateLegendState() {
+                    const items = legend.querySelectorAll('li[data-index]');
+                    items.forEach(function (item) {
+                        const index = Number(item.dataset.index);
+                        item.dataset.active = String(activeSegments.has(index));
+                        item.setAttribute('aria-pressed', String(activeSegments.has(index)));
+                        item.classList.toggle('is-hovered', hoveredIndex === index);
+                    });
+                }
+
+                function toggleSegment(index) {
                     if (activeSegments.has(index)) {
                         if (activeSegments.size === 1) { return; }
                         activeSegments.delete(index);
                     } else {
                         activeSegments.add(index);
                     }
+                    if (!activeSegments.has(index) && hoveredIndex === index) {
+                        hoveredIndex = null;
+                    }
                     drawChart();
                     renderLegend();
+                    updateLabel(hoveredIndex);
+                }
+
+                legend.addEventListener('click', function (event) {
+                    const target = event.target.closest('li[data-index]');
+                    if (!target) { return; }
+                    toggleSegment(Number(target.dataset.index));
+                });
+
+                legend.addEventListener('keydown', function (event) {
+                    if (event.key !== 'Enter' && event.key !== ' ') { return; }
+                    const target = event.target.closest('li[data-index]');
+                    if (!target) { return; }
+                    event.preventDefault();
+                    toggleSegment(Number(target.dataset.index));
+                });
+
+                legend.addEventListener('mouseover', function (event) {
+                    const target = event.target.closest('li[data-index]');
+                    if (!target) { return; }
+                    setHover(Number(target.dataset.index), 'legend');
+                });
+                legend.addEventListener('mouseout', function (event) {
+                    if (legend.contains(event.relatedTarget)) { return; }
+                    clearHover('legend');
+                });
+
+                function normalizeAngle(angle) {
+                    let normalized = angle + Math.PI / 2;
+                    normalized = normalized % (Math.PI * 2);
+                    if (normalized < 0) {
+                        normalized += Math.PI * 2;
+                    }
+                    return normalized;
+                }
+
+                function findSegmentFromPointer(x, y) {
+                    const center = canvas.width / 2;
+                    const dx = x - center;
+                    const dy = y - center;
+                    const radius = canvas.width / 2 - 12;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance > radius || distance < radius * 0.5) {
+                        return null;
+                    }
+                    const angle = Math.atan2(dy, dx);
+                    const fraction = normalizeAngle(angle) / (Math.PI * 2);
+                    for (let i = 0; i < segmentsMeta.length; i += 1) {
+                        const segment = segmentsMeta[i];
+                        const endFraction = i === segmentsMeta.length - 1 ? 1 : segment.endFraction;
+                        if (fraction >= segment.startFraction && fraction <= endFraction + 1e-4) {
+                            return segment;
+                        }
+                    }
+                    return null;
+                }
+
+                function showTooltip(event, segment) {
+                    if (!tooltip || !segment) { return; }
+                    const shell = canvas.parentElement;
+                    if (!shell) { return; }
+                    const rect = shell.getBoundingClientRect();
+                    tooltip.textContent = (categories[segment.index].name || 'Category') + ' · ' + formatBytes(segment.size || 0);
+                    tooltip.style.left = (event.clientX - rect.left) + 'px';
+                    tooltip.style.top = (event.clientY - rect.top) + 'px';
+                    tooltip.classList.add('visible');
+                    tooltip.setAttribute('aria-hidden', 'false');
+                }
+
+                function hideTooltip() {
+                    if (!tooltip) { return; }
+                    tooltip.classList.remove('visible');
+                    tooltip.setAttribute('aria-hidden', 'true');
+                }
+
+                function setHover(index, source) {
+                    if (hoveredIndex === index && hoverSource === source) { return; }
+                    hoveredIndex = index;
+                    hoverSource = source;
+                    updateLabel(index);
+                    updateLegendState();
+                    drawChart();
+                }
+
+                function clearHover(source) {
+                    if (hoverSource !== source) { return; }
+                    hoveredIndex = null;
+                    hoverSource = null;
+                    updateLabel(null);
+                    updateLegendState();
+                    drawChart();
+                    hideTooltip();
+                }
+
+                canvas.addEventListener('mousemove', function (event) {
+                    const rect = canvas.getBoundingClientRect();
+                    const segment = findSegmentFromPointer(event.clientX - rect.left, event.clientY - rect.top);
+                    if (!segment) {
+                        hideTooltip();
+                        clearHover('canvas');
+                        return;
+                    }
+                    setHover(segment.index, 'canvas');
+                    showTooltip(event, segment);
+                });
+
+                canvas.addEventListener('mouseleave', function () {
+                    hideTooltip();
+                    clearHover('canvas');
                 });
 
                 drawChart();
                 renderLegend();
+                updateLabel(null);
             }
 
             function renderTreemapRoot() {
@@ -2802,6 +2452,20 @@ class AppDashboardHTMLBuilder {
         let body: String
     }
 
+    private struct DuplicateInsightSection {
+        let kind: Tip.Kind
+        let title: String
+        let summary: String
+        let entries: [DuplicateEntry]
+        let exportFileName: String
+        let exportPayload: String
+    }
+
+    private struct DuplicateEntry {
+        let summary: String
+        let paths: [String]
+    }
+
     private struct FileEntry: Codable {
         let index: Int
         let name: String
@@ -2822,6 +2486,13 @@ class AppDashboardHTMLBuilder {
         let value: String
         let meta: String
         let extraClass: String?
+    }
+    
+    private struct TabItem {
+        let id: String
+        let label: String
+        let content: String
+        let emptyMessage: String
     }
 
     private struct CategoryDatum: Codable {
@@ -2863,34 +2534,722 @@ class AppDashboardHTMLBuilder {
     }
 }
 
-private extension String {
-    var htmlEscaped: String {
-        var escaped = self
-        let replacements: [(String, String)] = [
-            ("&", "&amp;"),
-            ("<", "&lt;"),
-            (">", "&gt;"),
-            ("\"", "&quot;"),
-            ("'", "&#39;")
-        ]
-        for (target, replacement) in replacements {
-            escaped = escaped.replacingOccurrences(of: target, with: replacement)
-        }
-        return escaped
-    }
+enum DashboardHTMLStyle {
+    static let baseCSS = """
+:root {
+    color-scheme: light;
+    --font-sans: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace;
+    --color-bg: #eff2f7;
+    --color-surface: #ffffff;
+    --color-elevated: #f7f9fd;
+    --color-muted-surface: #f0f4ff;
+    --color-border: #dfe5f1;
+    --color-border-strong: #c5cfdf;
+    --color-text: #0f172a;
+    --color-muted: #5b6474;
+    --color-subtle: #7c869a;
+    --color-primary: #2563eb;
+    --color-primary-strong: #1d4ed8;
+    --color-primary-soft: rgba(37, 99, 235, 0.12);
+    --color-positive: #0d9488;
+    --color-negative: #b91c1c;
+    --color-warning: #c2410c;
+    --radius-lg: 28px;
+    --radius-md: 20px;
+    --radius-sm: 12px;
+    --shadow-soft: 0 25px 60px rgba(15, 23, 42, 0.08);
+    --shadow-card: 0 12px 30px rgba(15, 23, 42, 0.06);
+    --shadow-faint: 0 1px 3px rgba(15, 23, 42, 0.12);
+    --layout-max: 1180px;
+}
 
-    var htmlAttributeEscaped: String {
-        var escaped = self
-        let replacements: [(String, String)] = [
-            ("&", "&amp;"),
-            ("\"", "&quot;"),
-            ("'", "&#39;"),
-            ("<", "&lt;"),
-            (">", "&gt;")
-        ]
-        for (target, replacement) in replacements {
-            escaped = escaped.replacingOccurrences(of: target, with: replacement)
-        }
-        return escaped
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background: radial-gradient(circle at top, rgba(37, 99, 235, 0.08), transparent 55%), var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+img { max-width: 100%; height: auto; display: block; }
+button, input, select { font: inherit; color: inherit; }
+a { color: var(--color-primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.dashboard-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.25rem, 2vw, 1.75rem);
+}
+
+.dashboard-header {
+    width: 100%;
+    margin: clamp(1.25rem, 2vw, 2.5rem) 0 0;
+    padding: clamp(1.5rem, 2vw, 2.75rem) clamp(1.5rem, 4vw, 4rem);
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    display: grid;
+    gap: clamp(1.5rem, 2vw, 2rem);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-soft);
+}
+
+@media (min-width: 960px) {
+    .dashboard-header {
+        grid-template-columns: minmax(0, 1fr) 360px;
+        align-items: stretch;
     }
+}
+
+.header-main {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.app-icon img,
+.fallback-icon {
+    width: 96px;
+    height: 96px;
+    border-radius: 22px;
+    object-fit: cover;
+    background: var(--color-elevated);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-faint);
+}
+
+.fallback-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--color-primary-strong);
+}
+
+.hero-text { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; }
+.hero-eyebrow {
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.72rem;
+    color: var(--color-subtle);
+}
+.hero-title {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 2.9rem);
+    line-height: 1.2;
+    word-break: break-word;
+}
+.hero-subtitle, .hero-source {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+}
+.hero-source {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+}
+.hero-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid var(--color-border);
+    background: var(--color-primary-soft);
+    color: var(--color-primary-strong);
+}
+.badge-success { background: rgba(13, 148, 136, 0.15); color: var(--color-positive); border-color: rgba(13, 148, 136, 0.4); }
+.badge-warning { background: rgba(194, 65, 12, 0.15); color: var(--color-warning); border-color: rgba(194, 65, 12, 0.4); }
+.badge-critical { background: rgba(185, 28, 28, 0.12); color: var(--color-negative); border-color: rgba(185, 28, 28, 0.35); }
+.badge-neutral { background: var(--color-elevated); color: var(--color-muted); }
+.badge-soft { background: var(--color-muted-surface); color: var(--color-text); }
+
+.header-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+}
+.meta-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.85rem 1rem;
+    margin: 0;
+    padding: 0;
+}
+.meta-list > div { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.meta-list dt {
+    margin: 0;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-subtle);
+}
+.meta-list dd {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1rem;
+    word-break: break-word;
+}
+
+.header-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.header-note {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--color-muted);
+}
+
+.link-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: var(--color-primary);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+.link-button:hover { background: var(--color-primary-strong); }
+
+
+.dashboard-main {
+    width: 100%;
+    padding: 0 clamp(1.5rem, 4vw, 4rem) clamp(2rem, 3vw, 3.5rem);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.2rem, 2vw, 1.75rem);
+}
+
+.section-stack { display: flex; flex-direction: column; gap: clamp(1.25rem, 2vw, 1.75rem); }
+
+section, .section {
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    padding: clamp(1.25rem, 2vw, 2rem);
+    box-shadow: var(--shadow-card);
+}
+
+.section-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+.section-header h2 { margin: 0; font-size: 1.4rem; }
+.section-header span, .section-header p { margin: 0; color: var(--color-muted); }
+.section-eyebrow { margin: 0 0 0.35rem; text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.72rem; color: var(--color-subtle); }
+
+.kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+.kpi-card {
+    background: var(--color-elevated);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    box-shadow: var(--shadow-faint);
+}
+.kpi-label { font-size: 0.85rem; color: var(--color-muted); margin: 0; }
+.kpi-value { font-size: 1.8rem; margin: 0; font-weight: 600; line-height: 1.2; word-break: break-word; }
+.kpi-meta { margin: 0; font-size: 0.85rem; color: var(--color-subtle); }
+
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+}
+.table-wrapper table { min-width: 100%; }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+thead th {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+    color: var(--color-subtle);
+    background: var(--color-elevated);
+}
+th, td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    text-align: left;
+    vertical-align: top;
+}
+tbody tr:nth-child(even) { background: rgba(15, 23, 42, 0.015); }
+
+td { color: var(--color-text); word-break: break-word; hyphens: auto; }
+
+.td-numeric, .th-numeric, .numeric { text-align: right; font-variant-numeric: tabular-nums; }
+.td-delta.positive { color: var(--color-negative); }
+.td-delta.negative { color: var(--color-positive); }
+.td-delta.neutral { color: var(--color-muted); }
+.td-path, .path-main, .hero-source { font-family: var(--font-mono); }
+.path-main { font-weight: 600; }
+.path-meta, .meta, .value { color: var(--color-muted); font-size: 0.9rem; }
+
+.section-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-elevated);
+    margin-bottom: 1rem;
+}
+.search-group { position: relative; min-width: 220px; flex: 1; }
+.search-group input {
+    width: 100%;
+    padding-right: 2.5rem;
+}
+.search-hint {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.75rem;
+    color: var(--color-subtle);
+    background: var(--color-surface);
+    border-radius: 6px;
+    padding: 0.1rem 0.4rem;
+}
+.filter-select select, input[type="search"], select {
+    padding: 0.55rem 0.85rem;
+    border-radius: 10px;
+    border: 1px solid var(--color-border-strong);
+    background: var(--color-surface);
+}
+.filter-select { min-width: 180px; }
+.filter-toggle { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; color: var(--color-text); }
+.filter-toggle input { accent-color: var(--color-primary); }
+.sort-buttons { display: inline-flex; border-radius: 999px; border: 1px solid var(--color-border); overflow: hidden; }
+.sort-button {
+    border: none;
+    background: transparent;
+    padding: 0.4rem 0.9rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    cursor: pointer;
+}
+.sort-button.active { background: var(--color-primary); color: #fff; }
+
+.search-status { margin-top: 0.75rem; font-size: 0.9rem; color: var(--color-muted); }
+
+.tab-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    background: var(--color-elevated);
+}
+.tab-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.tab-button {
+    border: none;
+    border-radius: 999px;
+    padding: 0.4rem 1rem;
+    font-weight: 600;
+    background: var(--color-surface);
+    color: var(--color-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.tab-button.active {
+    background: var(--color-primary);
+    color: #fff;
+    box-shadow: var(--shadow-faint);
+}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.viz-section-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+.category-chart-shell {
+    position: relative;
+    flex: 0 0 320px;
+    width: min(360px, 45vw);
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+}
+.category-chart-shell canvas {
+    width: 100%;
+    height: 100%;
+}
+.category-chart-label {
+    position: absolute;
+    text-align: center;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(6px);
+    border-radius: 50%;
+    padding: 0.9rem 1.1rem;
+    min-width: 130px;
+}
+.chart-label-title {
+    margin: 0;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-subtle);
+}
+.chart-label-value {
+    margin: 0.1rem 0 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+.category-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--color-text);
+    color: #fff;
+    font-size: 0.8rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    opacity: 0;
+    transform: translate(-50%, -120%);
+    transition: opacity 0.12s ease;
+    z-index: 5;
+}
+.category-tooltip.visible {
+    opacity: 1;
+}
+.category-legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 360px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+.category-legend li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    padding: 0.35rem 0.5rem;
+    border-radius: var(--radius-sm);
+    transition: background 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+}
+.category-legend li[data-active="false"] {
+    opacity: 0.4;
+}
+.category-legend li.is-hovered {
+    background: var(--color-muted-surface);
+    transform: translateX(6px);
+}
+.category-legend li:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+.legend-color { width: 12px; height: 12px; border-radius: 3px; }
+.legend-value { margin-left: auto; font-weight: 600; color: var(--color-muted); }
+
+.treemap-section .treemap-wrapper {
+    position: relative;
+    min-height: 400px;
+    background: var(--color-elevated);
+    border-radius: var(--radius-sm);
+    border: 1px dashed var(--color-border);
+}
+.treemap-controls {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(4px);
+    border-bottom: 1px solid var(--color-border);
+}
+.treemap-breadcrumb { font-family: var(--font-mono); font-size: 0.85rem; }
+.treemap-reset { border: none; background: none; color: var(--color-primary); cursor: pointer; font-weight: 600; }
+.treemap { position: absolute; inset: 48px 12px 12px; }
+.treemap-tile {
+    position: absolute;
+    border: 1px solid rgba(255,255,255,0.65);
+    border-radius: 0;
+    padding: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+    font-size: 0.8rem;
+    color: rgba(15, 23, 42, 0.8);
+}
+.tile-name { font-weight: 600; word-break: break-word; }
+.tile-size { font-size: 0.75rem; color: var(--color-subtle); }
+
+.insight-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+}
+.insight-card {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    background: var(--color-elevated);
+}
+.insight-category {
+    display: inline-flex;
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+}
+.insight-text { margin-top: 0.5rem; }
+.insight-subtips { margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px dashed var(--color-border); color: var(--color-muted); font-size: 0.9rem; }
+
+.duplicate-panel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+.duplicate-card {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    background: var(--color-elevated);
+    box-shadow: var(--shadow-faint);
+}
+.duplicate-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+.duplicate-eyebrow {
+    margin: 0 0 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.72rem;
+    color: var(--color-subtle);
+}
+.duplicate-card h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: var(--color-text);
+}
+.duplicate-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.duplicate-entry {
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem;
+    background: var(--color-surface);
+}
+.duplicate-entry-title {
+    margin: 0 0 0.4rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--color-text);
+}
+.duplicate-paths {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    word-break: break-all;
+}
+.duplicate-more {
+    margin-top: 0.5rem;
+    color: var(--color-muted);
+    font-size: 0.85rem;
+}
+.ghost-button {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: 0.45rem 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+    text-decoration: none;
+    background: transparent;
+    white-space: nowrap;
+}
+.ghost-button:hover {
+    background: var(--color-elevated);
+}
+
+.inventory-grid, .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+}
+.inventory-card, .feature-card {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    background: var(--color-elevated);
+}
+.inventory-card-header { margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem; }
+.inventory-card-header h3 { margin: 0; font-size: 1rem; }
+.inventory-card-header span { color: var(--color-muted); font-size: 0.85rem; }
+.tag-section { margin-top: 0.75rem; }
+.tag-section h3 { margin: 0 0 0.35rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-subtle); }
+.tag-list {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0;
+    margin: 0;
+}
+.tag, .library-tag {
+    border-radius: 999px;
+    padding: 0.2rem 0.65rem;
+    font-size: 0.8rem;
+    background: var(--color-muted-surface);
+    color: var(--color-muted);
+}
+.library-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; }
+.type-pill { display: inline-flex; align-items: center; padding: 0.15rem 0.6rem; border-radius: 999px; background: var(--color-muted-surface); color: var(--color-subtle); font-size: 0.75rem; font-family: var(--font-mono); }
+.library-tag.muted { background: transparent; color: var(--color-subtle); }
+.manifest-pill {
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+    background: var(--color-elevated);
+    color: var(--color-muted);
+}
+.manifest-pill.yes { background: rgba(13, 148, 136, 0.15); color: var(--color-positive); }
+
+.feature-card-header { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+.feature-card-header h3 { margin: 0; font-size: 1rem; }
+.feature-card-header span { color: var(--color-muted); font-size: 0.85rem; }
+.feature-size { font-weight: 600; }
+.feature-details { margin: 0.5rem 0 0; color: var(--color-muted); }
+
+.platform-section { background: var(--color-surface); }
+
+.comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1rem;
+}
+.build-card {
+    padding: 1.25rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-elevated);
+    box-shadow: var(--shadow-faint);
+}
+.build-card h3 { margin: 0 0 0.75rem; font-size: 1.1rem; }
+.build-card dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.4rem 0.75rem;
+}
+.build-card dt { font-weight: 600; color: var(--color-muted); }
+.build-card dd { margin: 0; word-break: break-word; }
+
+.narrative { margin: 0; padding-left: 1.25rem; color: var(--color-text); }
+.narrative li { margin-bottom: 0.5rem; }
+
+.empty-state {
+    padding: 1.5rem;
+    text-align: center;
+    background: var(--color-elevated);
+    border-radius: var(--radius-sm);
+    color: var(--color-muted);
+    border: 1px dashed var(--color-border);
+}
+
+.dashboard-footer {
+    width: 100%;
+    padding: 0 clamp(1.5rem, 4vw, 4rem) clamp(2rem, 3vw, 3.5rem);
+    text-align: center;
+    color: var(--color-subtle);
+    font-size: 0.85rem;
+}
+.dashboard-footer p { margin: 0.3rem 0; word-break: break-word; }
+
+@media (max-width: 720px) {
+    .dashboard-header { padding: 1.5rem; }
+    .meta-list { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+    .section-controls { flex-direction: column; }
+}
+"""
 }
