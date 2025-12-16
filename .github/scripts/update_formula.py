@@ -22,9 +22,9 @@ def main() -> int:
 
     text = formula_path.read_text()
     replacements = [
-        (r'(url\s+")([^"]+)(")', f'\\1{download_url}\\3'),
-        (r'(sha256\s+")([^"]+)(")', f'\\1{sha}\\3'),
-        (r'(version\s+")([^"]+)(")', f'\\1{version}\\3'),
+        (r'(url\s+")([^"]+)(")', f'\\g<1>{download_url}\\g<3>'),
+        (r'(sha256\s+")([^"]+)(")', f'\\g<1>{sha}\\g<3>'),
+        (r'(version\s+")([^"]+)(")', f'\\g<1>{version}\\g<3>'),
     ]
 
     for pattern, replacement in replacements:
