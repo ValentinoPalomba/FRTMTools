@@ -37,6 +37,17 @@ FRTMTools is not just a tool; it's your secret weapon. A powerful macOS applicat
 2.  **Unleash** the application.
 3.  **Drag and drop** an `.ipa` file onto the window. Prepare to be amazed.
 
+## 🖥️ CLI Version via Homebrew
+
+Prefer running analyses from the terminal? Install the CLI version with Homebrew:
+
+```bash
+brew tap valentinopalomba/frtmtools
+brew install frtmtools
+```
+
+Once installed, run `frtmtools --help` to explore the available commands.
+
 ## 💻 The Magic Inside
 
 *   **Swift & SwiftUI:** Forged with modern Apple technologies for a buttery-smooth experience on macOS.
