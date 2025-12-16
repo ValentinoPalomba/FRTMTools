@@ -146,7 +146,7 @@ jobs:
                     print(f"Failed to update pattern: {pattern}", file=sys.stderr)
                     sys.exit(1)
             formula_path.write_text(text)
-PY
+          PY
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if git diff --quiet; then
