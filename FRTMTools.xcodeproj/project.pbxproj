@@ -38,7 +38,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		E6BBAFBA2EDF423E004F7E30 /* FRTMToolsCLI */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = FRTMToolsCLI; sourceTree = BUILT_PRODUCTS_DIR; };
+		E6BBAFBA2EDF423E004F7E30 /* frtmtools */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = frtmtools; sourceTree = BUILT_PRODUCTS_DIR; };
 		E6EDE3D12E679CC300310565 /* FRTMTools.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FRTMTools.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -50,7 +50,7 @@
 			);
 			target = E6EDE3D02E679CC300310565 /* FRTMTools */;
 		};
-		E6BBAFC42EDF42AF004F7E30 /* Exceptions for "FRTMTools" folder in "FRTMToolsCLI" target */ = {
+		E6BBAFC42EDF42AF004F7E30 /* Exceptions for "FRTMTools" folder in "frtmtools" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				CacheLocations.swift,
@@ -96,7 +96,7 @@
 				Sources/Architecture/Interfaces/Exportable.swift,
 				"Sources/Extensions/URL+Extensions.swift",
 			);
-			target = E6BBAFB92EDF423E004F7E30 /* FRTMToolsCLI */;
+			target = E6BBAFB92EDF423E004F7E30 /* frtmtools */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -131,7 +131,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				E6B370722E688928005F365C /* Exceptions for "FRTMTools" folder in "FRTMTools" target */,
-				E6BBAFC42EDF42AF004F7E30 /* Exceptions for "FRTMTools" folder in "FRTMToolsCLI" target */,
+				E6BBAFC42EDF42AF004F7E30 /* Exceptions for "FRTMTools" folder in "frtmtools" target */,
 			);
 			path = FRTMTools;
 			sourceTree = "<group>";
@@ -176,7 +176,7 @@
 			isa = PBXGroup;
 			children = (
 				E6EDE3D12E679CC300310565 /* FRTMTools.app */,
-				E6BBAFBA2EDF423E004F7E30 /* FRTMToolsCLI */,
+				E6BBAFBA2EDF423E004F7E30 /* frtmtools */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -184,9 +184,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		E6BBAFB92EDF423E004F7E30 /* FRTMToolsCLI */ = {
+		E6BBAFB92EDF423E004F7E30 /* frtmtools */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = E6BBAFC02EDF423E004F7E30 /* Build configuration list for PBXNativeTarget "FRTMToolsCLI" */;
+			buildConfigurationList = E6BBAFC02EDF423E004F7E30 /* Build configuration list for PBXNativeTarget "frtmtools" */;
 			buildPhases = (
 				E6BBAFB62EDF423E004F7E30 /* Sources */,
 				E6BBAFB72EDF423E004F7E30 /* Frameworks */,
@@ -199,11 +199,11 @@
 			fileSystemSynchronizedGroups = (
 				E6BBAFBB2EDF423E004F7E30 /* FRTMToolsCLI */,
 			);
-			name = FRTMToolsCLI;
+			name = frtmtools;
 			packageProductDependencies = (
 			);
 			productName = FRTMToolsCLI;
-			productReference = E6BBAFBA2EDF423E004F7E30 /* FRTMToolsCLI */;
+			productReference = E6BBAFBA2EDF423E004F7E30 /* frtmtools */;
 			productType = "com.apple.product-type.tool";
 		};
 		E6EDE3D02E679CC300310565 /* FRTMTools */ = {
@@ -275,7 +275,7 @@
 			projectRoot = "";
 			targets = (
 				E6EDE3D02E679CC300310565 /* FRTMTools */,
-				E6BBAFB92EDF423E004F7E30 /* FRTMToolsCLI */,
+				E6BBAFB92EDF423E004F7E30 /* frtmtools */,
 			);
 		};
 /* End PBXProject section */
@@ -575,7 +575,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		E6BBAFC02EDF423E004F7E30 /* Build configuration list for PBXNativeTarget "FRTMToolsCLI" */ = {
+		E6BBAFC02EDF423E004F7E30 /* Build configuration list for PBXNativeTarget "frtmtools" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E6BBAFBE2EDF423E004F7E30 /* Debug */,
