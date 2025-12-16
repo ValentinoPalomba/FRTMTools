@@ -1,0 +1,11 @@
+framework module CartoolKit {
+  umbrella header "CartoolKit.h"
+  export *
+
+  module * { export * }
+}
+
+module CartoolKit.Swift {
+  header "CartoolKit-Swift.h"
+  requires objc
+}

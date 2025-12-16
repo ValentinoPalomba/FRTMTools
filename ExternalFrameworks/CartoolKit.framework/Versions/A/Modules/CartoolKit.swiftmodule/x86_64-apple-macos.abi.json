@@ -1,0 +1,1485 @@
+{
+  "ABIRoot": {
+    "kind": "Root",
+    "name": "CartoolKit",
+    "printedName": "CartoolKit",
+    "children": [
+      {
+        "kind": "Import",
+        "name": "CoreFoundation",
+        "printedName": "CoreFoundation",
+        "declKind": "Import",
+        "moduleName": "CartoolKit",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "CoreUI",
+        "printedName": "CoreUI",
+        "declKind": "Import",
+        "moduleName": "CartoolKit"
+      },
+      {
+        "kind": "Import",
+        "name": "CoreUI",
+        "printedName": "CoreUI",
+        "declKind": "Import",
+        "moduleName": "CartoolKit",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "Reader",
+        "printedName": "Reader",
+        "children": [
+          {
+            "kind": "Constructor",
+            "name": "init",
+            "printedName": "init(_:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Reader",
+                "printedName": "CartoolKit.Reader<τ_0_0>",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "GenericTypeParam",
+                    "printedName": "τ_0_0"
+                  }
+                ],
+                "usr": "s:10CartoolKit6ReaderC"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Car",
+                "printedName": "CartoolKit.Car",
+                "usr": "s:10CartoolKit3CarV"
+              }
+            ],
+            "declKind": "Constructor",
+            "usr": "s:10CartoolKit6ReaderCyACyxGAA3CarVKcfc",
+            "mangledName": "$s10CartoolKit6ReaderCyACyxGAA3CarVKcfc",
+            "moduleName": "CartoolKit",
+            "genericSig": "<τ_0_0 where τ_0_0 : CartoolKit.Rendition>",
+            "sugared_genericSig": "<T where T : CartoolKit.Rendition>",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "throwing": true,
+            "init_kind": "Designated"
+          },
+          {
+            "kind": "Function",
+            "name": "read",
+            "printedName": "read(_:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "DynamicSelf",
+                "printedName": "Self"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "((Swift.Result<[τ_0_0], any Swift.Error>) -> ())?",
+                "children": [
+                  {
+                    "kind": "TypeFunc",
+                    "name": "Function",
+                    "printedName": "(Swift.Result<[τ_0_0], any Swift.Error>) -> ()",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "Void",
+                        "printedName": "()"
+                      },
+                      {
+                        "kind": "TypeNominal",
+                        "name": "Result",
+                        "printedName": "Swift.Result<[τ_0_0], any Swift.Error>",
+                        "children": [
+                          {
+                            "kind": "TypeNominal",
+                            "name": "Array",
+                            "printedName": "[τ_0_0]",
+                            "children": [
+                              {
+                                "kind": "TypeNominal",
+                                "name": "GenericTypeParam",
+                                "printedName": "τ_0_0"
+                              }
+                            ],
+                            "usr": "s:Sa"
+                          },
+                          {
+                            "kind": "TypeNominal",
+                            "name": "Error",
+                            "printedName": "any Swift.Error",
+                            "usr": "s:s5ErrorP"
+                          }
+                        ],
+                        "usr": "s:s6ResultO"
+                      }
+                    ]
+                  }
+                ],
+                "usr": "s:Sq"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:10CartoolKit6ReaderC4readyACyxGXDys6ResultOySayxGs5Error_pGcSgF",
+            "mangledName": "$s10CartoolKit6ReaderC4readyACyxGXDys6ResultOySayxGs5Error_pGcSgF",
+            "moduleName": "CartoolKit",
+            "genericSig": "<τ_0_0 where τ_0_0 : CartoolKit.Rendition>",
+            "sugared_genericSig": "<T where T : CartoolKit.Rendition>",
+            "declAttributes": [
+              "AccessControl",
+              "DiscardableResult"
+            ],
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "read",
+            "printedName": "read()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Array",
+                "printedName": "[τ_0_0]",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "GenericTypeParam",
+                    "printedName": "τ_0_0"
+                  }
+                ],
+                "usr": "s:Sa"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:10CartoolKit6ReaderC4readSayxGyKF",
+            "mangledName": "$s10CartoolKit6ReaderC4readSayxGyKF",
+            "moduleName": "CartoolKit",
+            "genericSig": "<τ_0_0 where τ_0_0 : CartoolKit.Rendition>",
+            "sugared_genericSig": "<T where T : CartoolKit.Rendition>",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          }
+        ],
+        "declKind": "Class",
+        "usr": "s:10CartoolKit6ReaderC",
+        "mangledName": "$s10CartoolKit6ReaderC",
+        "moduleName": "CartoolKit",
+        "genericSig": "<τ_0_0 where τ_0_0 : CartoolKit.Rendition>",
+        "sugared_genericSig": "<T where T : CartoolKit.Rendition>",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          }
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "Cocoa",
+        "printedName": "Cocoa",
+        "declKind": "Import",
+        "moduleName": "CartoolKit",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "CoreUI",
+        "printedName": "CoreUI",
+        "declKind": "Import",
+        "moduleName": "CartoolKit"
+      },
+      {
+        "kind": "Import",
+        "name": "UniformTypeIdentifiers",
+        "printedName": "UniformTypeIdentifiers",
+        "declKind": "Import",
+        "moduleName": "CartoolKit"
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "LazyRendition",
+        "printedName": "LazyRendition",
+        "children": [
+          {
+            "kind": "Var",
+            "name": "unsafeCreatedNSImage",
+            "printedName": "unsafeCreatedNSImage",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "AppKit.NSImage?",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "NSImage",
+                    "printedName": "AppKit.NSImage",
+                    "usr": "c:objc(cs)NSImage"
+                  }
+                ],
+                "usr": "s:Sq"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:10CartoolKit13LazyRenditionC20unsafeCreatedNSImageSo0G0CSgvp",
+            "mangledName": "$s10CartoolKit13LazyRenditionC20unsafeCreatedNSImageSo0G0CSgvp",
+            "moduleName": "CartoolKit",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "AppKit.NSImage?",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "NSImage",
+                        "printedName": "AppKit.NSImage",
+                        "usr": "c:objc(cs)NSImage"
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit13LazyRenditionC20unsafeCreatedNSImageSo0G0CSgvg",
+                "mangledName": "$s10CartoolKit13LazyRenditionC20unsafeCreatedNSImageSo0G0CSgvg",
+                "moduleName": "CartoolKit",
+                "accessorKind": "get"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Set",
+                "printedName": "Set()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "AppKit.NSImage?",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "NSImage",
+                        "printedName": "AppKit.NSImage",
+                        "usr": "c:objc(cs)NSImage"
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit13LazyRenditionC20unsafeCreatedNSImageSo0G0CSgvs",
+                "mangledName": "$s10CartoolKit13LazyRenditionC20unsafeCreatedNSImageSo0G0CSgvs",
+                "moduleName": "CartoolKit",
+                "accessorKind": "set"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Modify",
+                "printedName": "Modify()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit13LazyRenditionC20unsafeCreatedNSImageSo0G0CSgvM",
+                "mangledName": "$s10CartoolKit13LazyRenditionC20unsafeCreatedNSImageSo0G0CSgvM",
+                "moduleName": "CartoolKit",
+                "implicit": true,
+                "accessorKind": "_modify"
+              }
+            ]
+          }
+        ],
+        "declKind": "Class",
+        "usr": "s:10CartoolKit13LazyRenditionC",
+        "mangledName": "$s10CartoolKit13LazyRenditionC",
+        "moduleName": "CartoolKit",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "superclassUsr": "s:10CartoolKit9RenditionC",
+        "hasMissingDesignatedInitializers": true,
+        "inheritsConvenienceInitializers": true,
+        "superclassNames": [
+          "CartoolKit.Rendition"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          }
+        ]
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "Rendition",
+        "printedName": "Rendition",
+        "children": [
+          {
+            "kind": "Var",
+            "name": "fileName",
+            "printedName": "fileName",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:10CartoolKit9RenditionC8fileNameSSvp",
+            "mangledName": "$s10CartoolKit9RenditionC8fileNameSSvp",
+            "moduleName": "CartoolKit",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit9RenditionC8fileNameSSvg",
+                "mangledName": "$s10CartoolKit9RenditionC8fileNameSSvg",
+                "moduleName": "CartoolKit",
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "internalName",
+            "printedName": "internalName",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:10CartoolKit9RenditionC12internalNameSSvp",
+            "mangledName": "$s10CartoolKit9RenditionC12internalNameSSvp",
+            "moduleName": "CartoolKit",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit9RenditionC12internalNameSSvg",
+                "mangledName": "$s10CartoolKit9RenditionC12internalNameSSvg",
+                "moduleName": "CartoolKit",
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "renditionClass",
+            "printedName": "renditionClass",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:10CartoolKit9RenditionC14renditionClassSSvp",
+            "mangledName": "$s10CartoolKit9RenditionC14renditionClassSSvp",
+            "moduleName": "CartoolKit",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit9RenditionC14renditionClassSSvg",
+                "mangledName": "$s10CartoolKit9RenditionC14renditionClassSSvg",
+                "moduleName": "CartoolKit",
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "renditionName",
+            "printedName": "renditionName",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:10CartoolKit9RenditionC13renditionNameSSvp",
+            "mangledName": "$s10CartoolKit9RenditionC13renditionNameSSvp",
+            "moduleName": "CartoolKit",
+            "declAttributes": [
+              "HasStorage",
+              "Final",
+              "AccessControl"
+            ],
+            "isLet": true,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit9RenditionC13renditionNameSSvg",
+                "mangledName": "$s10CartoolKit9RenditionC13renditionNameSSvg",
+                "moduleName": "CartoolKit",
+                "implicit": true,
+                "declAttributes": [
+                  "Final"
+                ],
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "scale",
+            "printedName": "scale",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Int",
+                "printedName": "Swift.Int",
+                "usr": "s:Si"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:10CartoolKit9RenditionC5scaleSivp",
+            "mangledName": "$s10CartoolKit9RenditionC5scaleSivp",
+            "moduleName": "CartoolKit",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Int",
+                    "printedName": "Swift.Int",
+                    "usr": "s:Si"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit9RenditionC5scaleSivg",
+                "mangledName": "$s10CartoolKit9RenditionC5scaleSivg",
+                "moduleName": "CartoolKit",
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "isVector",
+            "printedName": "isVector",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:10CartoolKit9RenditionC8isVectorSbvp",
+            "mangledName": "$s10CartoolKit9RenditionC8isVectorSbvp",
+            "moduleName": "CartoolKit",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Bool",
+                    "printedName": "Swift.Bool",
+                    "usr": "s:Sb"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit9RenditionC8isVectorSbvg",
+                "mangledName": "$s10CartoolKit9RenditionC8isVectorSbvg",
+                "moduleName": "CartoolKit",
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "isPDF",
+            "printedName": "isPDF",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:10CartoolKit9RenditionC5isPDFSbvp",
+            "mangledName": "$s10CartoolKit9RenditionC5isPDFSbvp",
+            "moduleName": "CartoolKit",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Bool",
+                    "printedName": "Swift.Bool",
+                    "usr": "s:Sb"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit9RenditionC5isPDFSbvg",
+                "mangledName": "$s10CartoolKit9RenditionC5isPDFSbvg",
+                "moduleName": "CartoolKit",
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "isLinkingToPDF",
+            "printedName": "isLinkingToPDF",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:10CartoolKit9RenditionC14isLinkingToPDFSbvp",
+            "mangledName": "$s10CartoolKit9RenditionC14isLinkingToPDFSbvp",
+            "moduleName": "CartoolKit",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Bool",
+                    "printedName": "Swift.Bool",
+                    "usr": "s:Sb"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit9RenditionC14isLinkingToPDFSbvg",
+                "mangledName": "$s10CartoolKit9RenditionC14isLinkingToPDFSbvg",
+                "moduleName": "CartoolKit",
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "isSVG",
+            "printedName": "isSVG",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:10CartoolKit9RenditionC5isSVGSbvp",
+            "mangledName": "$s10CartoolKit9RenditionC5isSVGSbvp",
+            "moduleName": "CartoolKit",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Bool",
+                    "printedName": "Swift.Bool",
+                    "usr": "s:Sb"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit9RenditionC5isSVGSbvg",
+                "mangledName": "$s10CartoolKit9RenditionC5isSVGSbvg",
+                "moduleName": "CartoolKit",
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "isLinkingToSVG",
+            "printedName": "isLinkingToSVG",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:10CartoolKit9RenditionC14isLinkingToSVGSbvp",
+            "mangledName": "$s10CartoolKit9RenditionC14isLinkingToSVGSbvp",
+            "moduleName": "CartoolKit",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Bool",
+                    "printedName": "Swift.Bool",
+                    "usr": "s:Sb"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit9RenditionC14isLinkingToSVGSbvg",
+                "mangledName": "$s10CartoolKit9RenditionC14isLinkingToSVGSbvg",
+                "moduleName": "CartoolKit",
+                "accessorKind": "get"
+              }
+            ]
+          },
+          {
+            "kind": "Function",
+            "name": "unsafeCreateImage",
+            "printedName": "unsafeCreateImage()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "CoreGraphics.CGImage?",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "CGImage",
+                    "printedName": "CoreGraphics.CGImage",
+                    "usr": "c:@T@CGImageRef"
+                  }
+                ],
+                "usr": "s:Sq"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:10CartoolKit9RenditionC17unsafeCreateImageSo10CGImageRefaSgyF",
+            "mangledName": "$s10CartoolKit9RenditionC17unsafeCreateImageSo10CGImageRefaSgyF",
+            "moduleName": "CartoolKit",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "unsafeCreateImageRep",
+            "printedName": "unsafeCreateImageRep()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "AppKit.NSBitmapImageRep?",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "NSBitmapImageRep",
+                    "printedName": "AppKit.NSBitmapImageRep",
+                    "usr": "c:objc(cs)NSBitmapImageRep"
+                  }
+                ],
+                "usr": "s:Sq"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:10CartoolKit9RenditionC20unsafeCreateImageRepSo08NSBitmapfG0CSgyF",
+            "mangledName": "$s10CartoolKit9RenditionC20unsafeCreateImageRepSo08NSBitmapfG0CSgyF",
+            "moduleName": "CartoolKit",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "writeTo",
+            "printedName": "writeTo(_:options:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "URL",
+                "printedName": "Foundation.URL",
+                "usr": "s:10Foundation3URLV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "URL",
+                "printedName": "Foundation.URL",
+                "usr": "s:10Foundation3URLV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "WritingOptions",
+                "printedName": "Foundation.NSData.WritingOptions",
+                "hasDefaultArg": true,
+                "usr": "c:@E@NSDataWritingOptions"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:10CartoolKit9RenditionC7writeTo_7options10Foundation3URLVAH_So20NSDataWritingOptionsVtKF",
+            "mangledName": "$s10CartoolKit9RenditionC7writeTo_7options10Foundation3URLVAH_So20NSDataWritingOptionsVtKF",
+            "moduleName": "CartoolKit",
+            "declAttributes": [
+              "AccessControl",
+              "DiscardableResult"
+            ],
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          }
+        ],
+        "declKind": "Class",
+        "usr": "s:10CartoolKit9RenditionC",
+        "mangledName": "$s10CartoolKit9RenditionC",
+        "moduleName": "CartoolKit",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "hasMissingDesignatedInitializers": true,
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          }
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "Cocoa",
+        "printedName": "Cocoa",
+        "declKind": "Import",
+        "moduleName": "CartoolKit",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "CartoolKit",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "Car",
+        "printedName": "Car",
+        "children": [
+          {
+            "kind": "Var",
+            "name": "url",
+            "printedName": "url",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "URL",
+                "printedName": "Foundation.URL",
+                "usr": "s:10Foundation3URLV"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:10CartoolKit3CarV3url10Foundation3URLVvp",
+            "mangledName": "$s10CartoolKit3CarV3url10Foundation3URLVvp",
+            "moduleName": "CartoolKit",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "URL",
+                    "printedName": "Foundation.URL",
+                    "usr": "s:10Foundation3URLV"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit3CarV3url10Foundation3URLVvg",
+                "mangledName": "$s10CartoolKit3CarV3url10Foundation3URLVvg",
+                "moduleName": "CartoolKit",
+                "implicit": true,
+                "accessorKind": "get"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Set",
+                "printedName": "Set()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "URL",
+                    "printedName": "Foundation.URL",
+                    "usr": "s:10Foundation3URLV"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit3CarV3url10Foundation3URLVvs",
+                "mangledName": "$s10CartoolKit3CarV3url10Foundation3URLVvs",
+                "moduleName": "CartoolKit",
+                "implicit": true,
+                "accessorKind": "set"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Modify",
+                "printedName": "Modify()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit3CarV3url10Foundation3URLVvM",
+                "mangledName": "$s10CartoolKit3CarV3url10Foundation3URLVvM",
+                "moduleName": "CartoolKit",
+                "implicit": true,
+                "accessorKind": "_modify"
+              }
+            ]
+          },
+          {
+            "kind": "Constructor",
+            "name": "init",
+            "printedName": "init(_:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Car",
+                "printedName": "CartoolKit.Car",
+                "usr": "s:10CartoolKit3CarV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "URL",
+                "printedName": "Foundation.URL",
+                "usr": "s:10Foundation3URLV"
+              }
+            ],
+            "declKind": "Constructor",
+            "usr": "s:10CartoolKit3CarVyAC10Foundation3URLVcfc",
+            "mangledName": "$s10CartoolKit3CarVyAC10Foundation3URLVcfc",
+            "moduleName": "CartoolKit",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "init_kind": "Designated"
+          }
+        ],
+        "declKind": "Struct",
+        "usr": "s:10CartoolKit3CarV",
+        "mangledName": "$s10CartoolKit3CarV",
+        "moduleName": "CartoolKit",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          }
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "Cocoa",
+        "printedName": "Cocoa",
+        "declKind": "Import",
+        "moduleName": "CartoolKit",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "CoreUI",
+        "printedName": "CoreUI",
+        "declKind": "Import",
+        "moduleName": "CartoolKit"
+      },
+      {
+        "kind": "Import",
+        "name": "CoreGraphics",
+        "printedName": "CoreGraphics",
+        "declKind": "Import",
+        "moduleName": "CartoolKit"
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "CartoolKit",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "CarError",
+        "printedName": "CarError",
+        "children": [
+          {
+            "kind": "Var",
+            "name": "notFound",
+            "printedName": "notFound",
+            "children": [
+              {
+                "kind": "TypeFunc",
+                "name": "Function",
+                "printedName": "(CartoolKit.CarError.Type) -> (Swift.String) -> CartoolKit.CarError",
+                "children": [
+                  {
+                    "kind": "TypeFunc",
+                    "name": "Function",
+                    "printedName": "(Swift.String) -> CartoolKit.CarError",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "CarError",
+                        "printedName": "CartoolKit.CarError",
+                        "usr": "s:10CartoolKit8CarErrorO"
+                      },
+                      {
+                        "kind": "TypeNominal",
+                        "name": "String",
+                        "printedName": "Swift.String",
+                        "usr": "s:SS"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Metatype",
+                    "printedName": "CartoolKit.CarError.Type",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "CarError",
+                        "printedName": "CartoolKit.CarError",
+                        "usr": "s:10CartoolKit8CarErrorO"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "declKind": "EnumElement",
+            "usr": "s:10CartoolKit8CarErrorO8notFoundyACSScACmF",
+            "mangledName": "$s10CartoolKit8CarErrorO8notFoundyACSScACmF",
+            "moduleName": "CartoolKit"
+          },
+          {
+            "kind": "Var",
+            "name": "domain",
+            "printedName": "domain",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:10CartoolKit8CarErrorO6domainSSvpZ",
+            "mangledName": "$s10CartoolKit8CarErrorO6domainSSvpZ",
+            "moduleName": "CartoolKit",
+            "static": true,
+            "declAttributes": [
+              "HasInitialValue",
+              "HasStorage",
+              "AccessControl"
+            ],
+            "isLet": true,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:10CartoolKit8CarErrorO6domainSSvgZ",
+                "mangledName": "$s10CartoolKit8CarErrorO6domainSSvgZ",
+                "moduleName": "CartoolKit",
+                "static": true,
+                "implicit": true,
+                "accessorKind": "get"
+              }
+            ]
+          }
+        ],
+        "declKind": "Enum",
+        "usr": "s:10CartoolKit8CarErrorO",
+        "mangledName": "$s10CartoolKit8CarErrorO",
+        "moduleName": "CartoolKit",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          }
+        ]
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "NSBitmapImageRep",
+        "printedName": "NSBitmapImageRep",
+        "children": [
+          {
+            "kind": "Function",
+            "name": "data",
+            "printedName": "data(using:properties:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "Foundation.Data?",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Data",
+                    "printedName": "Foundation.Data",
+                    "usr": "s:10Foundation4DataV"
+                  }
+                ],
+                "usr": "s:Sq"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "FileType",
+                "printedName": "AppKit.NSBitmapImageRep.FileType",
+                "hasDefaultArg": true,
+                "usr": "c:@E@NSBitmapImageFileType"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Dictionary",
+                "printedName": "[AppKit.NSBitmapImageRep.PropertyKey : Any]",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "PropertyKey",
+                    "printedName": "AppKit.NSBitmapImageRep.PropertyKey",
+                    "usr": "c:@T@NSBitmapImageRepPropertyKey"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "ProtocolComposition",
+                    "printedName": "Any"
+                  }
+                ],
+                "hasDefaultArg": true,
+                "usr": "s:SD"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:So16NSBitmapImageRepC10CartoolKitE4data5using10properties10Foundation4DataVSgSo0aB8FileTypeV_SDySo0abC11PropertyKeyaypGtF",
+            "mangledName": "$sSo16NSBitmapImageRepC10CartoolKitE4data5using10properties10Foundation4DataVSgSo0aB8FileTypeV_SDySo0abC11PropertyKeyaypGtF",
+            "moduleName": "CartoolKit",
+            "isFromExtension": true,
+            "funcSelfKind": "NonMutating"
+          }
+        ],
+        "declKind": "Class",
+        "usr": "c:objc(cs)NSBitmapImageRep",
+        "moduleName": "AppKit",
+        "isOpen": true,
+        "objc_name": "NSBitmapImageRep",
+        "declAttributes": [
+          "ObjC",
+          "NonSendable",
+          "Dynamic"
+        ],
+        "superclassUsr": "c:objc(cs)NSImageRep",
+        "isExternal": true,
+        "inheritsConvenienceInitializers": true,
+        "superclassNames": [
+          "AppKit.NSImageRep",
+          "ObjectiveC.NSObject"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Equatable",
+            "printedName": "Equatable",
+            "usr": "s:SQ",
+            "mangledName": "$sSQ"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Hashable",
+            "printedName": "Hashable",
+            "usr": "s:SH",
+            "mangledName": "$sSH"
+          },
+          {
+            "kind": "Conformance",
+            "name": "CVarArg",
+            "printedName": "CVarArg",
+            "usr": "s:s7CVarArgP",
+            "mangledName": "$ss7CVarArgP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "_KeyValueCodingAndObservingPublishing",
+            "printedName": "_KeyValueCodingAndObservingPublishing",
+            "usr": "s:10Foundation37_KeyValueCodingAndObservingPublishingP",
+            "mangledName": "$s10Foundation37_KeyValueCodingAndObservingPublishingP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "_KeyValueCodingAndObserving",
+            "printedName": "_KeyValueCodingAndObserving",
+            "usr": "s:10Foundation27_KeyValueCodingAndObservingP",
+            "mangledName": "$s10Foundation27_KeyValueCodingAndObservingP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "CustomStringConvertible",
+            "printedName": "CustomStringConvertible",
+            "usr": "s:s23CustomStringConvertibleP",
+            "mangledName": "$ss23CustomStringConvertibleP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "CustomDebugStringConvertible",
+            "printedName": "CustomDebugStringConvertible",
+            "usr": "s:s28CustomDebugStringConvertibleP",
+            "mangledName": "$ss28CustomDebugStringConvertibleP"
+          }
+        ]
+      }
+    ],
+    "json_format_version": 8
+  },
+  "ConstValues": [
+    {
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreSVG.swift",
+      "kind": "IntegerLiteral",
+      "offset": 294,
+      "length": 2,
+      "value": "-2"
+    },
+    {
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreSVG.swift",
+      "kind": "StringLiteral",
+      "offset": 320,
+      "length": 26,
+      "value": "\"CGSVGDocumentWriteToData\""
+    },
+    {
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreSVG.swift",
+      "kind": "IntegerLiteral",
+      "offset": 713,
+      "length": 2,
+      "value": "-2"
+    },
+    {
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreSVG.swift",
+      "kind": "StringLiteral",
+      "offset": 739,
+      "length": 25,
+      "value": "\"CGSVGDocumentWriteToURL\""
+    },
+    {
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreSVG.swift",
+      "kind": "IntegerLiteral",
+      "offset": 1120,
+      "length": 2,
+      "value": "-2"
+    },
+    {
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreSVG.swift",
+      "kind": "StringLiteral",
+      "offset": 1146,
+      "length": 26,
+      "value": "\"CGContextDrawSVGDocument\""
+    },
+    {
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreSVG.swift",
+      "kind": "IntegerLiteral",
+      "offset": 1509,
+      "length": 2,
+      "value": "-2"
+    },
+    {
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreSVG.swift",
+      "kind": "StringLiteral",
+      "offset": 1535,
+      "length": 28,
+      "value": "\"CGSVGDocumentGetCanvasSize\""
+    },
+    {
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CocoaExt.swift",
+      "kind": "BooleanLiteral",
+      "offset": 231,
+      "length": 5,
+      "value": "false"
+    },
+    {
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreUIExt.swift",
+      "kind": "IntegerLiteral",
+      "offset": 247,
+      "length": 1,
+      "value": "0"
+    },
+    {
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreUIExt.swift",
+      "kind": "IntegerLiteral",
+      "offset": 262,
+      "length": 8,
+      "value": "1"
+    },
+    {
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreUIExt.swift",
+      "kind": "IntegerLiteral",
+      "offset": 284,
+      "length": 7,
+      "value": "2"
+    },
+    {
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreUIExt.swift",
+      "kind": "IntegerLiteral",
+      "offset": 305,
+      "length": 8,
+      "value": "3"
+    },
+    {
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreUIExt.swift",
+      "kind": "IntegerLiteral",
+      "offset": 327,
+      "length": 8,
+      "value": "4"
+    },
+    {
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreUIExt.swift",
+      "kind": "IntegerLiteral",
+      "offset": 349,
+      "length": 13,
+      "value": "5"
+    },
+    {
+      "filePath": "\/Users\/u471688\/Downloads\/cartools-master 2\/cartooldt\/CoreUIExt.swift",
+      "kind": "IntegerLiteral",
+      "offset": 383,
+      "length": 2,
+      "value": "-1"
+    }
+  ]
+}

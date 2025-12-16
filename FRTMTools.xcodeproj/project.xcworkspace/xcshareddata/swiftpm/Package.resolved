@@ -1,0 +1,150 @@
+{
+  "originHash" : "a116dfc99b1f5a38323ec0c1a37e28a00efc075f38f4166805cd9fb65c9317b1",
+  "pins" : [
+    {
+      "identity" : "aexml",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tadija/AEXML",
+      "state" : {
+        "revision" : "db806756c989760b35108146381535aec231092b",
+        "version" : "4.7.0"
+      }
+    },
+    {
+      "identity" : "commandline",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/benoit-pereira-da-silva/CommandLine.git",
+      "state" : {
+        "revision" : "3eaafd5941e359f025a411e3b5947f96d82d1bc9",
+        "version" : "4.0.9"
+      }
+    },
+    {
+      "identity" : "fengniao",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/onevcat/FengNiao.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "e99846f07287d7f0b32a667b2e4c8e1a4b86b486"
+      }
+    },
+    {
+      "identity" : "frtm_periphery",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ValentinoPalomba/frtm_periphery.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "a5b46ebaec8f37d65343845eb20252533b36f0a1"
+      }
+    },
+    {
+      "identity" : "frtmcore",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ValentinoPalomba/FRTMCore.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "cc47ad4ecade0b3557734c35ceada5215d8a3c10"
+      }
+    },
+    {
+      "identity" : "grape",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftgraphs/Grape",
+      "state" : {
+        "revision" : "48eb7d8ab4ce549c6cdde106b5f7fa317421364c",
+        "version" : "1.1.0"
+      }
+    },
+    {
+      "identity" : "pathkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kylef/PathKit.git",
+      "state" : {
+        "revision" : "3bfd2737b700b9a36565a8c94f4ad2b050a5e574",
+        "version" : "1.0.1"
+      }
+    },
+    {
+      "identity" : "rainbow",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/onevcat/Rainbow.git",
+      "state" : {
+        "revision" : "626c3d4b6b55354b4af3aa309f998fae9b31a3d9",
+        "version" : "3.2.0"
+      }
+    },
+    {
+      "identity" : "spectre",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kylef/Spectre.git",
+      "state" : {
+        "revision" : "26cc5e9ae0947092c7139ef7ba612e34646086c7",
+        "version" : "0.10.1"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser",
+      "state" : {
+        "revision" : "309a47b2b1d9b5e991f36961c983ecec72275be3",
+        "version" : "1.6.1"
+      }
+    },
+    {
+      "identity" : "swift-filename-matcher",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ileitch/swift-filename-matcher",
+      "state" : {
+        "revision" : "eef5ac0b6b3cdc64b3039b037bed2def8a1edaeb",
+        "version" : "2.0.1"
+      }
+    },
+    {
+      "identity" : "swift-indexstore",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kateinoigakukun/swift-indexstore",
+      "state" : {
+        "revision" : "055264ececff53c1265c2b7ee3513053b02604de",
+        "version" : "0.4.0"
+      }
+    },
+    {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-syntax",
+      "state" : {
+        "revision" : "f99ae8aa18f0cf0d53481901f88a0991dc3bd4a2",
+        "version" : "601.0.1"
+      }
+    },
+    {
+      "identity" : "swift-system",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-system",
+      "state" : {
+        "revision" : "395a77f0aa927f0ff73941d7ac35f2b46d47c9db",
+        "version" : "1.6.3"
+      }
+    },
+    {
+      "identity" : "xcodeproj",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tuist/xcodeproj",
+      "state" : {
+        "revision" : "e1f2a4365669e02272b2f381b13a2378b15fb485",
+        "version" : "9.5.0"
+      }
+    },
+    {
+      "identity" : "yams",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/jpsim/Yams",
+      "state" : {
+        "revision" : "d41ba4e7164c0838c6d48351f7575f7f762151fe",
+        "version" : "6.1.0"
+      }
+    }
+  ],
+  "version" : 3
+}

@@ -1,0 +1,185 @@
+import SwiftUI
+
+
+struct MainView: View {
+    @State private var selectedTool: Tool? = .ipaAnalyzer
+    
+    @StateObject private var ipaViewModel = IPAViewModel()
+    @StateObject private var apkViewModel = APKViewModel()
+    @StateObject private var unusedAssetsViewModel = UnusedAssetsViewModel()
+    @StateObject private var securityScannerViewModel = SecurityScannerViewModel()
+    @StateObject private var deadCodeViewModel = DeadCodeViewModel()
+    @StateObject private var ipaToolViewModel = IPAToolViewModel()
+    @StateObject private var badWordScannerViewModel = BadWordScannerViewModel()
+    
+    enum Tool: String, Hashable, Identifiable, CaseIterable {
+        case ipaAnalyzer = "IPA Analyzer"
+        case apkAnalyzer = "APK/ABB Analyzer"
+        case unusedAssets = "Unused Assets Analyzer"
+        case securityScanner = "Security Scanner"
+        case deadCodeScanner = "Dead Code Scanner"
+        case ipatool = "App Store"
+        case badWordScanner = "Bad Word Scanner"
+        
+        var id: String { rawValue }
+        
+        var systemImage: String {
+            switch self {
+            case .ipaAnalyzer: return "app.badge"
+            case .apkAnalyzer: return "shippingbox"
+            case .unusedAssets: return "trash"
+            case .securityScanner: return "shield.lefthalf.filled"
+            case .deadCodeScanner: return "text.magnifyingglass"
+            case .ipatool: return "bag.badge.plus"
+            case .badWordScanner: return "exclamationmark.bubble"
+            }
+        }
+        
+        var color: Color {
+            switch self {
+            case .ipaAnalyzer: return .blue
+            case .apkAnalyzer: return .green
+            case .unusedAssets: return .purple
+            case .securityScanner: return .red
+            case .deadCodeScanner: return .orange
+            case .ipatool: return .green
+            case .badWordScanner: return .pink
+            }
+        }
+    }
+
+    @State private var hoveredTool: Tool? = nil
+
+    var body: some View {
+        NavigationSplitView {
+            List(selection: $selectedTool) {
+                ForEach(Tool.allCases) { tool in
+                    HStack(alignment: .lastTextBaseline) {
+                        SidebarIconView(
+                            imageName: tool.systemImage,
+                            color: tool.color,
+                            isSelected: selectedTool == tool,
+                            isHovering: hoveredTool == tool
+                        )
+                        Text(tool.rawValue)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .onHover { hovering in
+                        hoveredTool = hovering ? tool : nil
+                    }
+                    .tag(tool)
+                }
+            }
+            .listStyle(.sidebar)
+        } content: {
+            switch selectedTool {
+            case .ipaAnalyzer:
+                IPAAnalyzerContentView(viewModel: ipaViewModel)
+            case .apkAnalyzer:
+                APKAnalyzerContentView(viewModel: apkViewModel)
+            case .unusedAssets:
+                UnusedAssetsContentView(viewModel: unusedAssetsViewModel)
+            case .securityScanner:
+                SecurityScannerContentView(viewModel: securityScannerViewModel)
+            case .deadCodeScanner:
+                DeadCodeContentView(viewModel: deadCodeViewModel)
+            case .ipatool:
+                IPAToolContentView(viewModel: ipaToolViewModel)
+            case .badWordScanner:
+                BadWordScannerContentView(viewModel: badWordScannerViewModel)
+            case .none:
+                Text("Select an item to see details.")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        } detail: {
+            switch selectedTool {
+            case .ipaAnalyzer:
+                IPAAnalyzerDetailView(viewModel: ipaViewModel)
+            case .apkAnalyzer:
+                APKAnalyzerDetailView(viewModel: apkViewModel)
+            case .unusedAssets:
+                UnusedAssetsResultView(viewModel: unusedAssetsViewModel)
+            case .securityScanner:
+                SecurityScannerResultView(viewModel: securityScannerViewModel)
+            case .deadCodeScanner:
+                DeadCodeResultView(viewModel: deadCodeViewModel)
+            case .ipatool:
+                IPAToolSelectionDetailView(viewModel: ipaToolViewModel)
+            case .badWordScanner:
+                BadWordScannerDetailView(viewModel: badWordScannerViewModel)
+            case .none:
+                Text("Select an item to see details.")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .navigationSplitViewColumnWidth(min: 60, ideal: 100, max: 250)
+        .loaderOverlay(
+            isPresented: $ipaViewModel.isLoading,
+            content: {
+                LoaderView(
+                    style: .indeterminate,
+                    title: "Analyzing IPA",
+                    subtitle: "This can take a few minutes…",
+                    showsCancel: false,
+                    cancelAction: nil
+                )
+        })
+        .loaderOverlay(
+            isPresented: $apkViewModel.isLoading,
+            content: {
+                LoaderView(
+                    style: .indeterminate,
+                    title: "Analyzing APK/ABB",
+                    subtitle: "Unpacking bundle…",
+                    showsCancel: false,
+                    cancelAction: nil
+                )
+        })
+        .loaderOverlay(
+            isPresented: $unusedAssetsViewModel.isLoading,
+            content: {
+                LoaderView(
+                    style: .indeterminate,
+                    title: "Analyzing project...",
+                    subtitle: "Finding unused assets...",
+                    showsCancel: false,
+                    cancelAction: nil
+                )
+        })
+        .loaderOverlay(
+            isPresented: $deadCodeViewModel.isLoading,
+            content: {
+                LoaderView(
+                    style: .indeterminate,
+                    title: "Analyzing project...",
+                    subtitle: "Finding dead code...",
+                    showsCancel: false,
+                    cancelAction: nil
+                )
+        })
+        .loaderOverlay(
+            isPresented: $securityScannerViewModel.isLoading,
+            content: {
+                LoaderView(
+                    style: .indeterminate,
+                    title: "Scanning project...",
+                    subtitle: "Searching for secrets...",
+                    showsCancel: false,
+                    cancelAction: nil
+                )
+        })
+        .onChange(of: selectedTool) { oldValue, newValue in
+            if newValue == .ipatool {
+                ipaToolViewModel.refreshInstallationState()
+            }
+        }
+        .onAppear {
+            if selectedTool == .ipatool {
+                ipaToolViewModel.refreshInstallationState()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .clearIPAToolMetadataCache)) { _ in
+            ipaToolViewModel.clearMetadataCache()
+        }
+    }
+}

@@ -1,0 +1,676 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		E67072FE2E813001004869AB /* PeripheryKit in Frameworks */ = {isa = PBXBuildFile; productRef = E67072FD2E813001004869AB /* PeripheryKit */; };
+		E67073002E813001004869AB /* ProjectDrivers in Frameworks */ = {isa = PBXBuildFile; productRef = E67072FF2E813001004869AB /* ProjectDrivers */; };
+		E68A8D742E9390020077CA29 /* ForceSimulation in Frameworks */ = {isa = PBXBuildFile; productRef = E68A8D732E9390020077CA29 /* ForceSimulation */; };
+		E68A8D762E9390020077CA29 /* Grape in Frameworks */ = {isa = PBXBuildFile; productRef = E68A8D752E9390020077CA29 /* Grape */; };
+		E6AE4BF82E707B4200C1F2F8 /* FengNiaoKit in Frameworks */ = {isa = PBXBuildFile; productRef = E6AE4BF72E707B4200C1F2F8 /* FengNiaoKit */; };
+		E6B372492E6AC55C005F365C /* FRTMCore in Frameworks */ = {isa = PBXBuildFile; productRef = E6B372482E6AC55C005F365C /* FRTMCore */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		E6BBAFB82EDF423E004F7E30 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		E6E5F1252E7AE54F000919D5 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		E6BBAFBA2EDF423E004F7E30 /* frtmtools */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = frtmtools; sourceTree = BUILT_PRODUCTS_DIR; };
+		E6EDE3D12E679CC300310565 /* FRTMTools.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FRTMTools.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E6B370722E688928005F365C /* Exceptions for "FRTMTools" folder in "FRTMTools" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = E6EDE3D02E679CC300310565 /* FRTMTools */;
+		};
+		E6BBAFC42EDF42AF004F7E30 /* Exceptions for "FRTMTools" folder in "frtmtools" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CacheLocations.swift,
+				Sources/Analyzers/AppAnalyzer/Core/APK/AndroidManifestParser.swift,
+				Sources/Analyzers/AppAnalyzer/Core/APK/AndroidPermissionCatalog.swift,
+				Sources/Analyzers/AppAnalyzer/Core/APK/APKAnalyzer.swift,
+				Sources/Analyzers/AppAnalyzer/Core/IPA/IPAAnalyzer.swift,
+				Sources/Analyzers/AppAnalyzer/Core/Shared/AndroidToolchain.swift,
+				Sources/Analyzers/AppAnalyzer/Core/Shared/APKObfuscationDetector.swift,
+				Sources/Analyzers/AppAnalyzer/Core/Shared/ArchsAnalyzer.swift,
+				Sources/Analyzers/AppAnalyzer/Core/Shared/CategoryGenerator.swift,
+				Sources/Analyzers/AppAnalyzer/Core/Shared/ClassNameSanitizer.swift,
+				Sources/Analyzers/AppAnalyzer/Core/Shared/ComparisonAnalyzer.swift,
+				Sources/Analyzers/AppAnalyzer/Core/Shared/DexFileInspector.swift,
+				"Sources/Analyzers/AppAnalyzer/Core/Shared/FileInfo+Traversal.swift",
+				Sources/Analyzers/AppAnalyzer/Core/Shared/ReportLanguage.swift,
+				Sources/Analyzers/AppAnalyzer/Core/Shared/SizeTextFormatter.swift,
+				Sources/Analyzers/AppAnalyzer/Core/Shared/ThirdPartyLibraryDetector.swift,
+				Sources/Analyzers/AppAnalyzer/Core/Shared/TipGenerator.swift,
+				Sources/Analyzers/AppAnalyzer/Models/APKAnalysis.swift,
+				Sources/Analyzers/AppAnalyzer/Models/APKSignatureInfo.swift,
+				Sources/Analyzers/AppAnalyzer/Models/AppAnalysis.swift,
+				Sources/Analyzers/AppAnalyzer/Models/DependencyGraph.swift,
+				Sources/Analyzers/AppAnalyzer/Models/FileDiff.swift,
+				Sources/Analyzers/AppAnalyzer/Models/FileInfo.swift,
+				Sources/Analyzers/AppAnalyzer/Models/FileType.swift,
+				Sources/Analyzers/AppAnalyzer/Models/IPAAnalysis.swift,
+				Sources/Analyzers/AppAnalyzer/Models/PackageAttribution.swift,
+				Sources/Analyzers/AppAnalyzer/Models/Tip.swift,
+				Sources/Analyzers/AppAnalyzer/SubAnalyzer/APK/APKABIDetector.swift,
+				Sources/Analyzers/AppAnalyzer/SubAnalyzer/APK/APKArchiveExtractor.swift,
+				Sources/Analyzers/AppAnalyzer/SubAnalyzer/APK/APKFileScanner.swift,
+				Sources/Analyzers/AppAnalyzer/SubAnalyzer/APK/APKIconExtractor.swift,
+				Sources/Analyzers/AppAnalyzer/SubAnalyzer/APK/APKImageExtractor.swift,
+				Sources/Analyzers/AppAnalyzer/SubAnalyzer/APK/APKManifestAnalyzer.swift,
+				Sources/Analyzers/AppAnalyzer/SubAnalyzer/APK/APKSignatureAnalyzer.swift,
+				Sources/Analyzers/AppAnalyzer/SubAnalyzer/APK/APKSizeBreakdownCalculator.swift,
+				Sources/Analyzers/AppAnalyzer/SubAnalyzer/IPA/BinaryAnalyzer.swift,
+				Sources/Analyzers/AppAnalyzer/SubAnalyzer/IPA/CarAnalyzer.swift,
+				Sources/Analyzers/AppAnalyzer/SubAnalyzer/IPA/DependencyAnalyzer.swift,
+				Sources/Analyzers/AppAnalyzer/ViewModel/ComparisonReportViewModel.swift,
+				Sources/Architecture/Dependency/Analyzer.swift,
+				Sources/Architecture/Interfaces/Exportable.swift,
+				"Sources/Extensions/URL+Extensions.swift",
+			);
+			target = E6BBAFB92EDF423E004F7E30 /* frtmtools */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		E6291BED2E8D2B1500F6625A /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			attributesByRelativePath = {
+				CartoolKit.framework = (CodeSignOnCopy, RemoveHeadersOnCopy, );
+			};
+			buildPhase = E6E5F1252E7AE54F000919D5 /* Embed Frameworks */;
+			membershipExceptions = (
+				CartoolKit.framework,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		E6BBAFBB2EDF423E004F7E30 /* FRTMToolsCLI */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FRTMToolsCLI;
+			sourceTree = "<group>";
+		};
+		E6E5F1332E7AE90E000919D5 /* ExternalFrameworks */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E6291BED2E8D2B1500F6625A /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */,
+			);
+			path = ExternalFrameworks;
+			sourceTree = "<group>";
+		};
+		E6EDE3D32E679CC400310565 /* FRTMTools */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E6B370722E688928005F365C /* Exceptions for "FRTMTools" folder in "FRTMTools" target */,
+				E6BBAFC42EDF42AF004F7E30 /* Exceptions for "FRTMTools" folder in "frtmtools" target */,
+			);
+			path = FRTMTools;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E6BBAFB72EDF423E004F7E30 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E6EDE3CE2E679CC300310565 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E67072FE2E813001004869AB /* PeripheryKit in Frameworks */,
+				E6AE4BF82E707B4200C1F2F8 /* FengNiaoKit in Frameworks */,
+				E67073002E813001004869AB /* ProjectDrivers in Frameworks */,
+				E68A8D762E9390020077CA29 /* Grape in Frameworks */,
+				E6B372492E6AC55C005F365C /* FRTMCore in Frameworks */,
+				E68A8D742E9390020077CA29 /* ForceSimulation in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		E6EDE3C82E679CC300310565 = {
+			isa = PBXGroup;
+			children = (
+				E6EDE3D32E679CC400310565 /* FRTMTools */,
+				E6E5F1332E7AE90E000919D5 /* ExternalFrameworks */,
+				E6BBAFBB2EDF423E004F7E30 /* FRTMToolsCLI */,
+				E6EDE3D22E679CC300310565 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E6EDE3D22E679CC300310565 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E6EDE3D12E679CC300310565 /* FRTMTools.app */,
+				E6BBAFBA2EDF423E004F7E30 /* frtmtools */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E6BBAFB92EDF423E004F7E30 /* frtmtools */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E6BBAFC02EDF423E004F7E30 /* Build configuration list for PBXNativeTarget "frtmtools" */;
+			buildPhases = (
+				E6BBAFB62EDF423E004F7E30 /* Sources */,
+				E6BBAFB72EDF423E004F7E30 /* Frameworks */,
+				E6BBAFB82EDF423E004F7E30 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E6BBAFBB2EDF423E004F7E30 /* FRTMToolsCLI */,
+			);
+			name = frtmtools;
+			packageProductDependencies = (
+			);
+			productName = FRTMToolsCLI;
+			productReference = E6BBAFBA2EDF423E004F7E30 /* frtmtools */;
+			productType = "com.apple.product-type.tool";
+		};
+		E6EDE3D02E679CC300310565 /* FRTMTools */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E6EDE3E02E679CC500310565 /* Build configuration list for PBXNativeTarget "FRTMTools" */;
+			buildPhases = (
+				E6EDE3CD2E679CC300310565 /* Sources */,
+				E6EDE3CE2E679CC300310565 /* Frameworks */,
+				E6EDE3CF2E679CC300310565 /* Resources */,
+				E6E5F1252E7AE54F000919D5 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E6E5F1332E7AE90E000919D5 /* ExternalFrameworks */,
+				E6EDE3D32E679CC400310565 /* FRTMTools */,
+			);
+			name = FRTMTools;
+			packageProductDependencies = (
+				E6B372482E6AC55C005F365C /* FRTMCore */,
+				E6AE4BF72E707B4200C1F2F8 /* FengNiaoKit */,
+				E67072FD2E813001004869AB /* PeripheryKit */,
+				E67072FF2E813001004869AB /* ProjectDrivers */,
+				E68A8D732E9390020077CA29 /* ForceSimulation */,
+				E68A8D752E9390020077CA29 /* Grape */,
+			);
+			productName = ipaAnalyzer;
+			productReference = E6EDE3D12E679CC300310565 /* FRTMTools.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E6EDE3C92E679CC300310565 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2610;
+				TargetAttributes = {
+					E6BBAFB92EDF423E004F7E30 = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
+					E6EDE3D02E679CC300310565 = {
+						CreatedOnToolsVersion = 16.1;
+					};
+				};
+			};
+			buildConfigurationList = E6EDE3CC2E679CC300310565 /* Build configuration list for PBXProject "FRTMTools" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = E6EDE3C82E679CC300310565;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E6B372472E6AC55C005F365C /* XCRemoteSwiftPackageReference "FRTMCore" */,
+				E6AE4BF62E707B4200C1F2F8 /* XCRemoteSwiftPackageReference "FengNiao" */,
+				E67072FC2E813001004869AB /* XCRemoteSwiftPackageReference "frtm_periphery" */,
+				E68A8D722E9390020077CA29 /* XCRemoteSwiftPackageReference "Grape" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = E6EDE3D22E679CC300310565 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E6EDE3D02E679CC300310565 /* FRTMTools */,
+				E6BBAFB92EDF423E004F7E30 /* frtmtools */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E6EDE3CF2E679CC300310565 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E6BBAFB62EDF423E004F7E30 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E6EDE3CD2E679CC300310565 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		E6BBAFBE2EDF423E004F7E30 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		E6BBAFBF2EDF423E004F7E30 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		E6EDE3DE2E679CC500310565 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		E6EDE3DF2E679CC500310565 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		E6EDE3E12E679CC500310565 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FRTMTools/FRTMTools.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 5;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_ASSET_PATHS = "\"FRTMTools/Preview Content\"";
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/FRTMTools",
+					"$(PROJECT_DIR)/ExternalFrameworks",
+					"$(PROJECT_DIR)/PrivateFrameworks",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FRTMTools/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FRTMTools;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				OTHER_SWIFT_FLAGS = "\"-D\" \"AppDesktop\"";
+				PRODUCT_BUNDLE_IDENTIFIER = com.valentinopalomba.frtmtools;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/PrivateFrameworks/CoreThemeDefinition.framework $(SRCROOT)/PrivateFrameworks/CoreUI.framework/";
+				SWIFT_VERSION = 6.0;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks",
+				);
+				XROS_DEPLOYMENT_TARGET = 2.1;
+			};
+			name = Debug;
+		};
+		E6EDE3E22E679CC500310565 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FRTMTools/FRTMTools.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 5;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_ASSET_PATHS = "\"FRTMTools/Preview Content\"";
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/FRTMTools",
+					"$(PROJECT_DIR)/ExternalFrameworks",
+					"$(PROJECT_DIR)/PrivateFrameworks",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FRTMTools/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FRTMTools;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				OTHER_SWIFT_FLAGS = "\"-D\" \"AppDesktop\"";
+				PRODUCT_BUNDLE_IDENTIFIER = com.valentinopalomba.frtmtools;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/PrivateFrameworks/CoreThemeDefinition.framework $(SRCROOT)/PrivateFrameworks/CoreUI.framework/";
+				SWIFT_VERSION = 6.0;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks",
+				);
+				XROS_DEPLOYMENT_TARGET = 2.1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		E6BBAFC02EDF423E004F7E30 /* Build configuration list for PBXNativeTarget "frtmtools" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E6BBAFBE2EDF423E004F7E30 /* Debug */,
+				E6BBAFBF2EDF423E004F7E30 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E6EDE3CC2E679CC300310565 /* Build configuration list for PBXProject "FRTMTools" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E6EDE3DE2E679CC500310565 /* Debug */,
+				E6EDE3DF2E679CC500310565 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E6EDE3E02E679CC500310565 /* Build configuration list for PBXNativeTarget "FRTMTools" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E6EDE3E12E679CC500310565 /* Debug */,
+				E6EDE3E22E679CC500310565 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E67072FC2E813001004869AB /* XCRemoteSwiftPackageReference "frtm_periphery" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ValentinoPalomba/frtm_periphery.git";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
+		E68A8D722E9390020077CA29 /* XCRemoteSwiftPackageReference "Grape" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/swiftgraphs/Grape";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.0;
+			};
+		};
+		E6AE4BF62E707B4200C1F2F8 /* XCRemoteSwiftPackageReference "FengNiao" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/FengNiao.git";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
+		E6B372472E6AC55C005F365C /* XCRemoteSwiftPackageReference "FRTMCore" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ValentinoPalomba/FRTMCore.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E67072FD2E813001004869AB /* PeripheryKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E67072FC2E813001004869AB /* XCRemoteSwiftPackageReference "frtm_periphery" */;
+			productName = PeripheryKit;
+		};
+		E67072FF2E813001004869AB /* ProjectDrivers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E67072FC2E813001004869AB /* XCRemoteSwiftPackageReference "frtm_periphery" */;
+			productName = ProjectDrivers;
+		};
+		E68A8D732E9390020077CA29 /* ForceSimulation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E68A8D722E9390020077CA29 /* XCRemoteSwiftPackageReference "Grape" */;
+			productName = ForceSimulation;
+		};
+		E68A8D752E9390020077CA29 /* Grape */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E68A8D722E9390020077CA29 /* XCRemoteSwiftPackageReference "Grape" */;
+			productName = Grape;
+		};
+		E6AE4BF72E707B4200C1F2F8 /* FengNiaoKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E6AE4BF62E707B4200C1F2F8 /* XCRemoteSwiftPackageReference "FengNiao" */;
+			productName = FengNiaoKit;
+		};
+		E6B372482E6AC55C005F365C /* FRTMCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E6B372472E6AC55C005F365C /* XCRemoteSwiftPackageReference "FRTMCore" */;
+			productName = FRTMCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = E6EDE3C92E679CC300310565 /* Project object */;
+}
