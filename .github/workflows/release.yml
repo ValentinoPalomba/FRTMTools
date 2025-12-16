@@ -1,0 +1,157 @@
+name: Release Builds
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    outputs:
+      version: ${{ steps.release_meta.outputs.version }}
+      tag: ${{ steps.release_meta.outputs.tag }}
+      cli_filename: ${{ steps.build_cli.outputs.cli_filename }}
+      cli_sha: ${{ steps.build_cli.outputs.cli_sha }}
+    if: contains(github.event.head_commit.message, 'RELEASE')
+    runs-on: macos-14
+    permissions:
+      contents: write
+    env:
+      PROJECT: FRTMTools.xcodeproj
+      DERIVED_DATA: ${{ github.workspace }}/DerivedData
+      ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
+      ARCHIVE_PATH: ${{ github.workspace }}/build/FRTMTools.xcarchive
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract release version
+        id: release_meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          msg="${{ github.event.head_commit.message }}"
+          normalized="$(echo "$msg" | tr '\n' ' ')"
+          if [[ "$normalized" =~ RELEASE[[:space:]]+([0-9A-Za-z._-]+) ]]; then
+            version="${BASH_REMATCH[1]}"
+          else
+            version="$(date +'%Y.%m.%d-%H%M%S')"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build CLI target
+        id: build_cli
+        shell: bash
+        env:
+          VERSION: ${{ steps.release_meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          rm -rf "$DERIVED_DATA"
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme frtmtools \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            clean build
+          mkdir -p "$ARTIFACTS_DIR"
+          CLI_PRODUCT="$DERIVED_DATA/Build/Products/Release/frtmtools"
+          CLI_ARCH="$(uname -m)"
+          CLI_ARCHIVE_NAME="frtmtools-${VERSION}-macos-${CLI_ARCH}.tar.gz"
+          CLI_ARCHIVE_PATH="$ARTIFACTS_DIR/$CLI_ARCHIVE_NAME"
+          tar -czf "$CLI_ARCHIVE_PATH" -C "$(dirname "$CLI_PRODUCT")" "frtmtools"
+          CLI_SHA256=$(shasum -a 256 "$CLI_ARCHIVE_PATH" | awk '{print $1}')
+          echo "cli_archive=$CLI_ARCHIVE_PATH" >> "$GITHUB_OUTPUT"
+          echo "cli_filename=$CLI_ARCHIVE_NAME" >> "$GITHUB_OUTPUT"
+          echo "cli_sha=$CLI_SHA256" >> "$GITHUB_OUTPUT"
+
+      - name: Build macOS app
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$(dirname "$ARCHIVE_PATH")"
+          rm -rf "$ARCHIVE_PATH"
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme FRTMTools_Release \
+            -configuration Release \
+            -archivePath "$ARCHIVE_PATH" \
+            -destination 'generic/platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            clean archive
+          APP_PATH="$ARCHIVE_PATH/Products/Applications/FRTMTools.app"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ARTIFACTS_DIR/FRTMTools.app.zip"
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_meta.outputs.tag }}
+          name: FRTMTools ${{ steps.release_meta.outputs.version }}
+          generate_release_notes: true
+          files: |
+            ${{ steps.build_cli.outputs.cli_archive }}
+            ${{ env.ARTIFACTS_DIR }}/FRTMTools.app.zip
+
+  update-homebrew-formula:
+    needs: release
+    if: needs.release.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Homebrew tap
+        uses: actions/checkout@v4
+        with:
+          repository: ValentinoPalomba/homebrew-frtmtools
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Update frtmtools formula
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+          TAG: ${{ needs.release.outputs.tag }}
+          CLI_FILENAME: ${{ needs.release.outputs.cli_filename }}
+          CLI_SHA: ${{ needs.release.outputs.cli_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          FORMULA_PATH=$(git ls-files 'Formula/*.rb' | grep -m1 'frtmtools\.rb' || true)
+          if [ -z "$FORMULA_PATH" ]; then
+            echo "Unable to locate Formula/frtmtools.rb" >&2
+            exit 1
+          fi
+          DOWNLOAD_URL="https://github.com/ValentinoPalomba/FRTMTools/releases/download/${TAG}/${CLI_FILENAME}"
+          export FORMULA_PATH DOWNLOAD_URL CLI_SHA VERSION
+          python - <<'PY'
+import os, re, sys
+from pathlib import Path
+formula_path = Path(os.environ["FORMULA_PATH"])
+url = os.environ["DOWNLOAD_URL"]
+sha = os.environ["CLI_SHA"]
+version = os.environ["VERSION"]
+text = formula_path.read_text()
+patterns = [
+    (r'(url\s+")([^"]+)(")', f'\\1{url}\\3'),
+    (r'(sha256\s+")([^"]+)(")', f'\\1{sha}\\3'),
+    (r'(version\s+")([^"]+)(")', f'\\1{version}\\3'),
+]
+for pattern, replacement in patterns:
+    text, count = re.subn(pattern, replacement, text, count=1)
+    if count == 0:
+        print(f"Failed to update pattern: {pattern}", file=sys.stderr)
+        sys.exit(1)
+formula_path.write_text(text)
+PY
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "Formula already up to date."
+            exit 0
+          fi
+          git commit -am "chore: bump frtmtools to v${VERSION}"
+          git push
