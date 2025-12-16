@@ -104,20 +104,38 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
     steps:
+      - name: Skip tap update if token missing
+        if: env.HOMEBREW_TAP_TOKEN == ''
+        run: |
+          echo "HOMEBREW_TAP_TOKEN is not configured; skipping Homebrew tap update."
+          exit 0
+
+      - name: Checkout FRTMTools repository
+        if: env.HOMEBREW_TAP_TOKEN != ''
+        uses: actions/checkout@v4
+        with:
+          path: source
+
       - name: Checkout Homebrew tap
+        if: env.HOMEBREW_TAP_TOKEN != ''
         uses: actions/checkout@v4
         with:
           repository: ValentinoPalomba/homebrew-frtmtools
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          token: ${{ env.HOMEBREW_TAP_TOKEN }}
+          path: tap
 
       - name: Update frtmtools formula
+        if: env.HOMEBREW_TAP_TOKEN != ''
         env:
           VERSION: ${{ needs.release.outputs.version }}
           TAG: ${{ needs.release.outputs.tag }}
           CLI_FILENAME: ${{ needs.release.outputs.cli_filename }}
           CLI_SHA: ${{ needs.release.outputs.cli_sha }}
         shell: bash
+        working-directory: tap
         run: |
           set -euo pipefail
           FORMULA_PATH=$(git ls-files 'Formula/*.rb' | grep -m1 'frtmtools\.rb' || true)
@@ -126,27 +144,7 @@ jobs:
             exit 1
           fi
           DOWNLOAD_URL="https://github.com/ValentinoPalomba/FRTMTools/releases/download/${TAG}/${CLI_FILENAME}"
-          export FORMULA_PATH DOWNLOAD_URL CLI_SHA VERSION
-          python - <<'PY'
-            import os, re, sys
-            from pathlib import Path
-            formula_path = Path(os.environ["FORMULA_PATH"])
-            url = os.environ["DOWNLOAD_URL"]
-            sha = os.environ["CLI_SHA"]
-            version = os.environ["VERSION"]
-            text = formula_path.read_text()
-            patterns = [
-                (r'(url\s+")([^"]+)(")', f'\\1{url}\\3'),
-                (r'(sha256\s+")([^"]+)(")', f'\\1{sha}\\3'),
-                (r'(version\s+")([^"]+)(")', f'\\1{version}\\3'),
-            ]
-            for pattern, replacement in patterns:
-                text, count = re.subn(pattern, replacement, text, count=1)
-                if count == 0:
-                    print(f"Failed to update pattern: {pattern}", file=sys.stderr)
-                    sys.exit(1)
-            formula_path.write_text(text)
-          PY
+          python3 "$GITHUB_WORKSPACE/source/.github/scripts/update_formula.py" "$FORMULA_PATH" "$DOWNLOAD_URL" "$VERSION" "$CLI_SHA"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if git diff --quiet; then
@@ -154,4 +152,98 @@ jobs:
             exit 0
           fi
           git commit -am "chore: bump frtmtools to v${VERSION}"
+          git push
+
+  manual-homebrew-update:
+    if: contains(github.event.head_commit.message, 'BREW-UPDATE')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SOURCE_REPO: ValentinoPalomba/FRTMTools
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+    steps:
+      - name: Skip tap update if token missing
+        if: env.HOMEBREW_TAP_TOKEN == ''
+        run: |
+          echo "HOMEBREW_TAP_TOKEN is not configured; skipping Homebrew tap update."
+          exit 0
+
+      - name: Checkout FRTMTools repository
+        if: env.HOMEBREW_TAP_TOKEN != ''
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Fetch latest release metadata
+        id: latest_release
+        if: env.HOMEBREW_TAP_TOKEN != ''
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          API_URL="https://api.github.com/repos/${SOURCE_REPO}/releases/latest"
+          release_json=$(curl -sSL \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            "$API_URL")
+          tag=$(echo "$release_json" | jq -r '.tag_name')
+          if [ -z "$tag" ] || [ "$tag" = "null" ]; then
+            echo "Unable to determine latest release tag" >&2
+            exit 1
+          fi
+          version="${tag#v}"
+          version="${version#.}"
+          version="${version%-cli}"
+          asset_name=$(echo "$release_json" | jq -r '[.assets[] | select(.name | test("^frtmtools-.*-macos-.*\\.tar\\.gz$"))][0].name')
+          if [ -z "$asset_name" ] || [ "$asset_name" = "null" ]; then
+            echo "Unable to locate CLI archive asset in release $tag" >&2
+            exit 1
+          fi
+          download_url="https://github.com/${SOURCE_REPO}/releases/download/${tag}/${asset_name}"
+          tmp="$RUNNER_TEMP/$asset_name"
+          curl -sSL \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -o "$tmp" \
+            "$download_url"
+          sha=$(shasum -a 256 "$tmp" | awk '{print $1}')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "cli_filename=$asset_name" >> "$GITHUB_OUTPUT"
+          echo "cli_sha=$sha" >> "$GITHUB_OUTPUT"
+          rm -f "$tmp"
+
+      - name: Checkout Homebrew tap
+        if: env.HOMEBREW_TAP_TOKEN != ''
+        uses: actions/checkout@v4
+        with:
+          repository: ValentinoPalomba/homebrew-frtmtools
+          token: ${{ env.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Update frtmtools formula
+        if: env.HOMEBREW_TAP_TOKEN != ''
+        env:
+          VERSION: ${{ steps.latest_release.outputs.version }}
+          TAG: ${{ steps.latest_release.outputs.tag }}
+          CLI_FILENAME: ${{ steps.latest_release.outputs.cli_filename }}
+          CLI_SHA: ${{ steps.latest_release.outputs.cli_sha }}
+        shell: bash
+        working-directory: tap
+        run: |
+          set -euo pipefail
+          FORMULA_PATH=$(git ls-files 'Formula/*.rb' | grep -m1 'frtmtools\.rb' || true)
+          if [ -z "$FORMULA_PATH" ]; then
+            echo "Unable to locate Formula/frtmtools.rb" >&2
+            exit 1
+          fi
+          DOWNLOAD_URL="https://github.com/ValentinoPalomba/FRTMTools/releases/download/${TAG}/${CLI_FILENAME}"
+          python3 "$GITHUB_WORKSPACE/source/.github/scripts/update_formula.py" "$FORMULA_PATH" "$DOWNLOAD_URL" "$VERSION" "$CLI_SHA"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "Formula already up to date."
+            exit 0
+          fi
+          git commit -am "chore: brew update to ${VERSION}"
           git push
