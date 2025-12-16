@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 
 final class ComparisonDashboardHTMLBuilder {
     enum PlatformPair {
@@ -43,6 +44,7 @@ final class ComparisonDashboardHTMLBuilder {
     }
 
     func build() -> String {
+        let navigation = renderNavigationBar()
         let header = renderHeroSection()
         let buildCards = renderBuildCardsSection()
         let categories = renderCategorySection()
@@ -50,6 +52,7 @@ final class ComparisonDashboardHTMLBuilder {
         let narrative = renderNarrativeSection()
         let meta = renderMetadataSection()
         let footer = renderFooter()
+        let tabScript = renderTabScript()
 
         let sections = [buildCards, categories, diffs, narrative, meta]
             .filter { !$0.isEmpty }
@@ -73,12 +76,14 @@ final class ComparisonDashboardHTMLBuilder {
         </head>
         <body class="dashboard">
             <div class="dashboard-shell">
+                \(navigation)
                 \(header)
                 <main class="dashboard-main" role="main">
                     \(sectionStack)
                 </main>
                 \(footer)
             </div>
+            \(tabScript)
         </body>
         </html>
         """
@@ -105,9 +110,8 @@ final class ComparisonDashboardHTMLBuilder {
             <span class="badge badge-soft">\(changeSummary.htmlEscaped)</span>
         </div>
         """
-        let beforePath = first.url.path
-        let afterPath = second.url.path
         let generated = iso8601String()
+        let heroNote = "FRTMTools CLI · Diff generated \(generated)"
 
         return """
         <header class="dashboard-header">
@@ -143,12 +147,46 @@ final class ComparisonDashboardHTMLBuilder {
                     </div>
                 </dl>
                 <div class="header-actions">
-                    <p class="header-note">Diff created locally with FRTMTools CLI.</p>
-                    <p class="hero-source">Before · \(beforePath.htmlEscaped)</p>
-                    <p class="hero-source">After · \(afterPath.htmlEscaped)</p>
+                    <p class="header-note">\(heroNote.htmlEscaped)</p>
                 </div>
             </div>
         </header>
+        """
+    }
+
+    private func renderNavigationBar() -> String {
+        let iconHTML = renderNavigationBrandIcon()
+        let context = "Comparison workspace"
+        return """
+        <nav class="dashboard-nav" aria-label="Primary">
+            <div class="nav-brand">
+                \(iconHTML)
+                <div>
+                    <p class="nav-title">FRTMTools</p>
+                    <p class="nav-subtitle">\(context.htmlEscaped)</p>
+                </div>
+            </div>
+            <div class="nav-meta">
+                <span class="nav-pill">\(platform.label.htmlEscaped)</span>
+                <span class="nav-pill subtle">\(formattedBytes(second.totalSize).htmlEscaped)</span>
+                <div class="nav-avatar" aria-hidden="true"></div>
+            </div>
+        </nav>
+        """
+    }
+
+    private func renderNavigationBrandIcon() -> String {
+        if let data = first.image?.toData(), data.isEmpty == false {
+            let base64 = data.base64EncodedString()
+            return """
+            <div class="nav-brand-icon">
+                <img src="data:image/png;base64,\(base64)" alt="App icon" />
+            </div>
+            """
+        }
+        let fallback = first.fileName.isEmpty ? "?" : String(first.fileName.prefix(1)).uppercased()
+        return """
+        <div class="nav-brand-icon fallback">\(fallback.htmlEscaped)</div>
         """
     }
 
@@ -174,14 +212,15 @@ final class ComparisonDashboardHTMLBuilder {
         let version = analysis.version ?? "n/a"
         let build = analysis.buildNumber ?? "n/a"
         let size = formattedBytes(analysis.totalSize)
+        let name = analysis.fileName.isEmpty ? analysis.executableName ?? "Bundle" : analysis.fileName
         return """
         <div class="build-card">
             <h3>\(title.htmlEscaped)</h3>
             <dl>
+                <dt>Bundle</dt><dd>\(name.htmlEscaped)</dd>
                 <dt>Version</dt><dd>\(version.htmlEscaped)</dd>
                 <dt>Build</dt><dd>\(build.htmlEscaped)</dd>
                 <dt>Size</dt><dd>\(size.htmlEscaped)</dd>
-                <dt>Path</dt><dd>\(analysis.url.path.htmlEscaped)</dd>
             </dl>
         </div>
         """
@@ -229,11 +268,24 @@ final class ComparisonDashboardHTMLBuilder {
     }
 
     private func renderDiffSection() -> String {
-        let modified = diffColumn(title: "Modified Files", files: comparison.modifiedFiles, emptyState: "No files were modified.")
-        let added = diffColumn(title: "Added Files", files: comparison.addedFiles, emptyState: "No files were added.")
-        let removed = diffColumn(title: "Removed Files", files: comparison.removedFiles, emptyState: "No files were removed.")
-        
-        guard !modified.isEmpty || !added.isEmpty || !removed.isEmpty else { return "" }
+        let tabs = [
+            diffTab(id: "tab-modified", label: "Modified", files: comparison.modifiedFiles, emptyState: "No files were modified."),
+            diffTab(id: "tab-added", label: "Added", files: comparison.addedFiles, emptyState: "No files were added."),
+            diffTab(id: "tab-removed", label: "Removed", files: comparison.removedFiles, emptyState: "No files were removed.")
+        ]
+
+        let navButtons = tabs.enumerated().map { index, tab in
+            let activeClass = index == 0 ? " active" : ""
+            return "<button class=\"tab-button\(activeClass)\" type=\"button\" data-tab-target=\"\(tab.id)\">\(tab.label.htmlEscaped)</button>"
+        }.joined(separator: "\n")
+        let sections = tabs.enumerated().map { index, tab in
+            let activeClass = index == 0 ? " active" : ""
+            return """
+            <div class="tab-content\(activeClass)" id="\(tab.id)">
+                \(tab.content)
+            </div>
+            """
+        }.joined(separator: "\n")
 
         return """
         <section class="section">
@@ -241,19 +293,20 @@ final class ComparisonDashboardHTMLBuilder {
                 <h2>File-level Differences</h2>
                 <p>Largest changes ranked by size impact.</p>
             </div>
-            <div class="comparison-grid">
-                \(modified)
-                \(added)
-                \(removed)
+            <div class="tab-container">
+                <div class="tab-nav">
+                    \(navButtons)
+                </div>
+                \(sections)
             </div>
         </section>
         """
     }
 
-    private func diffColumn(title: String, files: [FileDiff], emptyState: String) -> String {
+    private func diffTab(id: String, label: String, files: [FileDiff], emptyState: String) -> DiffTab {
         let content: String
         if files.isEmpty {
-            content = "<div class='empty-state'>\(emptyState.htmlEscaped)</div>"
+            content = "<div class=\"empty-state\">\(emptyState.htmlEscaped)</div>"
         } else {
             let rows = files
                 .sorted { abs(($0.size2 - $0.size1)) > abs(($1.size2 - $1.size1)) }
@@ -270,7 +323,6 @@ final class ComparisonDashboardHTMLBuilder {
                     """
                 }
                 .joined(separator: "\n")
-            
             content = """
             <div class="table-wrapper">
                 <table>
@@ -289,13 +341,7 @@ final class ComparisonDashboardHTMLBuilder {
             </div>
             """
         }
-        
-        return """
-        <div class="build-card">
-             <h3>\(title.htmlEscaped)</h3>
-            \(content)
-        </div>
-        """
+        return DiffTab(id: id, label: label, content: content)
     }
 
     private func renderNarrativeSection() -> String {
@@ -333,6 +379,33 @@ final class ComparisonDashboardHTMLBuilder {
         """
     }
 
+    private func renderTabScript() -> String {
+        return """
+        <script>
+        (function () {
+            const containers = document.querySelectorAll('.tab-container');
+            if (!containers.length) { return; }
+            containers.forEach(function (container) {
+                const buttons = container.querySelectorAll('.tab-button');
+                const contents = container.querySelectorAll('.tab-content');
+                if (!buttons.length || !contents.length) { return; }
+                buttons.forEach(function (button) {
+                    button.addEventListener('click', function () {
+                        const target = button.getAttribute('data-tab-target');
+                        buttons.forEach(function (entry) {
+                            entry.classList.toggle('active', entry === button);
+                        });
+                        contents.forEach(function (content) {
+                            content.classList.toggle('active', content.id === target);
+                        });
+                    });
+                });
+            });
+        })();
+        </script>
+        """
+    }
+
     private func formattedBytes(_ value: Int64) -> String {
         return byteFormatter.string(fromByteCount: value)
     }
@@ -347,6 +420,12 @@ final class ComparisonDashboardHTMLBuilder {
     private func deltaCssClass(_ delta: Int64) -> String {
         if delta == 0 { return "td-delta neutral" }
         return delta > 0 ? "td-delta positive" : "td-delta negative"
+    }
+
+    private struct DiffTab {
+        let id: String
+        let label: String
+        let content: String
     }
 
     private func percentChange(delta: Int64, base: Int64) -> String? {

@@ -127,6 +127,7 @@ class AppDashboardHTMLBuilder {
     func build() -> String {
         let icon = renderIcon()
         let header = renderHeroSection(iconHTML: icon)
+        let navigation = renderNavigationBar()
         let footer = renderFooter()
         let dataScript = renderDashboardDataScriptTag()
         let clientScripts = renderClientScripts()
@@ -170,6 +171,7 @@ class AppDashboardHTMLBuilder {
         </head>
         <body class="dashboard">
             <div class="dashboard-shell">
+                \(navigation)
                 \(header)
                 <main class="dashboard-main" role="main">
                     \(contentMarkup)
@@ -208,13 +210,12 @@ class AppDashboardHTMLBuilder {
 
         let title = analysis.executableName ?? analysis.fileName
         let versionLine = versionSummaryText() ?? "No version metadata available"
-        let sourcePath = analysis.url.path
-        let sourceLine = sourcePath.isEmpty ? "" : "<p class=\"hero-source\">Source: \(sourcePath.htmlEscaped)</p>"
         let platformSubtitle = platform.subtitleLines
             .map { "<p class=\"hero-subtitle\">\($0.htmlEscaped)</p>" }
             .joined()
-        let actionText = "Analyzed \(fileEntries.count) files · \(formattedBytes(analysis.totalSize)) uncompressed"
+        let heroNote = "FRTMTools CLI · \(formattedBytes(analysis.totalSize)) uncompressed"
         let generated = iso8601String()
+        let analyzedCount = NumberFormatter.localizedString(from: NSNumber(value: fileEntries.count), number: .decimal)
 
         return """
         <header class="dashboard-header">
@@ -233,16 +234,12 @@ class AppDashboardHTMLBuilder {
             <div class="header-meta">
                 <dl class="meta-list">
                     <div>
-                        <dt>Version</dt>
-                        <dd>\((analysis.version ?? "—").htmlEscaped)</dd>
+                        <dt>Report Scope</dt>
+                        <dd>\(platform.label.htmlEscaped)</dd>
                     </div>
                     <div>
-                        <dt>Build</dt>
-                        <dd>\((analysis.buildNumber ?? "n/a").htmlEscaped)</dd>
-                    </div>
-                    <div>
-                        <dt>Bundle Size</dt>
-                        <dd>\(formattedBytes(analysis.totalSize).htmlEscaped)</dd>
+                        <dt>Analyzed Files</dt>
+                        <dd>\(analyzedCount.htmlEscaped)</dd>
                     </div>
                     <div>
                         <dt>Generated</dt>
@@ -250,12 +247,46 @@ class AppDashboardHTMLBuilder {
                     </div>
                 </dl>
                 <div class="header-actions">
-                    <p class="header-note">\(actionText.htmlEscaped)</p>
-                    <button class="link-button" type="button" onclick="const section=document.getElementById('file-explorer'); if(section){ section.scrollIntoView({behavior: 'smooth', block: 'start'}); }">Jump to explorer</button>
-                    \(sourceLine)
+                    <p class="header-note">\(heroNote.htmlEscaped)</p>
                 </div>
             </div>
         </header>
+        """
+    }
+
+    private func renderNavigationBar() -> String {
+        let iconHTML = renderNavigationBrandIcon()
+        let context = platform.apkAnalysis != nil ? "Android build report" : "IPA build report"
+        return """
+        <nav class="dashboard-nav" aria-label="Primary">
+            <div class="nav-brand">
+                \(iconHTML)
+                <div>
+                    <p class="nav-title">FRTMTools</p>
+                    <p class="nav-subtitle">\(context.htmlEscaped)</p>
+                </div>
+            </div>
+            <div class="nav-meta">
+                <span class="nav-pill">\(platform.label.htmlEscaped)</span>
+                <span class="nav-pill subtle">\(formattedBytes(analysis.totalSize).htmlEscaped)</span>
+                <div class="nav-avatar" aria-hidden="true"></div>
+            </div>
+        </nav>
+        """
+    }
+
+    private func renderNavigationBrandIcon() -> String {
+        if let data = analysis.image?.toData(), data.isEmpty == false {
+            let base64 = data.base64EncodedString()
+            return """
+            <div class="nav-brand-icon">
+                <img src="data:image/png;base64,\(base64)" alt="App icon" />
+            </div>
+            """
+        }
+        let fallback = analysis.fileName.isEmpty ? "?" : String(analysis.fileName.prefix(1)).uppercased()
+        return """
+        <div class="nav-brand-icon fallback">\(fallback.htmlEscaped)</div>
         """
     }
 
@@ -1396,7 +1427,7 @@ class AppDashboardHTMLBuilder {
         """
     }
 
-    private func renderFileExplorerSection(initialLimit: Int = 25) -> String {
+    private func renderFileExplorerSection(initialLimit: Int = 50) -> String {
         guard !fileEntries.isEmpty else {
             return """
             <section>
@@ -1415,7 +1446,10 @@ class AppDashboardHTMLBuilder {
             .map { "<option value=\"\($0.htmlEscaped)\">\(displayName(forType: $0).htmlEscaped)</option>" }
             .joined(separator: "\n")
         let libraryFilterControl = renderLibraryFilterControl()
-        let initialStatus = "Showing top \(min(initialLimit, fileEntries.count)) of \(fileEntries.count) files"
+        let initialStatus = "Showing 1–\(min(initialLimit, fileEntries.count)) of \(fileEntries.count) files"
+        let totalPages = Int(ceil(Double(max(fileEntries.count, 1)) / Double(initialLimit)))
+        let paginationStatus = "Page 1 of \(max(totalPages, 1))"
+        let nextDisabled = fileEntries.count > initialLimit ? "" : " disabled"
 
         return """
         <section id="file-explorer">
@@ -1457,6 +1491,11 @@ class AppDashboardHTMLBuilder {
                 </table>
             </div>
             <div class="search-status" id="fileSearchStatus">\(initialStatus)</div>
+            <div class="pagination-controls" id="filePaginationControls">
+                <button class="pagination-button" type="button" id="filePaginationPrev" disabled>Previous</button>
+                <span class="pagination-status" id="filePaginationStatus">\(paginationStatus)</span>
+                <button class="pagination-button" type="button" id="filePaginationNext"\(nextDisabled)>Next</button>
+            </div>
         </section>
         """
     }
@@ -1631,13 +1670,19 @@ class AppDashboardHTMLBuilder {
             const typeFilter = document.getElementById('typeFilter');
             const libraryFilter = document.getElementById('libraryFilter');
             const sortButtons = document.querySelectorAll('.sort-button');
-            if (!tableBody || !statusLabel || !searchInput) { return; }
+            const paginationStatusLabel = document.getElementById('filePaginationStatus');
+            const paginationControls = document.getElementById('filePaginationControls');
+            const prevButton = document.getElementById('filePaginationPrev');
+            const nextButton = document.getElementById('filePaginationNext');
+            if (!tableBody || !statusLabel || !searchInput || !paginationStatusLabel || !paginationControls || !prevButton || !nextButton) { return; }
 
-            const MAX_ROWS = 200;
+            const PAGE_SIZE = 50;
             const numberFormatter = new Intl.NumberFormat('en', { maximumFractionDigits: 1 });
 
             let sortKey = 'size';
             let sortDirection = 'desc';
+            let currentPage = 1;
+            let filteredEntries = files.slice();
 
             function escapeHTML(value) {
                 return String(value || '').replace(/[&<>"']/g, function (character) {
@@ -1663,20 +1708,31 @@ class AppDashboardHTMLBuilder {
                 return numberFormatter.format(size) + ' ' + units[unitIndex];
             }
 
-            function render(entries) {
-                if (!entries.length) {
+            function renderCurrentPage() {
+                if (!filteredEntries.length) {
                     tableBody.innerHTML = '<tr><td colspan="5" class="empty-state">No files match your filters.</td></tr>';
                     statusLabel.textContent = 'No matches found';
+                    paginationStatusLabel.textContent = 'No pages';
+                    prevButton.disabled = true;
+                    nextButton.disabled = true;
+                    paginationControls.classList.add('is-disabled');
                     return;
                 }
 
-                const visibleRows = entries.slice(0, MAX_ROWS).map(function (entry, index) {
+                paginationControls.classList.remove('is-disabled');
+                const totalPages = Math.max(1, Math.ceil(filteredEntries.length / PAGE_SIZE));
+                if (currentPage > totalPages) {
+                    currentPage = totalPages;
+                }
+                const start = (currentPage - 1) * PAGE_SIZE;
+                const pageEntries = filteredEntries.slice(start, start + PAGE_SIZE);
+                const visibleRows = pageEntries.map(function (entry, index) {
                     const meta = entry.internalName
                         ? '<div class="path-meta">Internal: ' + escapeHTML(entry.internalName) + '</div>'
                         : '';
                     const libraryCell = renderLibraryCell(entry);
                     return '<tr>' +
-                        '<td>' + (index + 1) + '</td>' +
+                        '<td>' + (start + index + 1) + '</td>' +
                         '<td><div class="path-main">' + escapeHTML(entry.path || entry.name || '') + '</div>' + meta + '</td>' +
                         '<td><span class="type-pill">' + escapeHTML(entry.type || 'file') + '</span></td>' +
                         '<td>' + libraryCell + '</td>' +
@@ -1685,9 +1741,13 @@ class AppDashboardHTMLBuilder {
                 }).join('');
 
                 tableBody.innerHTML = visibleRows;
-                const shown = Math.min(entries.length, MAX_ROWS);
-                const suffix = entries.length === files.length ? 'files' : 'matched files';
-                statusLabel.textContent = 'Showing ' + shown + ' of ' + entries.length + ' ' + suffix;
+                const shownStart = start + 1;
+                const shownEnd = start + pageEntries.length;
+                const suffix = filteredEntries.length === files.length ? 'files' : 'matched files';
+                statusLabel.textContent = 'Showing ' + shownStart + '–' + shownEnd + ' of ' + filteredEntries.length + ' ' + suffix;
+                paginationStatusLabel.textContent = 'Page ' + currentPage + ' of ' + totalPages;
+                prevButton.disabled = currentPage === 1;
+                nextButton.disabled = currentPage === totalPages;
             }
 
             function renderLibraryCell(entry) {
@@ -1749,8 +1809,9 @@ class AppDashboardHTMLBuilder {
                     });
                 }
 
-                filtered = sortEntries(filtered);
-                render(filtered);
+                filteredEntries = sortEntries(filtered);
+                currentPage = 1;
+                renderCurrentPage();
             }
 
             searchInput.addEventListener('input', applyFilters);
@@ -1776,6 +1837,20 @@ class AppDashboardHTMLBuilder {
                     });
                     applyFilters();
                 });
+            });
+
+            prevButton.addEventListener('click', function () {
+                if (currentPage > 1) {
+                    currentPage -= 1;
+                    renderCurrentPage();
+                }
+            });
+            nextButton.addEventListener('click', function () {
+                const totalPages = Math.max(1, Math.ceil(filteredEntries.length / PAGE_SIZE));
+                if (currentPage < totalPages) {
+                    currentPage += 1;
+                    renderCurrentPage();
+                }
             });
 
             document.addEventListener('keydown', function (event) {
@@ -2540,28 +2615,30 @@ enum DashboardHTMLStyle {
     color-scheme: light;
     --font-sans: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace;
-    --color-bg: #eff2f7;
+    --color-bg: #f3f4f6;
     --color-surface: #ffffff;
-    --color-elevated: #f7f9fd;
-    --color-muted-surface: #f0f4ff;
-    --color-border: #dfe5f1;
-    --color-border-strong: #c5cfdf;
-    --color-text: #0f172a;
-    --color-muted: #5b6474;
-    --color-subtle: #7c869a;
+    --color-elevated: #f8fafc;
+    --color-muted-surface: #eef2ff;
+    --color-border: #e5e7eb;
+    --color-border-strong: #cbd5f5;
+    --color-text: #111827;
+    --color-muted: #6b7280;
+    --color-subtle: #94a3b8;
     --color-primary: #2563eb;
     --color-primary-strong: #1d4ed8;
-    --color-primary-soft: rgba(37, 99, 235, 0.12);
-    --color-positive: #0d9488;
-    --color-negative: #b91c1c;
-    --color-warning: #c2410c;
+    --color-primary-soft: rgba(37, 99, 235, 0.15);
+    --color-positive: #10b981;
+    --color-negative: #dc2626;
+    --color-warning: #f97316;
     --radius-lg: 28px;
     --radius-md: 20px;
     --radius-sm: 12px;
     --shadow-soft: 0 25px 60px rgba(15, 23, 42, 0.08);
-    --shadow-card: 0 12px 30px rgba(15, 23, 42, 0.06);
+    --shadow-card: 0 20px 40px rgba(15, 23, 42, 0.08);
     --shadow-faint: 0 1px 3px rgba(15, 23, 42, 0.12);
-    --layout-max: 1180px;
+    --layout-max: 1200px;
+    --gradient-hero: linear-gradient(90deg, #2563eb, #7c3aed, #ec4899);
+    --nav-blur: rgba(255, 255, 255, 0.9);
 }
 
 *, *::before, *::after {
@@ -2571,10 +2648,11 @@ enum DashboardHTMLStyle {
 body {
     margin: 0;
     font-family: var(--font-sans);
-    background: radial-gradient(circle at top, rgba(37, 99, 235, 0.08), transparent 55%), var(--color-bg);
+    background: linear-gradient(180deg, #eef2ff 0%, var(--color-bg) 35%, var(--color-bg) 100%);
     color: var(--color-text);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
 }
 
 img { max-width: 100%; height: auto; display: block; }
@@ -2586,19 +2664,122 @@ a:hover { text-decoration: underline; }
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    gap: clamp(1.25rem, 2vw, 1.75rem);
+    gap: clamp(1rem, 2vw, 1.75rem);
+    width: 100%;
+    margin: 0;
+    padding: 1.25rem 1rem 3rem;
+}
+
+.dashboard-nav {
+    position: sticky;
+    top: 1rem;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    border: 1px solid rgba(37, 99, 235, 0.12);
+    background: var(--nav-blur);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 15px 45px rgba(15, 23, 42, 0.12);
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    min-width: 0;
+}
+
+.nav-brand-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    background: var(--color-elevated);
+    box-shadow: var(--shadow-faint);
+    flex-shrink: 0;
+}
+.nav-brand-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+}
+.nav-brand-icon.fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: var(--color-primary-strong);
+}
+
+.nav-title {
+    margin: 0;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+}
+.nav-subtitle {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--color-muted);
+}
+
+.nav-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+.nav-pill {
+    padding: 0.25rem 0.9rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.04);
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid rgba(15, 23, 42, 0.05);
+}
+.nav-pill.subtle {
+    background: rgba(37, 99, 235, 0.1);
+    border-color: rgba(37, 99, 235, 0.2);
+    color: var(--color-primary-strong);
+}
+.nav-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #2563eb, #ec4899);
+    box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35);
+}
+
+@media (max-width: 640px) {
+    .dashboard-nav {
+        flex-direction: column;
+        align-items: flex-start;
+        border-radius: 24px;
+    }
+    .nav-meta {
+        width: 100%;
+        justify-content: space-between;
+    }
 }
 
 .dashboard-header {
     width: 100%;
-    margin: clamp(1.25rem, 2vw, 2.5rem) 0 0;
-    padding: clamp(1.5rem, 2vw, 2.75rem) clamp(1.5rem, 4vw, 4rem);
+    margin: 0.75rem 0 0;
+    padding: clamp(1rem, 1.8vw, 1.8rem) clamp(1rem, 3vw, 2.25rem);
     background: var(--color-surface);
     border-radius: var(--radius-lg);
     display: grid;
-    gap: clamp(1.5rem, 2vw, 2rem);
+    gap: clamp(1rem, 1.5vw, 1.5rem);
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-soft);
+    position: relative;
+    overflow: hidden;
+    padding-top: calc(clamp(1rem, 1.8vw, 1.8rem) + 0.5rem);
 }
 
 @media (min-width: 960px) {
@@ -2606,6 +2787,16 @@ a:hover { text-decoration: underline; }
         grid-template-columns: minmax(0, 1fr) 360px;
         align-items: stretch;
     }
+}
+
+.dashboard-header::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: var(--gradient-hero);
 }
 
 .header-main {
@@ -2618,9 +2809,9 @@ a:hover { text-decoration: underline; }
 
 .app-icon img,
 .fallback-icon {
-    width: 96px;
-    height: 96px;
-    border-radius: 22px;
+    width: 80px;
+    height: 80px;
+    border-radius: 18px;
     object-fit: cover;
     background: var(--color-elevated);
     border: 1px solid var(--color-border);
@@ -2646,8 +2837,8 @@ a:hover { text-decoration: underline; }
 }
 .hero-title {
     margin: 0;
-    font-size: clamp(2rem, 4vw, 2.9rem);
-    line-height: 1.2;
+    font-size: clamp(1.75rem, 3vw, 2.4rem);
+    line-height: 1.15;
     word-break: break-word;
 }
 .hero-subtitle, .hero-source {
@@ -2663,8 +2854,8 @@ a:hover { text-decoration: underline; }
 .hero-badges {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.35rem;
+    gap: 0.4rem;
+    margin-top: 0.2rem;
 }
 
 .badge {
@@ -2695,8 +2886,8 @@ a:hover { text-decoration: underline; }
 }
 .meta-list {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 0.85rem 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem 0.85rem;
     margin: 0;
     padding: 0;
 }
@@ -2714,11 +2905,10 @@ a:hover { text-decoration: underline; }
     font-size: 1rem;
     word-break: break-word;
 }
-
 .header-actions {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.35rem;
 }
 .header-note {
     margin: 0;
@@ -2726,25 +2916,46 @@ a:hover { text-decoration: underline; }
     color: var(--color-muted);
 }
 
-.link-button {
-    display: inline-flex;
+.pagination-controls {
+    margin-top: 0.75rem;
+    display: flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.4rem 0.9rem;
+    justify-content: flex-end;
+    gap: 0.85rem;
+}
+.pagination-controls.is-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+.pagination-button {
+    padding: 0.35rem 0.9rem;
     border-radius: 999px;
-    border: 1px solid transparent;
-    background: var(--color-primary);
-    color: #fff;
+    border: 1px solid var(--color-border);
+    background: var(--color-elevated);
+    color: var(--color-text);
+    font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: background 0.2s ease, color 0.2s ease;
 }
-.link-button:hover { background: var(--color-primary-strong); }
+.pagination-button:hover:not(:disabled) {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+}
+.pagination-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.pagination-status {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+}
 
 
 .dashboard-main {
     width: 100%;
-    padding: 0 clamp(1.5rem, 4vw, 4rem) clamp(2rem, 3vw, 3.5rem);
+    padding: 0;
     display: flex;
     flex-direction: column;
     gap: clamp(1.2rem, 2vw, 1.75rem);
