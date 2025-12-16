@@ -128,24 +128,24 @@ jobs:
           DOWNLOAD_URL="https://github.com/ValentinoPalomba/FRTMTools/releases/download/${TAG}/${CLI_FILENAME}"
           export FORMULA_PATH DOWNLOAD_URL CLI_SHA VERSION
           python - <<'PY'
-import os, re, sys
-from pathlib import Path
-formula_path = Path(os.environ["FORMULA_PATH"])
-url = os.environ["DOWNLOAD_URL"]
-sha = os.environ["CLI_SHA"]
-version = os.environ["VERSION"]
-text = formula_path.read_text()
-patterns = [
-    (r'(url\s+")([^"]+)(")', f'\\1{url}\\3'),
-    (r'(sha256\s+")([^"]+)(")', f'\\1{sha}\\3'),
-    (r'(version\s+")([^"]+)(")', f'\\1{version}\\3'),
-]
-for pattern, replacement in patterns:
-    text, count = re.subn(pattern, replacement, text, count=1)
-    if count == 0:
-        print(f"Failed to update pattern: {pattern}", file=sys.stderr)
-        sys.exit(1)
-formula_path.write_text(text)
+            import os, re, sys
+            from pathlib import Path
+            formula_path = Path(os.environ["FORMULA_PATH"])
+            url = os.environ["DOWNLOAD_URL"]
+            sha = os.environ["CLI_SHA"]
+            version = os.environ["VERSION"]
+            text = formula_path.read_text()
+            patterns = [
+                (r'(url\s+")([^"]+)(")', f'\\1{url}\\3'),
+                (r'(sha256\s+")([^"]+)(")', f'\\1{sha}\\3'),
+                (r'(version\s+")([^"]+)(")', f'\\1{version}\\3'),
+            ]
+            for pattern, replacement in patterns:
+                text, count = re.subn(pattern, replacement, text, count=1)
+                if count == 0:
+                    print(f"Failed to update pattern: {pattern}", file=sys.stderr)
+                    sys.exit(1)
+            formula_path.write_text(text)
 PY
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
