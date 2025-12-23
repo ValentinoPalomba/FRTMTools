@@ -21,7 +21,7 @@ This document summarizes what each analyzer inspects and how the data flows into
 | Surface | Data Highlighted |
 | --- | --- |
 | macOS App | Summary cards, category charts, tips, dependency graph |
-| CLI (`frtmtools analyze`) | JSON report + dashboard HTML with per-binary stripping table |
+| CLI (`frtmtools`) | Interactive HTML dashboard with per-binary stripping tables |
 
 ## APK Analyzer
 

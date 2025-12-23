@@ -25,7 +25,7 @@ security posture—with actionable tips on how to slim everything down.
 - **Beautiful SwiftUI dashboards** – Interactive charts, dependency graphs, manifest
   insights, and summary cards for both iOS and Android packages.
 - **Full-featured CLI** – Automate scans inside CI using the same analyzer core as the
-  macOS app. JSON + HTML outputs make it easy to share reports.
+  macOS app. The CLI generates the same interactive HTML dashboards.
 
 ## Screenshots
 
