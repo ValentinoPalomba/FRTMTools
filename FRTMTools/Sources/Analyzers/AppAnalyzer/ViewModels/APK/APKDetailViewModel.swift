@@ -24,13 +24,6 @@ final class APKDetailViewModel: AppDetailViewModel {
         apkViewModel.archs(for: analysis)
     }
 
-    var categoriesCount: Int { categories.count }
-    var hasCategories: Bool { !categories.isEmpty }
-
-    var archTypesDescription: String {
-        archs.types.joined(separator: ", ")
-    }
-
     var buildsForApp: [APKAnalysis] {
         let key = analysis.packageName ?? analysis.executableName ?? analysis.fileName
         let builds = apkViewModel.groupedAnalyses[key] ?? []
@@ -47,16 +40,6 @@ final class APKDetailViewModel: AppDetailViewModel {
 
     var tips: [Tip] {
         apkViewModel.tips(for: analysis)
-    }
-
-    func categoryName(for id: String) -> String? {
-        categories.first { $0.id == id }?.name
-    }
-
-    func topFiles(for categoryName: String, limit: Int) -> [FileInfo] {
-        guard let category = categories.first(where: { $0.name == categoryName }) else { return [] }
-        let sorted = category.items.sorted { $0.size > $1.size }
-        return Array(sorted.prefix(limit))
     }
 
     // MARK: - Image Extraction

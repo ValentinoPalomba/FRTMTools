@@ -42,6 +42,13 @@ class AppDashboardHTMLBuilder {
             }
             return nil
         }
+
+        var ipaAnalysis: IPAAnalysis? {
+            if case .ipa(let ipa) = self {
+                return ipa
+            }
+            return nil
+        }
     }
 
     private let analysis: any AppAnalysis
@@ -203,10 +210,10 @@ class AppDashboardHTMLBuilder {
     }
 
     private func renderHeroSection(iconHTML: String) -> String {
-        let heroBadges = [
-            renderBadge(title: analysis.isStripped ? "Binary stripped" : "Binary not stripped", type: analysis.isStripped ? .success : .warning),
-            renderBadge(title: analysis.allowsArbitraryLoads ? "ATS relaxed" : "ATS enforced", type: analysis.allowsArbitraryLoads ? .warning : .success)
-        ].joined(separator: "\n")
+        var heroBadges: [String] = []
+        heroBadges.append(renderStrippingBadge())
+        heroBadges.append(renderBadge(title: analysis.allowsArbitraryLoads ? "ATS relaxed" : "ATS enforced", type: analysis.allowsArbitraryLoads ? .warning : .success))
+        let heroBadgesHTML = heroBadges.joined(separator: "\n")
 
         let title = analysis.executableName ?? analysis.fileName
         let versionLine = versionSummaryText() ?? "No version metadata available"
@@ -227,7 +234,7 @@ class AppDashboardHTMLBuilder {
                     <p class="hero-subtitle">Bundle \(analysis.fileName.htmlEscaped) · \(versionLine.htmlEscaped)</p>
                     \(platformSubtitle)
                     <div class="hero-badges">
-                        \(heroBadges)
+                        \(heroBadgesHTML)
                     </div>
                 </div>
             </div>
@@ -1062,7 +1069,8 @@ class AppDashboardHTMLBuilder {
         </div>
         """
 
-        guard !cardHTML.isEmpty else { return "" }
+        let strippingHTML = renderBinaryStrippingFindings(for: ipa)
+        guard !cardHTML.isEmpty || !strippingHTML.isEmpty else { return "" }
 
         return """
         <section class="platform-section">
@@ -1071,7 +1079,49 @@ class AppDashboardHTMLBuilder {
                 <span>Binary, frameworks and ATS configuration</span>
             </div>
             \(cardHTML)
+            \(strippingHTML)
         </section>
+        """
+    }
+
+    private func renderBinaryStrippingFindings(for ipa: IPAAnalysis) -> String {
+        let findings = ipa.nonStrippedBinaries
+        guard !findings.isEmpty else { return "" }
+        let sorted = findings.sorted { $0.potentialSaving > $1.potentialSaving }
+        let totalSaving = sorted.reduce(Int64(0)) { $0 + $1.potentialSaving }
+        let rows = sorted.map { info -> String in
+            let path = (info.path?.isEmpty == false ? info.path! : nil) ?? info.fullPath ?? info.name
+            return """
+            <tr>
+                <td>
+                    <strong>\(info.name.htmlEscaped)</strong>
+                    <div class="meta">\(path.htmlEscaped)</div>
+                </td>
+                <td>\(formattedBytes(info.size))</td>
+                <td>\(formattedBytes(info.potentialSaving))</td>
+            </tr>
+            """
+        }.joined(separator: "\n")
+
+        return """
+        <div class="detail-subsection">
+            <h3>Unstripped Binaries</h3>
+            <p class="meta">Stripping debug data from these files could save approximately \(formattedBytes(totalSaving)).</p>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Binary</th>
+                            <th>Size</th>
+                            <th>Est. Saving</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        \(rows)
+                    </tbody>
+                </table>
+            </div>
+        </div>
         """
     }
 
@@ -1586,6 +1636,19 @@ class AppDashboardHTMLBuilder {
             }
         }
         return matches
+    }
+
+    private func renderStrippingBadge() -> String {
+        if let ipa = platform.ipaAnalysis {
+            if ipa.nonStrippedBinaries.isEmpty {
+                return renderBadge(title: "Binaries stripped", type: .success)
+            }
+            let count = ipa.nonStrippedBinaries.count
+            let totalSaving = ipa.nonStrippedBinaries.reduce(Int64(0)) { $0 + $1.potentialSaving }
+            let title = "\(count) unstripped binaries (~\(formattedBytes(totalSaving)))"
+            return renderBadge(title: title, type: .warning)
+        }
+        return renderBadge(title: analysis.isStripped ? "Binary stripped" : "Binary not stripped", type: analysis.isStripped ? .success : .warning)
     }
 
     private func renderBadge(title: String, type: BadgeType) -> String {

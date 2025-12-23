@@ -41,8 +41,15 @@ class TipGenerator {
     private static func generateIPATips(for analysis: IPAAnalysis) -> [Tip] {
         var tips: [Tip] = []
         let allFiles = flatten(file: analysis.rootFile)
+        let binaryFiles = allFiles.filter { $0.type == .binary }
+        let mainBinary: FileInfo? = {
+            if let execName = analysis.executableName {
+                return binaryFiles.first(where: { $0.name == execName })
+            }
+            return binaryFiles.first
+        }()
 
-        if let binary = allFiles.first(where: { $0.type == .binary }) {
+        if let binary = mainBinary {
             if binary.size > 50 * 1024 * 1024 {
                 tips.append(Tip(
                     text: "The main binary is very large (\(ByteCountFormatter.string(fromByteCount: binary.size, countStyle: .file))). Consider enabling Link Time Optimization (LTO), removing unused code, or reviewing Swift optimization flags.",
@@ -74,12 +81,26 @@ class TipGenerator {
             }
         }
 
-        if !analysis.isStripped, let binary = allFiles.first(where: { $0.type == .binary }) {
-            let potentialSaving = ByteCountFormatter.string(fromByteCount: Int64(Double(binary.size) * 0.25), countStyle: .file)
-            tips.append(Tip(
-                text: "The binary is not fully stripped. Stripping could save up to \(potentialSaving) or more, reduce binary size, and make reverse-engineering more difficult.",
+        let nonStrippedBinaries = analysis.nonStrippedBinaries
+        if !nonStrippedBinaries.isEmpty {
+            let totalSaving = nonStrippedBinaries.reduce(Int64(0)) { $0 + $1.potentialSaving }
+            var strippingTip = Tip(
+                text: "\(nonStrippedBinaries.count) binaries are not fully stripped. Removing debug symbols could save approximately \(ByteCountFormatter.string(fromByteCount: totalSaving, countStyle: .file)) and makes reverse-engineering harder.",
                 category: .warning
-            ))
+            )
+            let sortedFindings = nonStrippedBinaries.sorted { $0.potentialSaving > $1.potentialSaving }
+            for finding in sortedFindings {
+                let identifier = (finding.path?.isEmpty == false ? finding.path! : nil)
+                    ?? (finding.fullPath ?? finding.name)
+                let savingText = ByteCountFormatter.string(fromByteCount: finding.potentialSaving, countStyle: .file)
+                let sizeText = ByteCountFormatter.string(fromByteCount: finding.size, countStyle: .file)
+                var subTip = Tip(
+                    text: "\(identifier): file size \(sizeText), estimated saving \(savingText) when stripped.",
+                    category: .warning
+                )
+                strippingTip.subTips.append(subTip)
+            }
+            tips.append(strippingTip)
         }
 
         if analysis.allowsArbitraryLoads {

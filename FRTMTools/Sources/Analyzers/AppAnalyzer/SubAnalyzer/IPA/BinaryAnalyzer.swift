@@ -8,7 +8,7 @@
 
 import Foundation
 
-class BinaryAnalyzer {
+final class BinaryAnalyzer: Sendable {
     func isBinaryStripped(at binaryURL: URL) -> Bool {
         let fm = FileManager.default
         let tempDir = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)

@@ -4,6 +4,14 @@ import AppKit
 // MARK: - Models
 
 struct IPAAnalysis: AppAnalysis {
+    struct BinaryStrippingInfo: Codable, Sendable {
+        let name: String
+        let path: String?
+        let fullPath: String?
+        let size: Int64
+        let potentialSaving: Int64
+    }
+
     let id: UUID
     let fileName: String
     let executableName: String?
@@ -32,6 +40,7 @@ struct IPAAnalysis: AppAnalysis {
 
     private let imageData: Data?
     let isStripped: Bool
+    let nonStrippedBinaries: [BinaryStrippingInfo]
     let allowsArbitraryLoads: Bool
     var dependencyGraph: DependencyGraph?
 
@@ -54,6 +63,7 @@ struct IPAAnalysis: AppAnalysis {
         version: String?,
         buildNumber: String?,
         isStripped: Bool,
+        nonStrippedBinaries: [BinaryStrippingInfo] = [],
         allowsArbitraryLoads: Bool,
         installedSize: InstalledSizeMetrics? = nil,
         startupTime: StartupTime? = nil,
@@ -67,6 +77,7 @@ struct IPAAnalysis: AppAnalysis {
         self.buildNumber = buildNumber
         self.imageData = image?.tiffRepresentation
         self.isStripped = isStripped
+        self.nonStrippedBinaries = nonStrippedBinaries
         self.allowsArbitraryLoads = allowsArbitraryLoads
         self.installedSize = installedSize
         self.startupTime = startupTime
@@ -75,7 +86,7 @@ struct IPAAnalysis: AppAnalysis {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, fileName, executableName, url, rootFile, version, buildNumber, imageData, isStripped, allowsArbitraryLoads, installedSize, startupTime, dependencyGraph
+        case id, fileName, executableName, url, rootFile, version, buildNumber, imageData, isStripped, nonStrippedBinaries, allowsArbitraryLoads, installedSize, startupTime, dependencyGraph
     }
 }
 

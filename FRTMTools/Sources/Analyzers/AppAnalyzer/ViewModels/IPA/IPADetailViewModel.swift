@@ -19,13 +19,6 @@ final class IPADetailViewModel: AppDetailViewModel {
         ipaViewModel.archs(for: analysis)
     }
 
-    var categoriesCount: Int { categories.count }
-    var hasCategories: Bool { !categories.isEmpty }
-
-    var archTypesDescription: String {
-        archs.types.joined(separator: ", ")
-    }
-
     var buildsForApp: [IPAAnalysis] {
         let key = analysis.executableName ?? analysis.fileName
         let builds = ipaViewModel.groupedAnalyses[key] ?? []
@@ -69,13 +62,4 @@ final class IPADetailViewModel: AppDetailViewModel {
         return map
     }()
 
-    func categoryName(for id: String) -> String? {
-        categories.first { $0.id == id }?.name
-    }
-
-    func topFiles(for categoryName: String, limit: Int) -> [FileInfo] {
-        guard let category = categories.first(where: { $0.name == categoryName }) else { return [] }
-        let sorted = category.items.sorted { $0.size > $1.size }
-        return Array(sorted.prefix(limit))
-    }
 }
