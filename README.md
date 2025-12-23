@@ -12,6 +12,12 @@ security posture—with actionable tips on how to slim everything down.
 - **Binary stripping insights** – Every Mach-O discovered during the scan is checked for
   debug symbols. Unstripped binaries are listed with per-file savings in both the app and
   the generated HTML dashboards.
+- **Unused asset hunter** – Scans your bundle for orphaned images, sounds, and localized
+  files, helping you delete the dead weight before shipping.
+- **Dead code scanner** – Integrates a Periphery-based pass to highlight Swift symbols
+  that are compiled but never used.
+- **Bad word scanner** – Looks inside binaries/resources to ensure profanity or banned
+  strings don’t slip into production builds.
 - **Side-by-side comparisons** – Compare two builds to understand size deltas per file
   or category before publishing.
 - **Optimization tips** – The `TipGenerator` catches duplicate assets, oversized
