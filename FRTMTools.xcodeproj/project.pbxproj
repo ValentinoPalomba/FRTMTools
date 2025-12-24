@@ -91,6 +91,7 @@
 				Sources/Analyzers/AppAnalyzer/SubAnalyzer/IPA/BinaryAnalyzer.swift,
 				Sources/Analyzers/AppAnalyzer/SubAnalyzer/IPA/CarAnalyzer.swift,
 				Sources/Analyzers/AppAnalyzer/SubAnalyzer/IPA/DependencyAnalyzer.swift,
+				Sources/Analyzers/AppAnalyzer/ViewModels/ComparisonReportViewModel.swift,
 				Sources/Architecture/Dependency/Analyzer.swift,
 				Sources/Architecture/Interfaces/Exportable.swift,
 				"Sources/Extensions/URL+Extensions.swift",
