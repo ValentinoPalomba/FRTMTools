@@ -33,15 +33,9 @@ private final class DashboardCommand {
             }
             log("Output: \(configuration.outputURL.path)")
 
+            let html: String
             switch configuration.command {
-            case .buildlog:
-                let reporter = BuildLogReporter()
-                log("Parsing Xcode build log…")
-                let reportURL = try reporter.generateReport(from: configuration.inputURL, outputURL: configuration.outputURL)
-                print("Build report generated at \(reportURL.path)")
-                return 0
             case .ipa:
-                let html: String
                 let analyzer = IPAAnalyzer()
                 log("Starting IPA analysis…")
                 guard let analysis = try await analyzer.analyze(at: configuration.inputURL) else {
@@ -49,13 +43,7 @@ private final class DashboardCommand {
                 }
                 log("Analysis completed. Building dashboard…")
                 html = AppDashboardHTMLBuilder(platform: .ipa(analysis)).build()
-                try ensureParentFolderExists(for: configuration.outputURL)
-                try html.write(to: configuration.outputURL, atomically: true, encoding: .utf8)
-
-                print("Dashboard generated at \(configuration.outputURL.path)")
-                return 0
             case .apk:
-                let html: String
                 let analyzer = APKAnalyzer()
                 log("Starting APK analysis…")
                 guard let analysis = try await analyzer.analyze(at: configuration.inputURL) else {
@@ -63,13 +51,7 @@ private final class DashboardCommand {
                 }
                 log("Analysis completed. Building dashboard…")
                 html = AppDashboardHTMLBuilder(platform: .apk(analysis)).build()
-                try ensureParentFolderExists(for: configuration.outputURL)
-                try html.write(to: configuration.outputURL, atomically: true, encoding: .utf8)
-
-                print("Dashboard generated at \(configuration.outputURL.path)")
-                return 0
             case .compare:
-                let html: String
                 guard let secondaryURL = configuration.secondaryInputURL else {
                     throw CLIError.invalidArguments("Comparison requires two input packages.")
                 }
@@ -106,12 +88,13 @@ private final class DashboardCommand {
                     log("Building comparison dashboard…")
                     html = ComparisonDashboardHTMLBuilder(platform: .apk(before, after)).build()
                 }
-                try ensureParentFolderExists(for: configuration.outputURL)
-                try html.write(to: configuration.outputURL, atomically: true, encoding: .utf8)
-
-                print("Dashboard generated at \(configuration.outputURL.path)")
-                return 0
             }
+
+            try ensureParentFolderExists(for: configuration.outputURL)
+            try html.write(to: configuration.outputURL, atomically: true, encoding: .utf8)
+
+            print("Dashboard generated at \(configuration.outputURL.path)")
+            return 0
         } catch CLIError.helpRequested {
             printUsage()
             return 0
@@ -120,12 +103,6 @@ private final class DashboardCommand {
             printUsage()
             return 1
         } catch CLIError.unsupportedFile(let message) {
-            fputs("Error: \(message)\n", stderr)
-            return 2
-        } catch CLIError.toolUnavailable(let message) {
-            fputs("Error: \(message)\n", stderr)
-            return 2
-        } catch CLIError.toolFailed(let message) {
             fputs("Error: \(message)\n", stderr)
             return 2
         } catch {
@@ -140,7 +117,7 @@ private final class DashboardCommand {
             throw CLIError.helpRequested
         }
         guard let command = Command(rawValue: commandString.lowercased()) else {
-            throw CLIError.invalidArguments("Unknown command '\(commandString)'. Expected 'ipa', 'apk', 'compare', or 'buildlog'.")
+            throw CLIError.invalidArguments("Unknown command '\(commandString)'. Expected 'ipa', 'apk', or 'compare'.")
         }
         args.removeFirst()
 
@@ -173,10 +150,6 @@ private final class DashboardCommand {
         case .ipa, .apk:
             if inputPaths.count != 1 {
                 throw CLIError.invalidArguments("Please provide the path to the package you want to analyze.")
-            }
-        case .buildlog:
-            if inputPaths.count != 1 {
-                throw CLIError.invalidArguments("Please provide the path to the xcactivitylog file you want to parse.")
             }
         }
 
@@ -221,11 +194,6 @@ private final class DashboardCommand {
                 resolvedOutputURL = inputURL
                     .deletingLastPathComponent()
                     .appendingPathComponent(suggestedName)
-            case .buildlog:
-                let suggestedName = inputURL.deletingPathExtension().lastPathComponent + "-build-report.html"
-                resolvedOutputURL = inputURL
-                    .deletingLastPathComponent()
-                    .appendingPathComponent(suggestedName)
             }
         }
 
@@ -244,18 +212,15 @@ private final class DashboardCommand {
           \(commandName) ipa <path-to-ipa-or-app> [--output <path>]
           \(commandName) apk <path-to-apk-or-aab> [--output <path>]
           \(commandName) compare <first-package> <second-package> [--output <path>]
-          \(commandName) buildlog <path-to-xcactivitylog|xcworkspace|xcodeproj> [--output <path>]
 
         Options:
-          -o, --output <path>   Write the generated report to the provided path.
+          -o, --output <path>   Write the generated HTML dashboard to the provided path.
           -h, --help            Show this message.
 
         Examples:
           \(commandName) ipa Payload/MyApp.ipa --output /tmp/MyApp-dashboard.html
           \(commandName) apk ~/Downloads/sample.apk
           \(commandName) compare build-old.ipa build-new.ipa --output ~/Desktop/comparison.html
-          \(commandName) buildlog MyApp.xcodeproj --output ~/Desktop/build-report
-          \(commandName) buildlog ~/Library/Developer/Xcode/DerivedData/.../Logs/Build/LogStoreManifest.xcactivitylog --output ~/Desktop/build-report
         """
         print(message)
     }
@@ -280,7 +245,6 @@ private extension DashboardCommand {
         case ipa
         case apk
         case compare
-        case buildlog
     }
 
     enum PackagePlatform {
@@ -299,12 +263,9 @@ private extension DashboardCommand {
         throw CLIError.invalidArguments("Unable to detect the package type for \(url.path). For single dashboards use the 'ipa' or 'apk' commands explicitly.")
     }
 
-}
-
-enum CLIError: Error {
-    case invalidArguments(String)
-    case unsupportedFile(String)
-    case toolUnavailable(String)
-    case toolFailed(String)
-    case helpRequested
+    enum CLIError: Error {
+        case invalidArguments(String)
+        case unsupportedFile(String)
+        case helpRequested
+    }
 }

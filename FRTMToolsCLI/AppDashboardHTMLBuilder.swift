@@ -321,86 +321,479 @@ class AppDashboardHTMLBuilder {
         return renderTabScaffold(tabs: tabs)
     }
 
-    private func generateAnalysisAndRecommendations() -> [AnalysisPoint] {
-        var points: [AnalysisPoint] = []
-        
-        if let ipa = platform.ipaAnalysis, !ipa.nonStrippedBinaries.isEmpty {
-            let totalSaving = ipa.nonStrippedBinaries.reduce(0) { $0 + $1.potentialSaving }
-            points.append(AnalysisPoint(
-                icon: "🛡️",
-                title: "Unstripped Binaries Found",
-                finding: "\(ipa.nonStrippedBinaries.count) binaries contain debug symbols, adding \(formattedBytes(totalSaving)) of unnecessary size.",
-                recommendation: "Ensure 'Strip Swift Symbols' is enabled and 'Debug Information Format' is set to 'DWARF with dSYM File' for release builds to remove this data.",
-                tone: "warning"
-            ))
-        }
-
-        let largeFiles = flattenedFiles.filter { $0.size > 1_000_000 }.sorted { $0.size > $1.size }.prefix(3)
-        if !largeFiles.isEmpty {
-            let largest = largeFiles.first!
-            points.append(AnalysisPoint(
-                icon: "🐘",
-                title: "Large Files Detected",
-                finding: "Your app contains large files, with the biggest being `\(largest.name)` at \(formattedBytes(largest.size)).",
-                recommendation: "Compress large assets (images, videos, data files). For very large resources, consider using On-Demand Resources (iOS) or Play Asset Delivery (Android).",
-                tone: "warning"
-            ))
-        }
-        
-        if let duplicatesTip = tips.first(where: { $0.kind == .duplicateFiles || $0.kind == .duplicateImages }) {
-            points.append(AnalysisPoint(
-                icon: "👯",
-                title: "Duplicate Resources Found",
-                finding: duplicatesTip.text,
-                recommendation: "Consolidate duplicate files into a single shared resource. Use the File Explorer below to find all instances.",
-                tone: "warning"
-            ))
-        }
-
-        if let apk = platform.apkAnalysis, apk.dynamicFeatures.isEmpty && apk.totalSize > 50_000_000 {
-            points.append(AnalysisPoint(
-                icon: "切割",
-                title: "Opportunity: Dynamic Features",
-                finding: "This is a large APK (\(formattedBytes(apk.totalSize))) that doesn't use dynamic feature modules.",
-                recommendation: "Modularize features that are used by a subset of users or only after initial onboarding to significantly reduce the initial download size.",
-                tone: "default"
-            ))
-        }
-        
-        return points
-    }
-    
     private func renderInsightsSection() -> String {
-        let analysisPoints = generateAnalysisAndRecommendations()
-        guard !analysisPoints.isEmpty else { return "" }
-        
-        let cards = analysisPoints.map { point in
+        guard !tips.isEmpty else {
+            return ""
+        }
+        let duplicatesMarkup = duplicateInsightSections.isEmpty ? "" : renderDuplicateInsightsPanel(sections: duplicateInsightSections)
+        let unstrippedMarkup = renderUnstrippedBinariesInsightPanel()
+        let excludedKinds: Set<Tip.Kind> = [.duplicateFiles, .duplicateImages, .unstrippedBinaries]
+        let standardTips = tips.filter { tip in
+            !excludedKinds.contains(tip.kind)
+        }
+        let cards = standardTips.map { tipCard(for: $0) }.joined(separator: "\n")
+        let cardsMarkup = cards.isEmpty ? "" : """
+            <div class=\"insight-grid\">
+                \(cards)
+            </div>
+        """
+        if duplicatesMarkup.isEmpty && cardsMarkup.isEmpty {
+            return ""
+        }
+        let contextDescription: String = platform.apkAnalysis != nil
+            ? "Heuristic recommendations generated from the Android bundle contents."
+            : "Heuristic recommendations generated from the bundle contents."
+        return wrapSectionStack([
+        """
+        <section class=\"platform-section insights\">
+            <div class=\"section-header\">
+                <h2>Insights</h2>
+                <span>\(contextDescription.htmlEscaped)</span>
+            </div>
+            \(duplicatesMarkup)
+            \(unstrippedMarkup)
+            \(cardsMarkup)
+        </section>
+        """
+        ])
+    }
+
+    private func renderDuplicateInsightsPanel(sections: [DuplicateInsightSection]) -> String {
+        guard !sections.isEmpty else { return "" }
+        let cards = sections.map { duplicateCard(for: $0) }.joined(separator: "\n")
+        return """
+        <div class=\"duplicate-panel\">
+            \(cards)
+        </div>
+        """
+    }
+
+    private func duplicateCard(for section: DuplicateInsightSection) -> String {
+        let previewLimit = 5
+        let visibleEntries = section.entries.prefix(previewLimit)
+        let overflowCount = section.entries.count - visibleEntries.count
+        let entryMarkup = visibleEntries.map { duplicateEntryMarkup(for: $0) }.joined(separator: "\n")
+        let overflowNote = overflowCount > 0
+            ? "<p class=\"duplicate-more\">+\(overflowCount) additional groups are included in the export.</p>"
+            : ""
+        let exportLink: String
+        if section.exportPayload.isEmpty {
+            exportLink = ""
+        } else {
+            exportLink = """
+            <a class=\"ghost-button\" href=\"\(section.exportPayload.htmlAttributeEscaped)\" download=\"\(section.exportFileName.htmlAttributeEscaped)\">Export list</a>
             """
-            <article class="analysis-card \(point.tone)">
-                <div class="analysis-icon">\(point.icon)</div>
-                <div class="analysis-content">
-                    <h3 class="analysis-title">\(point.title.htmlEscaped)</h3>
-                    <p class="analysis-finding"><strong>Finding:</strong> \(point.finding.htmlEscaped)</p>
-                    <p class="analysis-recommendation"><strong>Recommendation:</strong> \(point.recommendation.htmlEscaped)</p>
+        }
+        let body: String
+        if entryMarkup.isEmpty {
+            body = "<p class=\"empty-state\">No duplicate details available.</p>"
+        } else {
+            body = """
+            <ol class=\"duplicate-list\">
+                \(entryMarkup)
+            </ol>
+            \(overflowNote)
+            """
+        }
+        return """
+        <article class=\"duplicate-card\">
+            <div class=\"duplicate-card-header\">
+                <div>
+                    <p class=\"duplicate-eyebrow\">\(section.title.htmlEscaped)</p>
+                    <h3>\(section.summary.htmlEscaped)</h3>
                 </div>
-            </article>
+                \(exportLink)
+            </div>
+            \(body)
+        </article>
+        """
+    }
+
+    private func duplicateEntryMarkup(for entry: DuplicateEntry) -> String {
+        let paths = entry.paths.map { path in
+            "<li><code>\(path.htmlEscaped)</code></li>"
+        }.joined(separator: "\n")
+        let pathList = paths.isEmpty ? "" : """
+            <ul class=\"duplicate-paths\">
+                \(paths)
+            </ul>
+        """
+        return """
+        <li class=\"duplicate-entry\">
+            <p class=\"duplicate-entry-title\">\(entry.summary.htmlEscaped)</p>
+            \(pathList)
+        </li>
+        """
+    }
+
+    private func tipCard(for tip: Tip) -> String {
+        let cleanText = tip.text
+            .split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
+        let text = cleanText.htmlEscaped.replacingOccurrences(of: "\n", with: "<br/>")
+        let badge = "<span class=\"insight-category\">\(tip.category.rawValue.htmlEscaped)</span>"
+        let subTips = tip.subTips.isEmpty ? "" : """
+        <div class="insight-subtips">
+            \(tip.subTips.map { "<p>\($0.text.htmlEscaped.replacingOccurrences(of: "\n", with: "<br/>"))</p>" }.joined())
+        </div>
+        """
+
+        return """
+        <article class="insight-card">
+            \(badge)
+            <div class="insight-text">\(text)</div>
+            \(subTips)
+        </article>
+        """
+    }
+
+    private func buildDuplicateInsightSections() -> [DuplicateInsightSection] {
+        guard !tips.isEmpty else { return [] }
+        let orderedKinds: [Tip.Kind] = [.duplicateFiles, .duplicateImages]
+        let baseName = sanitizedReportName()
+        var sections: [DuplicateInsightSection] = []
+        for kind in orderedKinds {
+            guard let tip = tips.first(where: { $0.kind == kind }) else { continue }
+            let entries = duplicateEntries(from: tip)
+            guard !entries.isEmpty else { continue }
+            let suffix = kind == .duplicateFiles ? "duplicate-files" : "duplicate-images"
+            let exportFileName = baseName.isEmpty ? "duplicates.txt" : "\(baseName)-\(suffix).txt"
+            let exportPayload = exportDataURI(for: entries, heading: tip.text)
+            sections.append(DuplicateInsightSection(
+                kind: kind,
+                title: duplicateTitle(for: kind),
+                summary: tip.text,
+                entries: entries,
+                exportFileName: exportFileName,
+                exportPayload: exportPayload
+            ))
+        }
+        return sections
+    }
+
+    private func duplicateEntries(from tip: Tip) -> [DuplicateEntry] {
+        tip.subTips.compactMap { subTip in
+            let lines = subTip.text
+                .components(separatedBy: CharacterSet.newlines)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            guard let summary = lines.first else { return nil }
+            let paths = Array(lines.dropFirst())
+            return DuplicateEntry(summary: summary, paths: paths)
+        }
+    }
+
+    private func exportDataURI(for entries: [DuplicateEntry], heading: String) -> String {
+        var lines: [String] = []
+        lines.append("Report: \(analysis.fileName)")
+        lines.append(heading)
+        lines.append("")
+        for entry in entries {
+            lines.append(entry.summary)
+            for path in entry.paths {
+                lines.append(" - \(path)")
+            }
+            lines.append("")
+        }
+        let payload = lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !payload.isEmpty, let data = payload.data(using: .utf8) else { return "" }
+        return "data:text/plain;base64,\(data.base64EncodedString())"
+    }
+
+    private func sanitizedReportName() -> String {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
+        let components = analysis.fileName.components(separatedBy: allowed.inverted).filter { !$0.isEmpty }
+        let joined = components.joined(separator: "-")
+        if joined.isEmpty {
+            return "frtm-report"
+        }
+        let condensed = joined.replacingOccurrences(of: "-+", with: "-", options: .regularExpression)
+        return condensed.lowercased()
+    }
+
+    private func duplicateTitle(for kind: Tip.Kind) -> String {
+        switch kind {
+        case .duplicateFiles:
+            return "Duplicate Files"
+        case .duplicateImages:
+            return "Duplicate Images"
+        default:
+            return "Duplicates"
+        }
+    }
+
+    private func renderDynamicFeaturesPanel() -> String {
+        guard let apk = platform.apkAnalysis else {
+            return ""
+        }
+        let summary = renderDynamicFeaturesSummarySection(for: apk)
+        let fileLists = renderDynamicFeatureFileListsSection(for: apk)
+        let sections = [summary, fileLists].filter { !$0.isEmpty }
+        if sections.isEmpty {
+            return "<section class=\"platform-section\"><div class=\"empty-state\">No dynamic feature modules were bundled.</div></section>"
+        }
+        return wrapSectionStack(sections)
+    }
+
+    private func renderDynamicFeatureFileListsSection(for apk: APKAnalysis) -> String {
+        guard !apk.dynamicFeatures.isEmpty else { return "" }
+        let cards = apk.dynamicFeatures.map { feature in
+            let header = """
+            <div class="feature-card-header">
+                <div>
+                    <div class="name">\(feature.name.htmlEscaped)</div>
+                    <div class="meta">Module \(feature.moduleName.htmlEscaped) · \(feature.deliveryType.displayName.htmlEscaped)</div>
+                </div>
+                <span class="feature-size">\(formattedBytes(feature.estimatedSizeBytes))</span>
+            </div>
+            """
+            let rows: String
+            if feature.files.isEmpty {
+                rows = "<tr><td colspan=\"2\" class=\"empty-state compact\">File listing not available for this module.</td></tr>"
+            } else {
+                rows = feature.files.map { file in
+                    """
+                    <tr>
+                        <td>
+                            <div class="name">\(file.name.htmlEscaped)</div>
+                            <div class="meta">\(file.path.htmlEscaped)</div>
+                        </td>
+                        <td class="numeric">\(formattedBytes(file.sizeBytes))</td>
+                    </tr>
+                    """
+                }.joined(separator: "\n")
+            }
+
+            return """
+            <div class="feature-card">
+                \(header)
+                <div class="table-wrapper compact">
+                    <table class="feature-file-table">
+                        <thead>
+                            <tr>
+                                <th>File</th>
+                                <th>Size</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            \(rows)
+                        </tbody>
+                    </table>
+                </div>
+            </div>
             """
         }.joined(separator: "\n")
-        
+
         return """
-        <section id="analysis">
+        <section class="platform-section feature-details">
             <div class="section-header">
-                <div>
-                    <p class="section-eyebrow">Intelligence</p>
-                    <h2>Analysis & Recommendations</h2>
-                </div>
-                <span class="section-subtitle">Actionable advice to reduce your app's size.</span>
+                <h2>Module Contents</h2>
+                <span>Largest files bundled inside each dynamic feature</span>
             </div>
-            <div class="analysis-grid">
+            <div class="feature-grid">
                 \(cards)
             </div>
         </section>
         """
+    }
+
+    private func wrapSectionStack(_ sections: [String]) -> String {
+        let filtered = sections.filter { !$0.isEmpty }
+        guard !filtered.isEmpty else { return "" }
+        return """
+        <div class="section-stack">
+            \(filtered.joined(separator: "\n"))
+        </div>
+        """
+    }
+
+    private func renderTabScaffold(tabs: [TabItem]) -> String {
+        let normalized = tabs.map { tab -> (id: String, label: String, content: String) in
+            let trimmed = tab.content.trimmingCharacters(in: .whitespacesAndNewlines)
+            let content: String
+            if trimmed.isEmpty {
+                content = wrapSectionStack([
+                """
+                <section>
+                    <div class="empty-state">\(tab.emptyMessage.htmlEscaped)</div>
+                </section>
+                """
+                ])
+            } else {
+                content = tab.content
+            }
+            return (id: tab.id, label: tab.label, content: content)
+        }
+        guard !normalized.isEmpty else { return "" }
+        let navButtons = normalized.enumerated().map { index, tab in
+            let activeClass = index == 0 ? " active" : ""
+            return "<button class=\"tab-button\(activeClass)\" type=\"button\" data-tab-target=\"\(tab.id)\">\(tab.label.htmlEscaped)</button>"
+        }.joined(separator: "\n")
+        let sections = normalized.enumerated().map { index, tab in
+            let activeClass = index == 0 ? " active" : ""
+            return """
+            <div class="tab-content\(activeClass)" id="\(tab.id)">
+                \(tab.content)
+            </div>
+            """
+        }.joined(separator: "\n")
+        return """
+        <div class="tab-container">
+            <div class="tab-nav">
+                \(navButtons)
+            </div>
+            \(sections)
+        </div>
+        """
+    }
+
+    private func renderSummaryCards() -> String {
+        var entries: [SummaryCardEntry] = [
+            SummaryCardEntry(title: "Uncompressed Size", value: formattedBytes(analysis.totalSize), meta: analysis.fileName, extraClass: nil),
+            SummaryCardEntry(title: "Version", value: analysis.version ?? "Not set", meta: "Build \(analysis.buildNumber ?? "n/a")", extraClass: nil),
+            SummaryCardEntry(title: "Total Files", value: "\(flattenedFiles.count)", meta: "Includes assets & binaries", extraClass: nil),
+            SummaryCardEntry(title: "Generated", value: iso8601String(), meta: "Report created locally", extraClass: nil)
+        ]
+
+        var nextInsertIndex = 1
+        if let installEntry = installedSizeSummaryEntry() {
+            entries.insert(installEntry, at: nextInsertIndex)
+            nextInsertIndex += 1
+        }
+        if let downloadEntry = downloadSizeSummaryEntry() {
+            entries.insert(downloadEntry, at: nextInsertIndex)
+            nextInsertIndex += 1
+        }
+
+        let cards = entries.map { entry in
+            let extraClass = entry.extraClass.map { " \($0)" } ?? ""
+            return """
+            <article class="kpi\(extraClass)">
+                <p class="kpi-label">\(entry.title.htmlEscaped)</p>
+                <p class="kpi-value">\(entry.value.htmlEscaped)</p>
+                <p class="kpi-meta">\(entry.meta.htmlEscaped)</p>
+            </article>
+            """
+        }.joined(separator: "\n")
+
+        return """
+        <section class="kpi-section">
+            <div class="section-header">
+                <div>
+                    <p class="section-eyebrow">Summary</p>
+                    <h2>Build Snapshot</h2>
+                </div>
+                <span>Key metadata for this build</span>
+            </div>
+            <div class="kpi-strip">
+                \(cards)
+            </div>
+        </section>
+        """
+    }
+
+    private func renderLibraryExplorerSection() -> String {
+        guard case .apk(let apk) = platform, !apk.thirdPartyLibraries.isEmpty else { return "" }
+        let total = apk.thirdPartyLibraries.count
+        let rows = apk.thirdPartyLibraries.enumerated().map { index, library in
+            let packages = library.packageMatches.joined(separator: ", ")
+            let manifestClass = library.hasManifestComponent ? "manifest-pill yes" : "manifest-pill"
+            let manifestLabel = library.hasManifestComponent ? "Manifest" : "—"
+            let packagesMeta = packages.isEmpty ? "" : "<div class=\"meta\">Packages: \(packages.htmlEscaped)</div>"
+            let haystack = "\(library.name) \(library.identifier) \(packages)".lowercased()
+            return """
+            <tr data-haystack="\(haystack.htmlAttributeEscaped)" data-manifest="\(library.hasManifestComponent)" data-index="\(index + 1)">
+                <td>
+                    <div class="name">\(library.name.htmlEscaped)</div>
+                    <div class="meta">ID: \(library.identifier.htmlEscaped)</div>
+                    \(packagesMeta)
+                </td>
+                <td>\((library.version ?? "—").htmlEscaped)</td>
+                <td>\(formattedBytes(library.estimatedSize))</td>
+                <td><span class="\(manifestClass)">\(manifestLabel)</span></td>
+            </tr>
+            """
+        }.joined(separator: "\n")
+
+        return """
+        <section id="library-explorer">
+            <div class="section-header">
+                <h2>Third-Party Library Explorer</h2>
+                <span>Search \(total) detected SDKs</span>
+            </div>
+            <div class="section-controls">
+                <div class="search-group">
+                    <input type="search" id="librarySearch" placeholder="Search name, identifier or package…" autocomplete="off" />
+                    <span class="search-hint">⌘F</span>
+                </div>
+                <label class="filter-toggle">
+                    <input type="checkbox" id="libraryManifestFilter" />
+                    <span>Manifest components only</span>
+                </label>
+            </div>
+            <div class="table-wrapper interactive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Library</th>
+                            <th>Version</th>
+                            <th>Size</th>
+                            <th>Manifest</th>
+                        </tr>
+                    </thead>
+                    <tbody id="libraryTableBody">
+                        \(rows)
+                    </tbody>
+                </table>
+            </div>
+            <div class="search-status" id="librarySearchStatus">Showing \(total) SDKs</div>
+        </section>
+        """
+    }
+
+
+    private func installedSizeSummaryEntry() -> SummaryCardEntry? {
+        guard let metrics = resolvedInstalledSizeMetrics else { return nil }
+        var meta = "Estimated footprint after install"
+        if let apk = platform.apkAnalysis, apk.bundletoolInstallSizeBytes != nil {
+            meta = "bundletool install estimate"
+        }
+        let title = platform.apkAnalysis == nil ? "Installed Size" : "Install Size"
+        return SummaryCardEntry(title: title, value: formatMegabytes(metrics.total), meta: meta, extraClass: nil)
+    }
+
+    private func downloadSizeSummaryEntry() -> SummaryCardEntry? {
+        guard let apk = platform.apkAnalysis,
+              let downloadBytes = apk.bundletoolDownloadSizeBytes else { return nil }
+
+        let value = formattedBytes(downloadBytes)
+        let meta: String
+        if let installBytes = apk.bundletoolInstallSizeBytes {
+            meta = "Install \(formattedBytes(installBytes))"
+        } else {
+            meta = "bundletool download estimate"
+        }
+
+        let downloadMegabytes = Double(downloadBytes) / 1_048_576.0
+        var extraClass: String? = nil
+        if downloadMegabytes >= 200 {
+            extraClass = "card-danger"
+        } else if downloadMegabytes >= 180 {
+            extraClass = "card-warning"
+        }
+
+        return SummaryCardEntry(title: "Download Size", value: value, meta: meta, extraClass: extraClass)
+    }
+
+    private func renderPlatformDetailsSection() -> String {
+        switch platform {
+        case .ipa:
+            return ""
+        case .apk(let apk):
+            return renderAndroidDetailsSection(apk)
+        }
     }
 
     private func renderUnstrippedBinariesInsightPanel() -> String {
@@ -565,148 +958,6 @@ class AppDashboardHTMLBuilder {
             }
             return nil
         }
-    }
-    
-    private func updatedBaseCSS() -> String {
-        return """
-        :root {
-            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            --radius: 12px;
-            --color-accent: #007aff;
-            --color-accent-g: linear-gradient(45deg, #007aff, #5856d6);
-            --c-text: #111;
-            --c-text-muted: #555;
-            --c-bg: #f8f9fa;
-            --c-surface: #fff;
-            --c-border: #e9ecef;
-            --c-positive: #28a745;
-            --c-negative: #dc3545;
-            --c-warning: #fd7e14;
-            --shadow: 0 4px 6px rgba(0,0,0,0.04);
-        }
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --c-text: #e0e0e0;
-                --c-text-muted: #a0a0a0;
-                --c-bg: #18191a;
-                --c-surface: #242526;
-                --c-border: #3a3b3c;
-                --c-positive: #34c759;
-                --c-negative: #ff3b30;
-                --c-warning: #ff9500;
-                --shadow: 0 4px 6px rgba(0,0,0,0.2);
-            }
-        }
-        html { scroll-behavior: smooth; }
-        body {
-            margin: 0;
-            font-family: var(--font-sans);
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            color: var(--c-text);
-            background-color: var(--c-bg);
-        }
-        .dashboard-layout { display: flex; }
-        .dashboard-sidebar {
-            width: 280px; flex-shrink: 0; height: 100vh; position: sticky; top: 0;
-            background: var(--c-surface); border-right: 1px solid var(--c-border);
-            display: flex; flex-direction: column; padding: 1.5rem;
-        }
-        .nav-brand { display: flex; align-items: center; gap: 0.75rem; padding-bottom: 1.5rem; }
-        .nav-brand-icon { width: 42px; height: 42px; border-radius: var(--radius); overflow: hidden; }
-        .nav-brand-icon img { width: 100%; height: 100%; object-fit: cover; }
-        .nav-brand-icon.fallback { background: var(--color-accent-g); color: white; display: grid; place-items: center; font-weight: 700; font-size: 1.1rem; }
-        .nav-title { font-weight: 600; font-size: 1rem; margin:0; }
-        .nav-subtitle { font-size: 0.85rem; color: var(--c-text-muted); margin:0; }
-        .sidebar-nav { flex-grow: 1; }
-        .sidebar-nav ul { list-style: none; padding: 0; margin: 0; }
-        .sidebar-nav li a { display: block; padding: 0.75rem 1rem; border-radius: 8px; color: var(--c-text-muted); text-decoration: none; font-weight: 500; font-size: 0.9rem; transition: all 0.2s ease; }
-        .sidebar-nav li a:hover { background-color: var(--c-bg); color: var(--c-text); }
-        .sidebar-footer { font-size: 0.75rem; color: var(--c-text-muted); padding-top: 1rem; border-top: 1px solid var(--c-border); margin-top: 1rem; }
-        .sidebar-footer p { margin: 0.25rem 0; word-break: break-all; }
-        .dashboard-main { flex-grow: 1; padding: 2rem 3rem; }
-        .dashboard-header { padding-bottom: 2rem; border-bottom: 1px solid var(--c-border); margin-bottom: 2rem; }
-        .header-main { display: flex; justify-content: space-between; align-items: flex-start; }
-        .hero-eyebrow { color: var(--c-text-muted); font-size: 0.9rem; margin: 0 0 0.5rem; }
-        .hero-title { font-size: 2.5rem; font-weight: 700; margin: 0 0 0.5rem; }
-        .hero-subtitle { font-size: 1.1rem; color: var(--c-text-muted); margin: 0; }
-        .status-badge { font-size: 0.9rem; font-weight: 600; padding: 0.5rem 1rem; border-radius: 99px; }
-        .status-badge.positive { background-color: #eaf6ec; color: var(--c-positive); }
-        .status-badge.negative { background-color: #fdecea; color: var(--c-negative); }
-        .status-badge.warning { background-color: #fff4e7; color: var(--c-warning); }
-        @media (prefers-color-scheme: dark) {
-            .status-badge.positive { background-color: #1e3a24; }
-            .status-badge.negative { background-color: #4b1a1f; }
-            .status-badge.warning { background-color: #4d330f; }
-        }
-        section { scroll-margin-top: 2rem; margin-bottom: 3rem; }
-        .section-header { margin-bottom: 1.5rem; }
-        .section-eyebrow { color: var(--color-accent); font-weight: 600; margin: 0 0 0.5rem; font-size: 0.9rem; }
-        .section-header h2 { font-size: 1.75rem; margin: 0; }
-        .section-subtitle { color: var(--c-text-muted); font-size: 1rem; }
-        .analysis-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-        .analysis-card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 1.5rem; display: flex; gap: 1.5rem; align-items: flex-start; box-shadow: var(--shadow); }
-        .analysis-card.warning { border-left: 4px solid var(--c-warning); }
-        .analysis-card.negative { border-left: 4px solid var(--c-negative); }
-        .analysis-card.default { border-left: 4px solid var(--color-accent); }
-        .analysis-icon { font-size: 1.5rem; }
-        .analysis-content { flex-grow: 1; }
-        .analysis-title { margin: 0 0 0.75rem; font-size: 1.1rem; }
-        .analysis-finding, .analysis-recommendation { margin: 0.25rem 0; font-size: 0.95rem; color: var(--c-text-muted); line-height: 1.6; }
-        .analysis-finding strong, .analysis-recommendation strong { color: var(--c-text); }
-        .kpi-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
-        .kpi-card { background: var(--c-surface); border-radius: var(--radius); border: 1px solid var(--c-border); padding: 1.5rem; display: flex; align-items: center; gap: 1rem; box-shadow: var(--shadow); }
-        .kpi-icon { font-size: 1.75rem; }
-        .kpi-content { flex-grow: 1; }
-        .kpi-title { font-size: 0.85rem; color: var(--c-text-muted); margin: 0; }
-        .kpi-value { font-size: 1.5rem; font-weight: 700; margin: 0; }
-        .viz-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem; align-items: flex-start; }
-        .viz-container { background: var(--c-surface); border-radius: var(--radius); border: 1px solid var(--c-border); padding: 1.5rem; box-shadow: var(--shadow); }
-        .viz-container h3 { margin-top: 0; }
-        .category-chart-shell { position: relative; max-width: 420px; margin: 0 auto; }
-        .category-chart-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
-        .chart-label-title { margin: 0; font-weight: 500; }
-        .chart-label-value { margin: 0.25rem 0 0; font-size: 1.25rem; font-weight: 700; }
-        .category-tooltip { position: fixed; background: var(--c-text); color: var(--c-surface); padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; transform: translate(10px, 10px); }
-        .category-tooltip.visible { opacity: 1; }
-        .category-legend { list-style: none; padding: 0; margin: 1.5rem 0 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; }
-        .category-legend li { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer; }
-        .category-legend li .legend-color { width: 12px; height: 12px; border-radius: 4px; }
-        .treemap-wrapper { margin-top: 1rem; }
-        .treemap-controls { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--c-bg); border-radius: 8px; }
-        .treemap-breadcrumb { font-size: 0.9rem; color: var(--c-text-muted); }
-        .treemap { position: relative; width: 100%; height: 400px; background: var(--c-bg); border-radius: 8px; overflow: hidden; }
-        .treemap-cell { position: absolute; border: 1px solid var(--c-surface); box-sizing: border-box; overflow: hidden; transition: all 0.3s ease; }
-        .treemap-cell-label { padding: 4px; font-size: 12px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
-        .treemap-legend { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; justify-content: center; }
-        .treemap-legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; }
-        .treemap-legend-swatch { width: 12px; height: 12px; border-radius: 4px; }
-        .section-controls { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
-        .search-group { position: relative; }
-        #fileSearch { padding-right: 3rem; }
-        .search-hint { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--c-text-muted); font-size: 0.8rem; background: var(--c-border); padding: 2px 6px; border-radius: 4px; }
-        input[type="search"], select { background: var(--c-surface); border: 1px solid var(--c-border); color: var(--c-text); border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.9rem; }
-        .sort-buttons { display: flex; border: 1px solid var(--c-border); border-radius: 8px; overflow: hidden; }
-        .sort-button { background: var(--c-surface); color: var(--c-text-muted); border: none; padding: 0.75rem 1rem; cursor: pointer; }
-        .sort-button.active { background: var(--c-bg); color: var(--c-text); font-weight: 600; }
-        .table-wrapper { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--c-border); }
-        thead { background-color: var(--c-bg); }
-        th { font-size: 0.85rem; font-weight: 600; color: var(--c-text-muted); }
-        tbody tr:last-child td { border-bottom: none; }
-        tbody tr:hover { background-color: var(--c-bg); }
-        td { font-size: 0.9rem; }
-        .path-meta { font-size: 0.8rem; color: var(--c-text-muted); margin-top: 0.25rem; }
-        .type-pill { background-color: var(--c-bg); color: var(--c-text-muted); padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 500; }
-        .library-tags { display: flex; gap: 0.25rem; flex-wrap: wrap; }
-        .library-tag { background: var(--color-accent-g); color: white; padding: 3px 7px; border-radius: 6px; font-size: 0.75rem; font-weight: 500; }
-        .library-tag.muted { background: var(--c-border); color: var(--c-text-muted); }
-        .pagination-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
-        .pagination-button { background: var(--c-surface); border: 1px solid var(--c-border); color: var(--c-text); padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; }
-        .pagination-button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .empty-state { text-align: center; padding: 3rem; color: var(--c-text-muted); }
-        """
     }
 
     private func renderTreemapLegend() -> String {
