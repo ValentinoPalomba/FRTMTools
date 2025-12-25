@@ -54,6 +54,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				CacheLocations.swift,
+				Resources/xclogparser,
 				Sources/Analyzers/AppAnalyzer/Core/APK/AndroidManifestParser.swift,
 				Sources/Analyzers/AppAnalyzer/Core/APK/AndroidPermissionCatalog.swift,
 				Sources/Analyzers/AppAnalyzer/Core/APK/APKAnalyzer.swift,
@@ -101,6 +102,16 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		A91E680B2EFD99370022A38D /* Exceptions for "FRTMTools" folder in "Copy Files" phase from "frtmtools" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			attributesByRelativePath = {
+				Resources/xclogparser = (CodeSignOnCopy, );
+			};
+			buildPhase = E6BBAFB82EDF423E004F7E30 /* CopyFiles */;
+			membershipExceptions = (
+				Resources/xclogparser,
+			);
+		};
 		E6291BED2E8D2B1500F6625A /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */ = {
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
 			attributesByRelativePath = {
@@ -132,6 +143,7 @@
 			exceptions = (
 				E6B370722E688928005F365C /* Exceptions for "FRTMTools" folder in "FRTMTools" target */,
 				E6BBAFC42EDF42AF004F7E30 /* Exceptions for "FRTMTools" folder in "frtmtools" target */,
+				A91E680B2EFD99370022A38D /* Exceptions for "FRTMTools" folder in "Copy Files" phase from "frtmtools" target */,
 			);
 			path = FRTMTools;
 			sourceTree = "<group>";
@@ -191,6 +203,7 @@
 				E6BBAFB62EDF423E004F7E30 /* Sources */,
 				E6BBAFB72EDF423E004F7E30 /* Frameworks */,
 				E6BBAFB82EDF423E004F7E30 /* CopyFiles */,
+				A91E680C2EFD9A3A0022A38D /* Resources */,
 			);
 			buildRules = (
 			);
@@ -281,6 +294,13 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		A91E680C2EFD9A3A0022A38D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E6EDE3CF2E679CC300310565 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;

@@ -14,6 +14,7 @@ brew install frtmtools
 | `frtmtools ipa <path>` | Analyze an `.ipa` or unpacked `.app` bundle and generate an HTML dashboard. |
 | `frtmtools apk <path>` | Analyze an `.apk`/`.aab` package (Dex vs native libs, manifest insights, permissions). |
 | `frtmtools compare <first> <second>` | Produce an HTML comparison dashboard highlighting size deltas and changed files. |
+| `frtmtools buildlog <path>` | Parse an Xcode `.xcactivitylog`, `.xcworkspace`, or `.xcodeproj` and generate a structured build report (HTML) styled like the app dashboards. |
 
 All commands accept optional flags:
 
@@ -23,9 +24,12 @@ All commands accept optional flags:
 
 ### Outputs
 
-The CLI writes **only HTML**. Each invocation creates an interactive dashboard identical
+The CLI writes **HTML reports**. Package analysis produces a single dashboard file identical
 to the macOS view (category charts, per-binary stripping tables, manifest insights, etc.).
-When comparing two packages the output name defaults to `comparison.html`.
+The build log command generates a single HTML report file.
+
+`buildlog` expects the `xclogparser` executable to be bundled with the CLI, placed next
+to the `frtmtools` binary, or provided via `FRTMTOOLS_XCLOGPARSER_PATH`.
 
 ### Examples
 
@@ -33,6 +37,8 @@ When comparing two packages the output name defaults to `comparison.html`.
 frtmtools ipa Payload/MyApp.ipa --output /tmp/MyApp-dashboard.html
 frtmtools apk ~/Downloads/sample.apk
 frtmtools compare build-old.ipa build-new.ipa --output ~/Desktop/comparison.html
+frtmtools buildlog MyApp.xcodeproj --output ~/Desktop/build-report
+frtmtools buildlog ~/Library/Developer/Xcode/DerivedData/.../Logs/Build/LogStoreManifest.xcactivitylog --output ~/Desktop/build-report
 ```
 
 ### Automation Tips
