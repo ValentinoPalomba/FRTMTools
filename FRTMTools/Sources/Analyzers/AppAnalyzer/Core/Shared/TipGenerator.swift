@@ -88,6 +88,7 @@ class TipGenerator {
                 text: "\(nonStrippedBinaries.count) binaries are not fully stripped. Removing debug symbols could save approximately \(ByteCountFormatter.string(fromByteCount: totalSaving, countStyle: .file)) and makes reverse-engineering harder.",
                 category: .warning
             )
+            strippingTip.kind = .unstrippedBinaries
             let sortedFindings = nonStrippedBinaries.sorted { $0.potentialSaving > $1.potentialSaving }
             for finding in sortedFindings {
                 let identifier = (finding.path?.isEmpty == false ? finding.path! : nil)
@@ -98,6 +99,7 @@ class TipGenerator {
                     text: "\(identifier): file size \(sizeText), estimated saving \(savingText) when stripped.",
                     category: .warning
                 )
+                subTip.kind = .unstrippedBinaries
                 strippingTip.subTips.append(subTip)
             }
             tips.append(strippingTip)

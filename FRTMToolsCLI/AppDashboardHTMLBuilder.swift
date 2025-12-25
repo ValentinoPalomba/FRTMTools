@@ -212,7 +212,6 @@ class AppDashboardHTMLBuilder {
     private func renderHeroSection(iconHTML: String) -> String {
         var heroBadges: [String] = []
         heroBadges.append(renderStrippingBadge())
-        heroBadges.append(renderBadge(title: analysis.allowsArbitraryLoads ? "ATS relaxed" : "ATS enforced", type: analysis.allowsArbitraryLoads ? .warning : .success))
         let heroBadgesHTML = heroBadges.joined(separator: "\n")
 
         let title = analysis.executableName ?? analysis.fileName
@@ -307,7 +306,6 @@ class AppDashboardHTMLBuilder {
             renderDeepLinksSection(),
             categoryDataset.isEmpty ? "" : renderCategoryVisualizationSection(),
             renderTreemapSection(),
-            renderTechnicalInventorySection(),
             renderLibraryExplorerSection(),
             renderFileExplorerSection()
         ].filter { !$0.isEmpty }
@@ -328,9 +326,10 @@ class AppDashboardHTMLBuilder {
             return ""
         }
         let duplicatesMarkup = duplicateInsightSections.isEmpty ? "" : renderDuplicateInsightsPanel(sections: duplicateInsightSections)
-        let duplicateKinds: Set<Tip.Kind> = [.duplicateFiles, .duplicateImages]
+        let unstrippedMarkup = renderUnstrippedBinariesInsightPanel()
+        let excludedKinds: Set<Tip.Kind> = [.duplicateFiles, .duplicateImages, .unstrippedBinaries]
         let standardTips = tips.filter { tip in
-            !duplicateKinds.contains(tip.kind)
+            !excludedKinds.contains(tip.kind)
         }
         let cards = standardTips.map { tipCard(for: $0) }.joined(separator: "\n")
         let cardsMarkup = cards.isEmpty ? "" : """
@@ -352,6 +351,7 @@ class AppDashboardHTMLBuilder {
                 <span>\(contextDescription.htmlEscaped)</span>
             </div>
             \(duplicatesMarkup)
+            \(unstrippedMarkup)
             \(cardsMarkup)
         </section>
         """
@@ -694,42 +694,6 @@ class AppDashboardHTMLBuilder {
         """
     }
 
-    private func renderTechnicalInventorySection() -> String {
-        let cards = [
-            localizationInventoryCard(),
-            densityInventoryCard(),
-            permissionsInventoryCard(),
-            featuresInventoryCard(),
-            librariesInventoryCard(),
-            packagesInventoryCard()
-        ].compactMap { $0 }
-        guard !cards.isEmpty else { return "" }
-
-        let grid = cards.map { card in
-            """
-            <div class="inventory-card">
-                <div class="inventory-card-header">
-                    <h3>\(card.title.htmlEscaped)</h3>
-                    \(card.subtitle.map { "<span>\($0.htmlEscaped)</span>" } ?? "")
-                </div>
-                \(card.body)
-            </div>
-            """
-        }.joined(separator: "\n")
-
-        return """
-        <section class="inventory-section" id="technical-inventory">
-            <div class="section-header">
-                <h2>Technical Inventory</h2>
-                <span>Locales, density support, permissions & dependencies</span>
-            </div>
-            <div class="inventory-grid">
-                \(grid)
-            </div>
-        </section>
-        """
-    }
-
     private func renderLibraryExplorerSection() -> String {
         guard case .apk(let apk) = platform, !apk.thirdPartyLibraries.isEmpty else { return "" }
         let total = apk.thirdPartyLibraries.count
@@ -789,185 +753,6 @@ class AppDashboardHTMLBuilder {
         """
     }
 
-    private func localizationInventoryCard() -> InventoryCard? {
-        switch platform {
-        case .ipa:
-            let stats = iosLocalizationStats()
-            guard !stats.isEmpty else { return nil }
-            let limit = 12
-            let rows = stats.prefix(limit).map { entry in
-                """
-                <tr>
-                    <td>\(entry.code.uppercased().htmlEscaped)</td>
-                    <td>\(formattedBytes(entry.size))</td>
-                </tr>
-                """
-            }.joined(separator: "\n")
-            let remainder = stats.count > limit ? "<div class=\"meta\">+\(stats.count - limit) more locales</div>" : ""
-            let body = """
-            <div class="table-wrapper compact">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Locale</th>
-                            <th>Size</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        \(rows)
-                    </tbody>
-                </table>
-            </div>
-            \(remainder)
-            """
-            return InventoryCard(
-                title: "Localized Resources",
-                subtitle: "\(stats.count) locales",
-                body: body
-            )
-        case .apk(let apk):
-            guard !apk.supportedLocales.isEmpty else { return nil }
-            let tags = renderTagListSection(title: "", items: apk.supportedLocales, limit: 40)
-            return InventoryCard(
-                title: "Supported Locales",
-                subtitle: "\(apk.supportedLocales.count) locales",
-                body: tags
-            )
-        }
-    }
-
-    private func densityInventoryCard() -> InventoryCard? {
-        guard case .apk(let apk) = platform else { return nil }
-        let hasScreens = !apk.supportsScreens.isEmpty
-        let hasDensities = !apk.densities.isEmpty
-        let hasAnyDensity = apk.supportsAnyDensity ?? false
-        guard hasScreens || hasDensities || hasAnyDensity else { return nil }
-
-        var parts: [String] = []
-        if hasScreens {
-            parts.append(renderTagListSection(title: "Screens", items: apk.supportsScreens, limit: 12))
-        }
-        if hasDensities {
-            parts.append(renderTagListSection(title: "Densities", items: apk.densities, limit: 20))
-        }
-        if hasAnyDensity {
-            parts.append("<div class=\"meta\">Supports any density</div>")
-        }
-
-        return InventoryCard(
-            title: "Screen & Density Support",
-            subtitle: "Manifest declarations",
-            body: parts.joined(separator: "\n")
-        )
-    }
-
-    private func permissionsInventoryCard() -> InventoryCard? {
-        guard case .apk(let apk) = platform, !apk.permissions.isEmpty else { return nil }
-        let tags = renderTagListSection(title: "", items: apk.permissions, limit: 50)
-        return InventoryCard(
-            title: "Permissions",
-            subtitle: "\(apk.permissions.count) declared",
-            body: tags
-        )
-    }
-
-    private func featuresInventoryCard() -> InventoryCard? {
-        guard case .apk(let apk) = platform,
-              !apk.requiredFeatures.isEmpty || !apk.optionalFeatures.isEmpty else { return nil }
-        var parts: [String] = []
-        if !apk.requiredFeatures.isEmpty {
-            parts.append(renderTagListSection(title: "Required", items: apk.requiredFeatures, limit: 40))
-        }
-        if !apk.optionalFeatures.isEmpty {
-            parts.append(renderTagListSection(title: "Optional", items: apk.optionalFeatures, limit: 40))
-        }
-        return InventoryCard(
-            title: "Hardware & Software Features",
-            subtitle: nil,
-            body: parts.joined(separator: "\n")
-        )
-    }
-
-    private func librariesInventoryCard() -> InventoryCard? {
-        guard case .apk(let apk) = platform, !apk.thirdPartyLibraries.isEmpty else { return nil }
-        let limit = min(10, apk.thirdPartyLibraries.count)
-        let rows = apk.thirdPartyLibraries.prefix(limit).map { library in
-            """
-            <tr>
-                <td>\(library.name.htmlEscaped)</td>
-                <td>\(library.identifier.htmlEscaped)</td>
-                <td>\((library.version ?? "—").htmlEscaped)</td>
-                <td>\(formattedBytes(library.estimatedSize))</td>
-            </tr>
-            """
-        }.joined(separator: "\n")
-        let remainder = apk.thirdPartyLibraries.count > limit ? "<div class=\"meta\">+\(apk.thirdPartyLibraries.count - limit) more detected</div>" : ""
-
-        let body = """
-        <div class="table-wrapper compact">
-            <table class="feature-file-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>ID</th>
-                        <th>Version</th>
-                        <th>Size</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    \(rows)
-                </tbody>
-            </table>
-        </div>
-        \(remainder)
-        """
-
-        return InventoryCard(
-            title: "Third-Party Libraries",
-            subtitle: "\(apk.thirdPartyLibraries.count) packages",
-            body: body
-        )
-    }
-
-    private func packagesInventoryCard() -> InventoryCard? {
-        guard case .apk(let apk) = platform, !apk.packageAttributions.isEmpty else { return nil }
-        let limit = min(10, apk.packageAttributions.count)
-        let rows = apk.packageAttributions.prefix(limit).map { attribution in
-            """
-            <tr>
-                <td>\(attribution.packageName.htmlEscaped)</td>
-                <td>\(attribution.classCount)</td>
-                <td>\(formattedBytes(attribution.estimatedSizeBytes))</td>
-            </tr>
-            """
-        }.joined(separator: "\n")
-        let remainder = apk.packageAttributions.count > limit ? "<div class=\"meta\">+\(apk.packageAttributions.count - limit) more packages</div>" : ""
-
-        let body = """
-        <div class="table-wrapper compact">
-            <table class="feature-file-table">
-                <thead>
-                    <tr>
-                        <th>Package</th>
-                        <th>Classes</th>
-                        <th>Estimated Size</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    \(rows)
-                </tbody>
-            </table>
-        </div>
-        \(remainder)
-        """
-
-        return InventoryCard(
-            title: "Package Attribution",
-            subtitle: "\(apk.packageAttributions.count) tracked",
-            body: body
-        )
-    }
-
 
     private func installedSizeSummaryEntry() -> SummaryCardEntry? {
         guard let metrics = resolvedInstalledSizeMetrics else { return nil }
@@ -1004,87 +789,15 @@ class AppDashboardHTMLBuilder {
 
     private func renderPlatformDetailsSection() -> String {
         switch platform {
-        case .ipa(let ipa):
-            return renderIOSDetailsSection(ipa)
+        case .ipa:
+            return ""
         case .apk(let apk):
             return renderAndroidDetailsSection(apk)
         }
     }
 
-    private func renderIOSDetailsSection(_ ipa: IPAAnalysis) -> String {
-        struct DetailCardView {
-            let title: String
-            let value: String
-            let meta: String?
-        }
-
-        var cards: [DetailCardView] = []
-
-        let binarySize = flattenedFiles
-            .filter { $0.type == .binary }
-            .reduce(Int64(0)) { $0 + $1.size }
-        if binarySize > 0 {
-            cards.append(DetailCardView(
-                title: "Main Binary",
-                value: formattedBytes(binarySize),
-                meta: ipa.isStripped ? "Stripped" : "Debug Symbols"
-            ))
-        }
-
-        if let frameworksCategory = categories.first(where: { $0.type == .frameworks }) {
-            let size = frameworksCategory.items.reduce(Int64(0)) { $0 + $1.size }
-            cards.append(DetailCardView(
-                title: "Embedded Frameworks",
-                value: "\(frameworksCategory.items.count) · \(formattedBytes(size))",
-                meta: "Frameworks folder"
-            ))
-        }
-
-        if let bundlesCategory = categories.first(where: { $0.type == .bundles }) {
-            let size = bundlesCategory.items.reduce(Int64(0)) { $0 + $1.size }
-            cards.append(DetailCardView(
-                title: "Bundles",
-                value: "\(bundlesCategory.items.count) · \(formattedBytes(size))",
-                meta: "Additional resource bundles"
-            ))
-        }
-
-        cards.append(DetailCardView(
-            title: "App Transport Security",
-            value: analysis.allowsArbitraryLoads ? "Relaxed" : "Default",
-            meta: analysis.allowsArbitraryLoads ? "NSAllowsArbitraryLoads enabled" : "ATS enforced"
-        ))
-
-        let cardHTML = cards.isEmpty ? "" : """
-        <div class="detail-grid">
-            \(cards.map { card in
-                """
-                <div class="detail-card">
-                    <h3>\(card.title.htmlEscaped)</h3>
-                    <div class="value">\(card.value.htmlEscaped)</div>
-                    \(card.meta.map { "<div class=\"meta\">\($0.htmlEscaped)</div>" } ?? "")
-                </div>
-                """
-            }.joined(separator: "\n"))
-        </div>
-        """
-
-        let strippingHTML = renderBinaryStrippingFindings(for: ipa)
-        guard !cardHTML.isEmpty || !strippingHTML.isEmpty else { return "" }
-
-        return """
-        <section class="platform-section">
-            <div class="section-header">
-                <h2>iOS App Details</h2>
-                <span>Binary, frameworks and ATS configuration</span>
-            </div>
-            \(cardHTML)
-            \(strippingHTML)
-        </section>
-        """
-    }
-
-    private func renderBinaryStrippingFindings(for ipa: IPAAnalysis) -> String {
+    private func renderUnstrippedBinariesInsightPanel() -> String {
+        guard case .ipa(let ipa) = platform else { return "" }
         let findings = ipa.nonStrippedBinaries
         guard !findings.isEmpty else { return "" }
         let sorted = findings.sorted { $0.potentialSaving > $1.potentialSaving }
@@ -1103,10 +816,30 @@ class AppDashboardHTMLBuilder {
             """
         }.joined(separator: "\n")
 
+        let summary = "Stripping debug data from these files could save approximately \(formattedBytes(totalSaving))."
+        let countLabel = NumberFormatter.localizedString(from: NSNumber(value: sorted.count), number: .decimal)
+        let exportFileName = "\(sanitizedReportName())-unstripped-binaries.txt"
+        let exportPayload = exportUnstrippedBinariesDataURI(for: sorted, summary: summary)
+        let exportLink: String
+        if exportPayload.isEmpty {
+            exportLink = ""
+        } else {
+            exportLink = """
+            <a class="ghost-button" href="\(exportPayload.htmlAttributeEscaped)" download="\(exportFileName.htmlAttributeEscaped)">Export list</a>
+            """
+        }
         return """
-        <div class="detail-subsection">
-            <h3>Unstripped Binaries</h3>
-            <p class="meta">Stripping debug data from these files could save approximately \(formattedBytes(totalSaving)).</p>
+        <div class="duplicate-panel">
+            <article class="duplicate-card">
+                <div class="duplicate-card-header">
+                    <div>
+                        <p class="duplicate-eyebrow">Binary Hygiene</p>
+                        <h3>Unstripped Binaries</h3>
+                    </div>
+                    \(exportLink)
+                </div>
+                <span class="meta">\(countLabel) binaries</span>
+                <p class="meta">\(summary.htmlEscaped)</p>
             <div class="table-wrapper">
                 <table>
                     <thead>
@@ -1121,8 +854,26 @@ class AppDashboardHTMLBuilder {
                     </tbody>
                 </table>
             </div>
+            </article>
         </div>
         """
+    }
+
+    private func exportUnstrippedBinariesDataURI(for entries: [IPAAnalysis.BinaryStrippingInfo], summary: String) -> String {
+        var lines: [String] = []
+        lines.append("Report: \(analysis.fileName)")
+        lines.append("Unstripped Binaries")
+        lines.append(summary)
+        lines.append("")
+        for info in entries {
+            let path = (info.path?.isEmpty == false ? info.path! : nil) ?? info.fullPath ?? info.name
+            lines.append("\(info.name) | Size: \(formattedBytes(info.size)) | Est. Saving: \(formattedBytes(info.potentialSaving))")
+            lines.append("Path: \(path)")
+            lines.append("")
+        }
+        let payload = lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !payload.isEmpty, let data = payload.data(using: .utf8) else { return "" }
+        return "data:text/plain;base64,\(data.base64EncodedString())"
     }
 
     private func renderAndroidDetailsSection(_ apk: APKAnalysis) -> String {
@@ -1209,6 +960,24 @@ class AppDashboardHTMLBuilder {
         }
     }
 
+    private func renderTreemapLegend() -> String {
+        let palette = treemapPalette()
+        guard !palette.legend.isEmpty else { return "" }
+        let items = palette.legend.map { entry in
+            """
+            <div class="treemap-legend-item">
+                <span class="treemap-legend-swatch" style="background:\(entry.color.htmlAttributeEscaped)"></span>
+                <span>\(entry.label.htmlEscaped)</span>
+            </div>
+            """
+        }.joined(separator: "\n")
+        return """
+        <div class="treemap-legend" role="list">
+            \(items)
+        </div>
+        """
+    }
+
     private func renderAssetPackSection() -> String {
         guard let apk = platform.apkAnalysis, !apk.playAssetPacks.isEmpty else { return "" }
         let rows = apk.playAssetPacks.map { pack in
@@ -1281,30 +1050,6 @@ class AppDashboardHTMLBuilder {
                 </table>
             </div>
         </section>
-        """
-    }
-
-    private func renderTagListSection(title: String, items: [String], limit: Int = 12) -> String {
-        var seen = Set<String>()
-        var uniqueItems: [String] = []
-        for item in items {
-            if !seen.contains(item) {
-                seen.insert(item)
-                uniqueItems.append(item)
-            }
-        }
-        guard !uniqueItems.isEmpty else { return "" }
-        let visible = Array(uniqueItems.prefix(limit))
-        let remainder = uniqueItems.count - visible.count
-        let tags = visible.map { "<li class=\"tag\">\($0.htmlEscaped)</li>" }.joined()
-        let footer = remainder > 0 ? "<div class=\"meta\">+\(remainder) more</div>" : ""
-        let heading = title.isEmpty ? "" : "<h3>\(title.htmlEscaped)</h3>"
-        return """
-        <div class="tag-section">
-            \(heading)
-            <ul class="tag-list">\(tags)</ul>
-            \(footer)
-        </div>
         """
     }
 
@@ -1460,6 +1205,7 @@ class AppDashboardHTMLBuilder {
     }
 
     private func renderTreemapSection() -> String {
+        let legend = renderTreemapLegend()
         return """
         <section class="treemap-section" id="treemap-section">
             <div class="section-header">
@@ -1473,6 +1219,7 @@ class AppDashboardHTMLBuilder {
                 </div>
                 <div class="treemap" id="treemap"></div>
             </div>
+            \(legend)
         </section>
         """
     }
@@ -1708,23 +1455,19 @@ class AppDashboardHTMLBuilder {
             const files = payload.files || [];
             const categories = payload.categories || [];
             const tree = payload.treemap;
+            const treemapPalette = payload.treemapPalette || {};
+            const treemapLegend = treemapPalette.legend || [];
+            const treemapFallback = treemapPalette.fallbackColor || '#94a3b8';
+            const treemapColorByType = new Map();
+            treemapLegend.forEach(function (entry) {
+                (entry.types || []).forEach(function (type) {
+                    treemapColorByType.set(String(type).toLowerCase(), entry.color);
+                });
+            });
 
-            function hashString(value) {
-                let hash = 0;
-                const input = String(value || '');
-                for (let i = 0; i < input.length; i += 1) {
-                    hash = ((hash << 5) - hash) + input.charCodeAt(i);
-                    hash |= 0;
-                }
-                return Math.abs(hash);
-            }
-
-            function colorForNode(node, depth) {
-                const hash = hashString(node.name);
-                const hue = (hash % 360 + depth * 11) % 360;
-                const saturation = depth === 0 ? 40 : 55;
-                const lightness = Math.max(75 - depth * 8, 35);
-                return 'hsl(' + hue + ', ' + saturation + '%, ' + lightness + '%)';
+            function colorForNode(node) {
+                const type = String((node && node.type) || '').toLowerCase();
+                return treemapColorByType.get(type) || treemapFallback;
             }
 
             const tableBody = document.getElementById('fileTableBody');
@@ -2385,9 +2128,9 @@ class AppDashboardHTMLBuilder {
                         tile.style.top = segment.rect.y + 'px';
                         tile.style.width = Math.max(segment.rect.width, 2) + 'px';
                         tile.style.height = Math.max(segment.rect.height, 2) + 'px';
-                        const background = colorForNode(segment.node, stack.length - 1);
+                        const background = colorForNode(segment.node);
                         tile.style.background = background;
-                        tile.style.borderColor = 'rgba(15, 23, 42, 0.08)';
+                        tile.style.borderColor = 'rgba(15, 23, 42, 0.12)';
                         tile.innerHTML = '<div class="tile-name">' + escapeHTML(segment.node.name) + '</div>' +
                             '<div class="tile-size">' + formatSize(segment.node.size || 0) + '</div>';
                         tile.title = segment.node.name + ' • ' + formatSize(segment.node.size || 0) + ' (' + segment.node.type + ')';
@@ -2434,7 +2177,7 @@ class AppDashboardHTMLBuilder {
     private func dashboardPayloadJSON() -> String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.withoutEscapingSlashes]
-        let payload = DashboardPayload(files: fileEntries, categories: categoryDataset, treemap: treemapRoot)
+        let payload = DashboardPayload(files: fileEntries, categories: categoryDataset, treemap: treemapRoot, treemapPalette: treemapPalette())
         guard let data = try? encoder.encode(payload) else { return "{}" }
         let json = String(data: data, encoding: .utf8) ?? "{}"
         return json.replacingOccurrences(of: "</", with: "<\\/")
@@ -2578,16 +2321,45 @@ class AppDashboardHTMLBuilder {
         return formatter.string(from: Date())
     }
 
+    private func treemapPalette() -> TreemapPalette {
+        let presentTypes = Set(flattenedFilesIncludingDirectories.map { $0.type.rawValue.lowercased() })
+        let fallbackColor = "#94a3b8"
+        let baseEntries: [TreemapLegendDatum]
+        switch platform {
+        case .ipa:
+            baseEntries = [
+                TreemapLegendDatum(label: "Binary", color: "#38bdf8", types: ["binary"]),
+                TreemapLegendDatum(label: "Frameworks", color: "#a78bfa", types: ["framework"]),
+                TreemapLegendDatum(label: "Bundles", color: "#fb7185", types: ["bundle"]),
+                TreemapLegendDatum(label: "Assets", color: "#f59e0b", types: ["assets"]),
+                TreemapLegendDatum(label: "Localization", color: "#22c55e", types: ["lproj"]),
+                TreemapLegendDatum(label: "Plists", color: "#f97316", types: ["plist"]),
+                TreemapLegendDatum(label: "App Bundle", color: "#60a5fa", types: ["app"])
+            ]
+        case .apk:
+            baseEntries = [
+                TreemapLegendDatum(label: "DEX", color: "#38bdf8", types: ["dex"]),
+                TreemapLegendDatum(label: "Native Libs", color: "#a78bfa", types: ["so"]),
+                TreemapLegendDatum(label: "Resources", color: "#22c55e", types: ["xml", "arsc"]),
+                TreemapLegendDatum(label: "Assets", color: "#f59e0b", types: ["assets"]),
+                TreemapLegendDatum(label: "APK", color: "#fb7185", types: ["apk"])
+            ]
+        }
+
+        var legend = baseEntries.filter { entry in
+            !entry.types.isEmpty && entry.types.contains { presentTypes.contains($0.lowercased()) }
+        }
+        let coveredTypes = Set(legend.flatMap { $0.types.map { $0.lowercased() } })
+        if !presentTypes.subtracting(coveredTypes).isEmpty {
+            legend.append(TreemapLegendDatum(label: "Other", color: fallbackColor, types: []))
+        }
+        return TreemapPalette(legend: legend, fallbackColor: fallbackColor)
+    }
+
     private enum BadgeType: String {
         case success = "badge-success"
         case warning = "badge-warning"
         case critical = "badge-critical"
-    }
-
-    private struct InventoryCard {
-        let title: String
-        let subtitle: String?
-        let body: String
     }
 
     private struct DuplicateInsightSection {
@@ -2669,13 +2441,25 @@ class AppDashboardHTMLBuilder {
         let files: [FileEntry]
         let categories: [CategoryDatum]
         let treemap: TreemapNode
+        let treemapPalette: TreemapPalette
+    }
+
+    private struct TreemapLegendDatum: Codable {
+        let label: String
+        let color: String
+        let types: [String]
+    }
+
+    private struct TreemapPalette: Codable {
+        let legend: [TreemapLegendDatum]
+        let fallbackColor: String
     }
 }
 
 enum DashboardHTMLStyle {
     static let baseCSS = """
 :root {
-    color-scheme: light;
+    color-scheme: light dark;
     --font-sans: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace;
     --color-bg: #f3f4f6;
@@ -2702,6 +2486,98 @@ enum DashboardHTMLStyle {
     --layout-max: 1200px;
     --gradient-hero: linear-gradient(90deg, #2563eb, #7c3aed, #ec4899);
     --nav-blur: rgba(255, 255, 255, 0.9);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-bg: #0a0f1a;
+        --color-surface: #111827;
+        --color-elevated: #162235;
+        --color-muted-surface: rgba(99, 102, 241, 0.18);
+        --color-border: rgba(148, 163, 184, 0.25);
+        --color-border-strong: rgba(148, 163, 184, 0.45);
+        --color-text: #f1f5f9;
+        --color-muted: #9ca3b0;
+        --color-subtle: #7b8aa0;
+        --color-primary: #7dd3fc;
+        --color-primary-strong: #bae6fd;
+        --color-primary-soft: rgba(125, 211, 252, 0.2);
+        --color-positive: #34d399;
+        --color-negative: #fb7185;
+        --color-warning: #fbbf24;
+        --shadow-soft: 0 25px 60px rgba(2, 6, 23, 0.6);
+        --shadow-card: 0 20px 40px rgba(2, 6, 23, 0.65);
+        --shadow-faint: 0 1px 3px rgba(2, 6, 23, 0.6);
+        --gradient-hero: linear-gradient(90deg, #0ea5e9, #6366f1, #f97316);
+        --nav-blur: rgba(8, 14, 26, 0.9);
+    }
+    body {
+        background: radial-gradient(circle at top, rgba(14, 165, 233, 0.18), transparent 55%),
+            radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.15), transparent 50%),
+            linear-gradient(180deg, #0a0f1a 0%, #0f172a 45%, #0a0f1a 100%);
+    }
+    .nav-pill {
+        background: rgba(148, 163, 184, 0.1);
+        border-color: rgba(148, 163, 184, 0.2);
+    }
+    .nav-pill.subtle {
+        background: rgba(59, 130, 246, 0.22);
+        border-color: rgba(59, 130, 246, 0.35);
+        color: var(--color-primary-strong);
+    }
+    .nav-avatar {
+        box-shadow: 0 10px 25px rgba(30, 64, 175, 0.5);
+    }
+    .section-header {
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    thead th {
+        background: rgba(15, 23, 42, 0.9);
+    }
+    tbody tr:nth-child(even) {
+        background: rgba(148, 163, 184, 0.08);
+    }
+    .category-chart-label {
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    .category-chart-label .chart-label-title,
+    .category-chart-label .chart-label-value {
+        color: rgba(248, 250, 252, 0.96);
+    }
+    .category-tooltip {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+    .category-legend li {
+        color: var(--color-text);
+    }
+    .legend-value {
+        color: var(--color-muted);
+    }
+    .treemap-controls {
+        background: rgba(15, 23, 42, 0.88);
+    }
+    .treemap-breadcrumb {
+        color: rgba(248, 250, 252, 0.95);
+    }
+    .treemap-reset {
+        color: var(--color-primary-strong);
+    }
+    .treemap-tile {
+        border: 1px solid rgba(2, 6, 23, 0.45);
+        color: rgba(226, 232, 240, 0.95);
+        text-shadow: none;
+    }
+    .treemap-tile .tile-name {
+        color: rgba(248, 250, 252, 0.95);
+    }
+    .treemap-tile .tile-size {
+        color: rgba(226, 232, 240, 0.85);
+    }
+    .ghost-button:hover {
+        background: rgba(148, 163, 184, 0.15);
+    }
 }
 
 *, *::before, *::after {
@@ -3284,6 +3160,32 @@ td { color: var(--color-text); word-break: break-word; hyphens: auto; }
     background: var(--color-elevated);
     border-radius: var(--radius-sm);
     border: 1px dashed var(--color-border);
+}
+.treemap-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    margin-top: 0.9rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-sm);
+    background: var(--color-elevated);
+    border: 1px solid var(--color-border);
+    font-size: 0.85rem;
+    color: var(--color-muted);
+}
+.treemap-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-text);
+    font-weight: 600;
+}
+.treemap-legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+    border: 1px solid rgba(15, 23, 42, 0.2);
+    box-shadow: var(--shadow-faint);
 }
 .treemap-controls {
     position: absolute;
