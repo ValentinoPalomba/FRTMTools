@@ -43,6 +43,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A91E70AA2EFE041A0022A38D /* Exceptions for "ExternalFrameworks" folder in "frtmtools" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				xclogparser,
+			);
+			target = E6BBAFB92EDF423E004F7E30 /* frtmtools */;
+		};
 		E6B370722E688928005F365C /* Exceptions for "FRTMTools" folder in "FRTMTools" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -123,6 +130,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				E6291BED2E8D2B1500F6625A /* Exceptions for "ExternalFrameworks" folder in "Embed Frameworks" phase from "FRTMTools" target */,
+				A91E70AA2EFE041A0022A38D /* Exceptions for "ExternalFrameworks" folder in "frtmtools" target */,
 			);
 			path = ExternalFrameworks;
 			sourceTree = "<group>";
@@ -191,6 +199,7 @@
 				E6BBAFB62EDF423E004F7E30 /* Sources */,
 				E6BBAFB72EDF423E004F7E30 /* Frameworks */,
 				E6BBAFB82EDF423E004F7E30 /* CopyFiles */,
+				A91E70A82EFE040C0022A38D /* Resources */,
 			);
 			buildRules = (
 			);
@@ -281,6 +290,13 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		A91E70A82EFE040C0022A38D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E6EDE3CF2E679CC300310565 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -492,7 +508,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				OTHER_SWIFT_FLAGS = "\"-D\" \"AppDesktop\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.valentinopalomba.frtmtools;
@@ -504,10 +520,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/PrivateFrameworks/CoreThemeDefinition.framework $(SRCROOT)/PrivateFrameworks/CoreUI.framework/";
 				SWIFT_VERSION = 6.0;
-				SYSTEM_FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks",
-				);
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				XROS_DEPLOYMENT_TARGET = 2.1;
 			};
 			name = Debug;
@@ -552,7 +565,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				OTHER_SWIFT_FLAGS = "\"-D\" \"AppDesktop\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.valentinopalomba.frtmtools;
@@ -564,10 +577,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_INCLUDE_PATHS = "$(inherited) $(SRCROOT)/PrivateFrameworks/CoreThemeDefinition.framework $(SRCROOT)/PrivateFrameworks/CoreUI.framework/";
 				SWIFT_VERSION = 6.0;
-				SYSTEM_FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks",
-				);
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				XROS_DEPLOYMENT_TARGET = 2.1;
 			};
 			name = Release;

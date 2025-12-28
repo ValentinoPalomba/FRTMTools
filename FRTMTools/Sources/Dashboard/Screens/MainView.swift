@@ -11,6 +11,7 @@ struct MainView: View {
     @StateObject private var deadCodeViewModel = DeadCodeViewModel()
     @StateObject private var ipaToolViewModel = IPAToolViewModel()
     @StateObject private var badWordScannerViewModel = BadWordScannerViewModel()
+    @StateObject private var buildLogViewModel = BuildLogViewModel()
     
     enum Tool: String, Hashable, Identifiable, CaseIterable {
         case ipaAnalyzer = "IPA Analyzer"
@@ -20,6 +21,7 @@ struct MainView: View {
         case deadCodeScanner = "Dead Code Scanner"
         case ipatool = "App Store"
         case badWordScanner = "Bad Word Scanner"
+        case buildLog = "Build Log Analyzer"
         
         var id: String { rawValue }
         
@@ -32,6 +34,7 @@ struct MainView: View {
             case .deadCodeScanner: return "text.magnifyingglass"
             case .ipatool: return "bag.badge.plus"
             case .badWordScanner: return "exclamationmark.bubble"
+            case .buildLog: return "hammer"
             }
         }
         
@@ -44,6 +47,7 @@ struct MainView: View {
             case .deadCodeScanner: return .orange
             case .ipatool: return .green
             case .badWordScanner: return .pink
+            case .buildLog: return .indigo
             }
         }
     }
@@ -87,6 +91,8 @@ struct MainView: View {
                 IPAToolContentView(viewModel: ipaToolViewModel)
             case .badWordScanner:
                 BadWordScannerContentView(viewModel: badWordScannerViewModel)
+            case .buildLog:
+                BuildLogContentView(viewModel: buildLogViewModel)
             case .none:
                 Text("Select an item to see details.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -107,6 +113,8 @@ struct MainView: View {
                 IPAToolSelectionDetailView(viewModel: ipaToolViewModel)
             case .badWordScanner:
                 BadWordScannerDetailView(viewModel: badWordScannerViewModel)
+            case .buildLog:
+                BuildLogDetailView(viewModel: buildLogViewModel)
             case .none:
                 Text("Select an item to see details.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -164,6 +172,17 @@ struct MainView: View {
                     style: .indeterminate,
                     title: "Scanning project...",
                     subtitle: "Searching for secrets...",
+                    showsCancel: false,
+                    cancelAction: nil
+                )
+        })
+        .loaderOverlay(
+            isPresented: $buildLogViewModel.isLoading,
+            content: {
+                LoaderView(
+                    style: .indeterminate,
+                    title: "Parsing build log...",
+                    subtitle: "Generating JSON report…",
                     showsCancel: false,
                     cancelAction: nil
                 )
