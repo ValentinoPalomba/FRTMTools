@@ -8,7 +8,7 @@ struct MainView: View {
         NavigationSplitView {
             List(selection: $model.selectedTool) {
                 ForEach(MainViewModel.Tool.allCases) { tool in
-                    HStack(alignment: .lastTextBaseline) {
+                    HStack {
                         SidebarIconView(
                             imageName: tool.systemImage,
                             color: toolTint(for: tool.tintRole),
