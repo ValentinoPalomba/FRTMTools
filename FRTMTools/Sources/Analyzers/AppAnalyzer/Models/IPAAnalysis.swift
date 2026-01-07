@@ -88,6 +88,24 @@ struct IPAAnalysis: AppAnalysis {
     enum CodingKeys: String, CodingKey {
         case id, fileName, executableName, url, rootFile, version, buildNumber, imageData, isStripped, nonStrippedBinaries, allowsArbitraryLoads, installedSize, startupTime, dependencyGraph
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(UUID.self, forKey: .id)
+        self.fileName = try container.decode(String.self, forKey: .fileName)
+        self.executableName = try container.decodeIfPresent(String.self, forKey: .executableName)
+        self.url = try container.decode(URL.self, forKey: .url)
+        self.rootFile = try container.decode(FileInfo.self, forKey: .rootFile)
+        self.version = try container.decodeIfPresent(String.self, forKey: .version)
+        self.buildNumber = try container.decodeIfPresent(String.self, forKey: .buildNumber)
+        self.imageData = try container.decodeIfPresent(Data.self, forKey: .imageData)
+        self.isStripped = try container.decode(Bool.self, forKey: .isStripped)
+        self.nonStrippedBinaries = try container.decodeIfPresent([BinaryStrippingInfo].self, forKey: .nonStrippedBinaries) ?? []
+        self.allowsArbitraryLoads = try container.decode(Bool.self, forKey: .allowsArbitraryLoads)
+        self.installedSize = try container.decodeIfPresent(InstalledSizeMetrics.self, forKey: .installedSize)
+        self.startupTime = try container.decodeIfPresent(StartupTime.self, forKey: .startupTime)
+        self.dependencyGraph = try container.decodeIfPresent(DependencyGraph.self, forKey: .dependencyGraph)
+    }
 }
 
 extension IPAAnalysis: Exportable {}

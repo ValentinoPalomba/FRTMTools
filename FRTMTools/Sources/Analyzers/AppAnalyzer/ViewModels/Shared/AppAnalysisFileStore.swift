@@ -56,6 +56,7 @@ actor AppAnalysisFileStore<Analysis: AppAnalysis> {
             try? fm.createDirectory(at: url, withIntermediateDirectories: true)
         }
     }
+
 }
 
 typealias IPAFileStore = AppAnalysisFileStore<IPAAnalysis>
