@@ -224,7 +224,7 @@ struct AndroidSummarySection: View {
         return nil
     }
 
-    private func downloadSizeCardContent() -> (value: String, subtitle: String, backgroundColor: Color)? {
+    private func downloadSizeCardContent() -> (value: String, subtitle: String, backgroundColor: Color?)? {
         guard let downloadBytes = analysis.bundletoolDownloadSizeBytes else {
             return nil
         }
@@ -237,13 +237,13 @@ struct AndroidSummarySection: View {
         }
 
         let downloadMegabytes = Double(downloadBytes) / 1_048_576.0
-        let backgroundColor: Color
+        let backgroundColor: Color?
         if downloadMegabytes >= 200 {
             backgroundColor = Color.red.opacity(0.2)
         } else if downloadMegabytes >= 180 {
             backgroundColor = Color.orange.opacity(0.2)
         } else {
-            backgroundColor = Color(NSColor.controlBackgroundColor)
+            backgroundColor = nil
         }
 
         return (value, subtitle, backgroundColor)

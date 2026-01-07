@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DependencyGraphOnDemandSection: View {
     let graph: DependencyGraph
+    @Environment(\.theme) private var theme
 
     @State private var renderToken = UUID()
     @State private var state: GraphRenderingState = .idle
@@ -49,13 +50,13 @@ struct DependencyGraphOnDemandSection: View {
         .padding(24)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(NSColor.controlBackgroundColor))
+                .fill(theme.palette.surface)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color.black.opacity(0.05))
+                .stroke(theme.palette.border)
         )
-        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+        .shadow(color: theme.palette.shadow.opacity(theme.colorScheme == .dark ? 0.25 : 0.08), radius: 6, x: 0, y: 3)
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: state)
     }
 
@@ -197,7 +198,7 @@ struct DependencyGraphOnDemandSection: View {
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.black.opacity(0.08))
+                        .stroke(theme.palette.border)
                 )
 
             HStack(spacing: 12) {

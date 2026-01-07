@@ -51,7 +51,7 @@ struct BadWordScannerDetailView: View {
                     .frame(maxHeight: 180)
                 }
                 .padding()
-                .background(.ultraThinMaterial)
+                .dsSurface(.elevated, cornerRadius: DS.Radius.lg, border: true, shadow: false)
             }
         }
     }
@@ -95,8 +95,7 @@ struct BadWordScannerDetailView: View {
                         matchRow(match: match)
                     }
                 }
-                .padding()
-                .background(RoundedRectangle(cornerRadius: 12).fill(Color(NSColor.controlBackgroundColor)))
+                .dsCard(.surface, cornerRadius: DS.Radius.md, padding: DS.Spacing.lg, shadow: false)
             }
         }
     }
@@ -118,7 +117,7 @@ struct BadWordScannerDetailView: View {
             }
         }
         .padding(8)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color.gray.opacity(0.1)))
+        .dsSurface(.elevated, cornerRadius: DS.Radius.sm, border: false, shadow: false)
     }
 
     private func sourceLabel(for match: BadWordMatch) -> String {

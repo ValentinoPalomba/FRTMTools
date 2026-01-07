@@ -61,11 +61,7 @@ struct ComparisonDetail<Analysis: AppAnalysis>: View {
                                         }
                                     }
                                     .padding()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 14)
-                                            .fill(Color(NSColor.controlBackgroundColor))
-                                            .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
-                                    )
+                                    .dsSurface(.surface, cornerRadius: 14, border: true, shadow: true)
                                 }
                             }
                             .padding(.horizontal)
@@ -114,8 +110,7 @@ struct ComparisonDetail<Analysis: AppAnalysis>: View {
                             .frame(height: 260)
                             .padding()
                         }
-                        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-                        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+                        .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
                         .padding(.horizontal)
                         
                         // MARK: - Diff Dettagliato con ricerca

@@ -141,8 +141,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                             .chartLegend(position: .bottom, spacing: 12)
                         }
                         .padding()
-                        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-                        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+                        .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
                     }
                     
                     // Bar chart for selected category
@@ -162,8 +161,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                             .chartLegend(.hidden)
                         }
                         .padding()
-                        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-                        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+                        .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
                         .transition(.move(edge: .trailing).combined(with: .opacity))
                     }
                 }
@@ -186,8 +184,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                         .frame(height: 260)
                     }
                     .padding()
-                    .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-                    .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+                    .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
                     .padding(.horizontal)
                 }
                 
@@ -396,8 +393,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
         .padding(.horizontal)
     }
 
@@ -427,8 +423,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
             }
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
         .padding(.horizontal)
     }
 
@@ -463,8 +458,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
             }
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
         .padding(.horizontal)
     }
 
@@ -488,8 +482,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+        .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
     }
 
     private func deepLinkDisplay(_ link: AndroidDeepLinkInfo) -> String {

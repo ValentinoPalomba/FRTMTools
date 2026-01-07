@@ -8,9 +8,12 @@ struct SummaryCard: View {
     var subtitle: String?
     var icon: String?
     var color: Color?
-    var backgroundColor: Color = Color(NSColor.controlBackgroundColor)
+    var backgroundColor: Color?
+    @Environment(\.theme) private var theme
 
     var body: some View {
+        let fill = backgroundColor ?? theme.palette.surface
+
         VStack(alignment: .leading, spacing: 8) {
             if let icon = icon, let color = color {
                 HStack {
@@ -38,9 +41,16 @@ struct SummaryCard: View {
                     .lineLimit(2)
             }
         }
-        .padding()
         .frame(maxWidth: .infinity, minHeight: 100, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 16).fill(backgroundColor))
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .padding(DS.Spacing.lg)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(fill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(theme.palette.border)
+        )
+        .shadow(color: theme.palette.shadow.opacity(theme.colorScheme == .dark ? 0.25 : 0.08), radius: 5, x: 0, y: 2)
     }
 }

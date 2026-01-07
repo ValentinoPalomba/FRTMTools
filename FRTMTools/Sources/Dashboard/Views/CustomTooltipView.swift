@@ -5,6 +5,7 @@ import SwiftUI
 // It's styled to look like a native macOS tooltip.
 struct CustomTooltipView: View {
     let text: String
+    @Environment(\.theme) private var theme
     
     var body: some View {
         Text(text)
@@ -13,12 +14,12 @@ struct CustomTooltipView: View {
             .padding(.vertical, 4)
             .background(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(Color(NSColor.controlBackgroundColor))
+                    .fill(theme.palette.elevatedSurface)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .strokeBorder(Color(NSColor.separatorColor), lineWidth: 0.5)
+                    .strokeBorder(theme.palette.border, lineWidth: 0.5)
             )
-            .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
+            .shadow(color: theme.palette.shadow.opacity(theme.colorScheme == .dark ? 0.35 : 0.12), radius: 5, x: 0, y: 2)
     }
 }

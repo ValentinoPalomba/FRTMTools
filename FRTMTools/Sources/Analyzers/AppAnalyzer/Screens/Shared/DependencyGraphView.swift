@@ -18,6 +18,7 @@ struct DependencyGraphView: View {
     @State var showLegend = true
     @State var showControls = false
     @State var isExporting = false
+    @Environment(\.theme) private var theme
 
     init(graph: DependencyGraph) {
         self.graph = graph
@@ -87,7 +88,7 @@ struct DependencyGraphView: View {
                             
                         }
                         .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(Color(NSColor.controlBackgroundColor)))
+                        .dsSurface(.surface, cornerRadius: 8, border: true, shadow: false)
                         .frame(maxWidth: 300)
                         
                         Spacer()
@@ -149,7 +150,7 @@ struct DependencyGraphView: View {
                         }
                     }
                     .padding()
-                    .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+                    .background(theme.palette.surface.opacity(theme.colorScheme == .dark ? 0.75 : 0.6))
                 }
                 HStack(spacing: 0) {
                     // Graph view
@@ -169,8 +170,9 @@ struct DependencyGraphView: View {
                                             .padding(8)
                                             .background(
                                                 Circle()
-                                                    .fill(Color(NSColor.controlBackgroundColor).opacity(0.9))
-                                                    .shadow(radius: 4)
+                                                    .fill(theme.palette.elevatedSurface.opacity(theme.colorScheme == .dark ? 0.9 : 0.85))
+                                                    .overlay(Circle().stroke(theme.palette.border))
+                                                    .shadow(color: theme.palette.shadow.opacity(theme.colorScheme == .dark ? 0.28 : 0.12), radius: 4)
                                             )
                                     }
                                     .buttonStyle(.plain)
@@ -270,7 +272,7 @@ struct DependencyGraphView: View {
                             showExternalLibraries: $showExternalLibraries
                         )
                         .frame(width: 250)
-                        .background(Color(NSColor.controlBackgroundColor))
+                        .background(theme.palette.surface)
                         .transition(.move(edge: .trailing))
                     }
                     
@@ -284,7 +286,7 @@ struct DependencyGraphView: View {
                             onClose: { selectedNode = nil }
                         )
                         .frame(width: 300)
-                        .background(Color(NSColor.controlBackgroundColor))
+                        .background(theme.palette.surface)
                         .transition(.move(edge: .trailing))
                     }
                 }
@@ -312,8 +314,9 @@ struct DependencyGraphView: View {
                     .padding(32)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(NSColor.controlBackgroundColor))
-                            .shadow(radius: 20)
+                            .fill(theme.palette.surface)
+                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(theme.palette.border))
+                            .shadow(color: theme.palette.shadow.opacity(0.35), radius: 20)
                     )
                 }
             }
@@ -460,7 +463,7 @@ struct StatBadge: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(RoundedRectangle(cornerRadius: 6).fill(Color(NSColor.controlBackgroundColor)))
+        .dsSurface(.surface, cornerRadius: 6, border: true, shadow: false)
     }
 }
 
@@ -532,6 +535,8 @@ struct FiltersPanelView: View {
 }
 
 struct LegendView: View {
+    @Environment(\.theme) private var theme
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Legend")
@@ -557,9 +562,10 @@ struct LegendView: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color(NSColor.controlBackgroundColor).opacity(0.95))
-                .shadow(radius: 4)
+                .fill(theme.palette.elevatedSurface.opacity(theme.colorScheme == .dark ? 0.92 : 0.96))
         )
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(theme.palette.border))
+        .shadow(color: theme.palette.shadow.opacity(theme.colorScheme == .dark ? 0.28 : 0.12), radius: 4)
     }
 }
 
@@ -592,6 +598,7 @@ struct NodeInfoPanel: View {
     let outgoingEdges: [DependencyEdge]
     let allNodes: Set<DependencyNode>
     let onClose: () -> Void
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -607,7 +614,7 @@ struct NodeInfoPanel: View {
                 .buttonStyle(.plain)
             }
             .padding()
-            .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+            .background(theme.palette.surface.opacity(theme.colorScheme == .dark ? 0.75 : 0.55))
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
@@ -701,6 +708,7 @@ struct NodeInfoPanel: View {
 struct DependencyRow: View {
     let node: DependencyNode
     let edgeType: DependencyEdgeType
+    @Environment(\.theme) private var theme
 
     var body: some View {
         HStack(spacing: 8) {
@@ -720,7 +728,8 @@ struct DependencyRow: View {
         }
         .padding(.vertical, 4)
         .padding(.horizontal, 8)
-        .background(RoundedRectangle(cornerRadius: 6).fill(Color(NSColor.controlBackgroundColor).opacity(0.5)))
+        .background(RoundedRectangle(cornerRadius: 6).fill(theme.palette.surface.opacity(theme.colorScheme == .dark ? 0.65 : 0.45)))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(theme.palette.border.opacity(0.7)))
     }
 
     private func colorForNodeType(_ type: DependencyNodeType) -> Color {
@@ -756,6 +765,7 @@ struct GraphExportView: View {
     let nodeSizeForNode: (DependencyNode) -> CGFloat
     let colorForNodeType: (DependencyNodeType) -> Color
     let edgeColorForType: (DependencyEdgeType) -> Color
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(spacing: 0) {
@@ -763,7 +773,7 @@ struct GraphExportView: View {
             legendContent
         }
         .frame(width: 1920, height: 1080)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(theme.palette.background)
     }
 
     private var graphContent: some View {

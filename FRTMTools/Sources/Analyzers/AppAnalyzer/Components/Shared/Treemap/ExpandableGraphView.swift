@@ -10,6 +10,7 @@ import SwiftUI
 struct ExpandableGraphView<Analysis: AppAnalysis>: View {
     var analysis: Analysis
     @State private var isShowingDetail: Bool = false
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -22,9 +23,10 @@ struct ExpandableGraphView<Analysis: AppAnalysis>: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.secondary)
                         .padding(8)
-                        .background(Color(NSColor.controlBackgroundColor))
+                        .background(theme.palette.surface)
                         .clipShape(Circle())
-                        .shadow(color: .black.opacity(0.1), radius: 3, x: 0, y: 2)
+                        .overlay(Circle().stroke(theme.palette.border))
+                        .shadow(color: theme.palette.shadow.opacity(theme.colorScheme == .dark ? 0.22 : 0.10), radius: 3, x: 0, y: 2)
 
                 }
                 .buttonStyle(.plain)
@@ -48,10 +50,7 @@ struct ExpandableGraphView<Analysis: AppAnalysis>: View {
             TreemapLegendView()
         }
         .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(NSColor.controlBackgroundColor))
-        )
+        .dsSurface(.surface, cornerRadius: 16, border: true, shadow: false)
         .padding()
         .sheet(isPresented: $isShowingDetail) {
             ExpandedDetailView(analysis: analysis, isShowingDetail: $isShowingDetail)
@@ -62,6 +61,7 @@ struct ExpandableGraphView<Analysis: AppAnalysis>: View {
 private struct ExpandedDetailView<Analysis: AppAnalysis>: View {
     var analysis: Analysis
     @Binding var isShowingDetail: Bool
+    @Environment(\.theme) private var theme
 
     var body: some View {
         let baseURL: URL? = {
@@ -97,6 +97,6 @@ private struct ExpandedDetailView<Analysis: AppAnalysis>: View {
         }
         .padding()
         .frame(minWidth: 1200, minHeight: 800)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(theme.palette.background)
     }
 }

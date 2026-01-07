@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BadWordScannerContentView: View {
     @ObservedObject var viewModel: BadWordScannerViewModel
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -114,7 +115,11 @@ struct BadWordScannerContentView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(
                                     RoundedRectangle(cornerRadius: 10)
-                                        .fill(viewModel.selectedRecordID == record.id ? Color.accentColor.opacity(0.2) : Color(NSColor.controlBackgroundColor))
+                                        .fill(viewModel.selectedRecordID == record.id ? theme.palette.accent.opacity(theme.colorScheme == .dark ? 0.22 : 0.16) : theme.palette.surface)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(viewModel.selectedRecordID == record.id ? theme.palette.accent.opacity(0.55) : theme.palette.border)
                                 )
                             }
                             .buttonStyle(.plain)

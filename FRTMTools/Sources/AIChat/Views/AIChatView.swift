@@ -3,6 +3,7 @@ import SwiftUI
 struct AIChatView: View {
     @StateObject private var viewModel: AIChatViewModel
     @ObservedObject private var configurationStore: LocalAIConfigurationStore
+    @Environment(\.theme) private var theme
 
     @State private var inputText = ""
     @State private var showSettings = false
@@ -88,11 +89,8 @@ struct AIChatView: View {
                 }
                 .padding(.vertical)
             }
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(nsColor: NSColor.controlBackgroundColor))
-                    .padding(.vertical, 8)
-            )
+            .padding(.vertical, 8)
+            .dsSurface(.surface, cornerRadius: 16, border: true, shadow: false)
             .onChange(of: viewModel.messages.count) { _, _ in
                 if let lastID = viewModel.messages.last?.id {
                     withAnimation {
@@ -124,7 +122,7 @@ struct AIChatView: View {
                         .padding(8)
                         .background(
                             Capsule()
-                                .fill(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSending ? Color.gray.opacity(0.5) : Color.accentColor)
+                                .fill(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSending ? theme.palette.border.opacity(0.9) : theme.palette.accent)
                         )
                 }
                 .buttonStyle(.plain)
@@ -137,11 +135,11 @@ struct AIChatView: View {
     private func messageBubble(for message: AIChatMessage) -> some View {
         HStack {
             if message.role == .assistant {
-                bubbleLabel(message.content, tint: Color.accentColor.opacity(0.15))
+                bubbleLabel(message.content, tint: theme.palette.accent.opacity(theme.colorScheme == .dark ? 0.22 : 0.15))
                 Spacer()
             } else {
                 Spacer()
-                bubbleLabel(message.content, tint: Color.gray.opacity(0.25))
+                bubbleLabel(message.content, tint: theme.palette.border.opacity(theme.colorScheme == .dark ? 0.35 : 0.18))
             }
         }
     }
@@ -208,7 +206,7 @@ struct AIChatView: View {
                     .frame(height: 80)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.secondary.opacity(0.3))
+                            .stroke(theme.palette.border)
                     )
             }
 
@@ -223,11 +221,7 @@ struct AIChatView: View {
             }
         }
         .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(nsColor: NSColor.windowBackgroundColor))
-                .shadow(radius: 1)
-        )
+        .dsSurface(.elevated, cornerRadius: 12, border: true, shadow: true)
     }
 
     private func sendMessage() {

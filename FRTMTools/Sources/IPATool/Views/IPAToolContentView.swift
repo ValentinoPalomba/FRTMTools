@@ -4,6 +4,7 @@ import AppKit
 struct IPAToolContentView: View {
     @ObservedObject var viewModel: IPAToolViewModel
     @FocusState private var focusedField: Field?
+    @Environment(\.theme) private var theme
 
     private enum Field: Hashable {
         case email
@@ -34,7 +35,7 @@ struct IPAToolContentView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(theme.palette.background)
         .onAppear { viewModel.refreshInstallationState() }
         .alert(item: $viewModel.downloadAlert) { alert in
             Alert(
@@ -138,7 +139,7 @@ struct IPAToolContentView: View {
             if viewModel.isAwaitingOTP {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "bell.badge")
-                        .foregroundStyle(Color(nsColor: .controlAccentColor))
+                        .foregroundStyle(theme.palette.accent)
                     Text("A verification code has been sent to your trusted device. Enter the OTP above and press Submit OTP within a few minutes.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -155,8 +156,9 @@ struct IPAToolContentView: View {
                 .padding(10)
                 .background(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color(nsColor: .controlBackgroundColor))
+                        .fill(theme.palette.surface)
                 )
+                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(theme.palette.border))
             }
 
             if !viewModel.isInstalled {

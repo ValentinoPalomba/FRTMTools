@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MainView: View {
     @State private var selectedTool: Tool? = .ipaAnalyzer
+    @Environment(\.theme) private var theme
     
     @StateObject private var ipaViewModel = IPAViewModel()
     @StateObject private var apkViewModel = APKViewModel()
@@ -112,6 +113,7 @@ struct MainView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .background(theme.palette.background)
         .navigationSplitViewColumnWidth(min: 60, ideal: 100, max: 250)
         .loaderOverlay(
             isPresented: $ipaViewModel.isLoading,

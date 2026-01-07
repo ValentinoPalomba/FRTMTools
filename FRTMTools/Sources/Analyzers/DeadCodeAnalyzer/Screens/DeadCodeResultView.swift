@@ -135,8 +135,7 @@ struct DeadCodeResultView: View {
             .chartLegend(.hidden)
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+        .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
     }
 }
 
@@ -164,10 +163,10 @@ struct DeadCodeCollapsibleSection: View {
                 .buttonStyle(.plain)
             }
             .padding()
-            .background(Color(NSColor.controlBackgroundColor))
             .contentShape(Rectangle())
             
             if isExpanded {
+                Divider()
                 LazyVStack(alignment: .leading, spacing: 10) {
                     ForEach(group.results) { result in
                         HStack(spacing: 12) {
@@ -198,12 +197,9 @@ struct DeadCodeCollapsibleSection: View {
                     }
                 }
                 .padding(.bottom, 10)
-                .background(Color(NSColor.controlBackgroundColor))
             }
         }
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
+        .dsSurface(.surface, cornerRadius: 12, border: true, shadow: true)
     }
     
     

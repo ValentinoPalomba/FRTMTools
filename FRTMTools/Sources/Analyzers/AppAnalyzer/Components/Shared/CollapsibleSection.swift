@@ -69,10 +69,10 @@ struct CollapsibleSection: View {
                 .buttonStyle(.plain)
             }
             .padding()
-            .background(Color(NSColor.controlBackgroundColor))
             .contentShape(Rectangle())
             
             if expandedSections.contains(category.id) {
+                Divider()
                 LazyVStack(spacing: 1) {
                     ForEach(category.items.sorted(by: { $0.size > $1.size })) { item in
                         FileTreeView(file: item)
@@ -80,11 +80,10 @@ struct CollapsibleSection: View {
                     }
                 }
                 .padding(EdgeInsets(top: 0, leading: 12, bottom: 12, trailing: 12))
-                .background(Color(NSColor.controlBackgroundColor))
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .cornerRadius(12)
+        .dsSurface(.surface, cornerRadius: 12, border: true, shadow: false)
         .fileExporter(
             isPresented: $showExporter,
             document: CSVDocument(url: exportURL),

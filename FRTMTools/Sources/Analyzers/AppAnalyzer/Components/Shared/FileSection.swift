@@ -7,6 +7,7 @@ struct FileSection: View {
     let title: String
     let files: [FileDiff]
     @Binding var expandedSections: Set<String>
+    @Environment(\.theme) private var theme
     
     private var filesByExtension: [String: [FileDiff]] {
         Dictionary(grouping: files) { (file) -> String in
@@ -29,11 +30,11 @@ struct FileSection: View {
                         .font(.footnote)
                         .foregroundColor(.secondary)
                     Image(systemName: expandedSections.contains(title) ? "chevron.down" : "chevron.right")
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(theme.palette.accent)
                         .imageScale(.small)
                 }
                 .padding()
-                .background(RoundedRectangle(cornerRadius: 12).fill(Color(NSColor.controlBackgroundColor)))
+                .dsSurface(.surface, cornerRadius: 12, border: true, shadow: false)
             }
             .buttonStyle(.plain)
             
@@ -66,6 +67,7 @@ struct FileExtensionGroupView: View {
     let extensionName: String
     let files: [FileDiff]
     @State private var isExpanded: Bool = false
+    @Environment(\.theme) private var theme
     
     var body: some View {
         VStack(spacing: 0) {
@@ -79,7 +81,7 @@ struct FileExtensionGroupView: View {
                         .imageScale(.small)
                 }
                 .padding(8)
-                .background(Color.black.opacity(0.1))
+                .background(theme.palette.border.opacity(theme.colorScheme == .dark ? 0.35 : 0.18))
             }
             .buttonStyle(.plain)
             
@@ -104,7 +106,7 @@ struct FileExtensionGroupView: View {
                         }
                         .padding(.horizontal)
                         .padding(.vertical, 6)
-                        .background(Color(NSColor.windowBackgroundColor))
+                        .background(theme.palette.background)
                     }
                 }
             }

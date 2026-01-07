@@ -117,7 +117,7 @@ struct TipsSection: View {
                         .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
-                .background(RoundedRectangle(cornerRadius: 12).fill(Color(NSColor.controlBackgroundColor)))
+                .dsSurface(.surface, cornerRadius: 12, border: true, shadow: false)
                 .padding(.horizontal)
             }
         }

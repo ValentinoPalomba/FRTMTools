@@ -5,6 +5,7 @@ import SwiftUI
 struct AppAnalysisRow<Analysis: AppAnalysis>: View {
     let analysis: Analysis
     let role: SelectionRole?
+    @Environment(\.theme) private var theme
 
     var body: some View {
         let apkAnalysis = analysis as? APKAnalysis
@@ -74,18 +75,18 @@ struct AppAnalysisRow<Analysis: AppAnalysis>: View {
                     .background(role == .base ? Color.blue.opacity(0.2) : Color.orange.opacity(0.2))
                     .cornerRadius(8)
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(theme.palette.accent)
             }
         }
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(NSColor.controlBackgroundColor))
-                .shadow(color: role != nil ? .accentColor.opacity(0.3) : .black.opacity(0.05), radius: 6, x: 0, y: 3)
+                .fill(theme.palette.surface)
+                .shadow(color: role != nil ? theme.palette.accent.opacity(0.25) : theme.palette.shadow.opacity(theme.colorScheme == .dark ? 0.18 : 0.06), radius: 6, x: 0, y: 3)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(role != nil ? Color.accentColor : .clear, lineWidth: 2)
+                .stroke(role != nil ? theme.palette.accent : theme.palette.border, lineWidth: role != nil ? 2 : 1)
         )
     }
 }

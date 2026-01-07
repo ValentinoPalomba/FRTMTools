@@ -141,8 +141,7 @@ struct StartupTimeAnalysisView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, minHeight: 140, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
         .fileImporter(
             isPresented: $showingFilePicker,
             allowedContentTypes: [.text, .plainText, .log],

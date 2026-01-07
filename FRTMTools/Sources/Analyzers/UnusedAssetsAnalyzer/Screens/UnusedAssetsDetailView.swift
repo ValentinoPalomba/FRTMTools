@@ -156,8 +156,7 @@ struct AnalysisResultView: View {
             .chartLegend(position: .bottom, spacing: 12)
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+        .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
     }
     
     
@@ -178,8 +177,7 @@ struct AnalysisResultView: View {
             .chartLegend(.hidden)
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+        .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
     }
     
     var body: some View {
@@ -246,6 +244,10 @@ struct AnalysisResultView: View {
                     .background(.ultraThinMaterial)
                     .cornerRadius(16)
                     .shadow(radius: 8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(Color.primary.opacity(0.06))
+                    )
                     .padding()
                     .padding(.horizontal, 32)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -353,10 +355,10 @@ struct AssetCollapsibleSection: View {
                 .buttonStyle(.plain)
             }
             .padding()
-            .background(Color(NSColor.controlBackgroundColor))
             .contentShape(Rectangle())
             
             if isExpanded {
+                Divider()
                 LazyVStack(alignment: .leading, spacing: 10) {
                     ForEach(assetGroup.assets.sorted(by: { $0.size > $1.size })) { asset in
                         HStack {
@@ -384,12 +386,9 @@ struct AssetCollapsibleSection: View {
                     }
                 }
                 .padding(.bottom, 10)
-                .background(Color(NSColor.controlBackgroundColor))
             }
         }
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
+        .dsSurface(.surface, cornerRadius: 12, border: true, shadow: true)
     }
 }
 
