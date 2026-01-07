@@ -1,10 +1,11 @@
 import SwiftUI
 
 struct ThemeSettingsView: View {
-    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(ThemeManager.self) private var themeManager
     @Environment(\.theme) private var theme
 
     var body: some View {
+        @Bindable var themeManager = themeManager
         Form {
             Section("Theme") {
                 Picker("Preset", selection: $themeManager.themeId) {

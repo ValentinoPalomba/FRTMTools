@@ -1,6 +1,6 @@
 import Foundation
 @MainActor
-protocol AppDetailViewModel: ObservableObject {
+protocol AppDetailViewModel: AnyObject {
     associatedtype Analysis: AppAnalysis
     associatedtype SizeAnalyzer: InstalledSizeAnalyzing where SizeAnalyzer.Analysis == Analysis
 

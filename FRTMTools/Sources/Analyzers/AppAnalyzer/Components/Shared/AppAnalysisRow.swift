@@ -26,7 +26,7 @@ struct AppAnalysisRow<Analysis: AppAnalysis>: View {
                             .resizable()
                             .scaledToFit()
                             .frame(width: 20, height: 20)
-                            .cornerRadius(8)
+                            .clipShape(.rect(cornerRadius: 8))
                             .shadow(radius: 2)
                         
                         Text(primaryName)
@@ -42,14 +42,14 @@ struct AppAnalysisRow<Analysis: AppAnalysis>: View {
                 if let secondaryName {
                     Text(secondaryName)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
                 
                 if let packageName = apkAnalysis?.packageName {
                     Text(packageName)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
                 
@@ -64,7 +64,7 @@ struct AppAnalysisRow<Analysis: AppAnalysis>: View {
                 
                 Text("Total: \(ByteCountFormatter.string(fromByteCount: analysis.totalSize, countStyle: .file))")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
             Spacer()
             if let role = role {
@@ -73,9 +73,9 @@ struct AppAnalysisRow<Analysis: AppAnalysis>: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(role == .base ? Color.blue.opacity(0.2) : Color.orange.opacity(0.2))
-                    .cornerRadius(8)
+                    .clipShape(.rect(cornerRadius: 8))
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(theme.palette.accent)
+                    .foregroundStyle(theme.palette.accent)
             }
         }
         .padding()

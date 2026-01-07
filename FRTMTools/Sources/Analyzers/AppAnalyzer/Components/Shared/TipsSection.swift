@@ -32,7 +32,7 @@ struct TipsSection: View {
                                         .font(.headline)
                                     Text(tip.text)
                                         .font(.subheadline)
-                                        .foregroundColor(.secondary)
+                                        .foregroundStyle(.secondary)
                                 }
                                 Spacer()
                                 if shouldShowTipCopyButton(tip),
@@ -40,8 +40,9 @@ struct TipsSection: View {
                                     Button {
                                         copyPaths(bundle)
                                     } label: {
-                                        Image(systemName: "doc.on.doc")
+                                        Label("Copy", systemImage: "doc.on.doc")
                                     }
+                                    .labelStyle(.iconOnly)
                                     .buttonStyle(.plain)
                                     .font(.system(size: 12))
                                     .help("Copy entire tip")
@@ -52,11 +53,10 @@ struct TipsSection: View {
                         Spacer()
                         
                         if !tip.subTips.isEmpty {
-                            Button(action: {
+                            Button(expandedTips.contains(tip.id) ? "Collapse" : "Expand", systemImage: expandedTips.contains(tip.id) ? "chevron.up" : "chevron.down") {
                                 toggle(tip: tip)
-                            }) {
-                                Image(systemName: expandedTips.contains(tip.id) ? "chevron.up" : "chevron.down")
                             }
+                            .labelStyle(.iconOnly)
                             .buttonStyle(.plain)
                         }
                     }
@@ -70,26 +70,27 @@ struct TipsSection: View {
                                     Text(emoji(for: subTip.category))
                                         .font(.body)
                                     VStack(alignment: .leading, spacing: 4) {
-                                        let lines = subTip.text.split(whereSeparator: \.isNewline)
-                                        ForEach(Array(lines.enumerated()), id: \.offset) { _, rawLine in
-                                            let line = String(rawLine)
+                                        let lines = Array(subTip.text.split(whereSeparator: \.isNewline))
+                                        ForEach(lines.indices, id: \.self) { index in
+                                            let line = String(lines[index])
                                             let isPath = isPathCandidate(line)
                                             let previewFile = isPath ? previewFile(for: line) : nil
                                             HStack(alignment: .firstTextBaseline, spacing: 6) {
                                                 if let previewFile {
                                                     Text(line)
                                                         .font(.body)
-                                                        .foregroundColor(.secondary)
+                                                        .foregroundStyle(.secondary)
                                                         .modifier(HoverModifier(file: previewFile, isEnabled: true, showOnlyImage: true))
                                                 } else {
                                                     Text(line)
                                                         .font(.body)
-                                                        .foregroundColor(.secondary)
+                                                        .foregroundStyle(.secondary)
                                                 }
                                                 if isPath {
-                                                    Button(action: { reveal(path: line) }) {
-                                                        Image(systemName: "folder")
+                                                    Button("Reveal", systemImage: "folder") {
+                                                        reveal(path: line)
                                                     }
+                                                    .labelStyle(.iconOnly)
                                                     .buttonStyle(.plain)
                                                     .font(.system(size: 12))
                                                     .help("Reveal in Finder")
@@ -98,9 +99,10 @@ struct TipsSection: View {
                                         }
                                         if shouldShowCopyButton(parentTip: tip),
                                            let paths = copyablePaths(in: subTip.text) {
-                                            Button(action: { copyPaths(paths) }) {
-                                                Image(systemName: "doc.on.doc")
+                                            Button("Copy Paths", systemImage: "doc.on.doc") {
+                                                copyPaths(paths)
                                             }
+                                            .labelStyle(.iconOnly)
                                             .buttonStyle(.plain)
                                             .font(.system(size: 12))
                                             .help("Copy paths to clipboard")

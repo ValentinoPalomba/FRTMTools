@@ -31,9 +31,10 @@ public struct StartupTimeAnalysisResult: Sendable, Codable {
             return "N/A"
         }
         if avg < 1.0 {
-            return String(format: "%.0f ms", avg * 1000)
+            let ms = Int((avg * 1000).rounded())
+            return "\(ms) ms"
         }
-        return String(format: "%.2f s", avg)
+        return avg.formatted(.number.precision(.fractionLength(2))) + " s"
     }
 
     public var minStartupTime: TimeInterval? {

@@ -2,7 +2,7 @@
 import SwiftUI
 
 struct SecurityScannerResultView: View {
-    @ObservedObject var viewModel: SecurityScannerViewModel
+    @Bindable var viewModel: SecurityScannerViewModel
 
     var body: some View {
         Group {
@@ -10,14 +10,15 @@ struct SecurityScannerResultView: View {
                 if analysis.findings.isEmpty {
                     VStack(spacing: 12) {
                         Image(systemName: "shield.lefthalf.filled")
-                            .font(.system(size: 60))
-                            .foregroundColor(.green)
+                            .font(.largeTitle)
+                            .imageScale(.large)
+                            .foregroundStyle(.green)
                         Text("No Secrets Found")
                             .font(.title3)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Text("The scan of \(analysis.projectName) completed successfully and found no hardcoded secrets.")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                     }
@@ -28,10 +29,10 @@ struct SecurityScannerResultView: View {
                                 .font(.headline)
                             Text("Line \(finding.lineNumber): \(finding.content)")
                                 .font(.body)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                             Text("Rule: \(finding.ruleName)")
                                 .font(.caption)
-                                .foregroundColor(.red)
+                                .foregroundStyle(.red)
                                 .bold()
                         }
                         .padding(.vertical, 4)
@@ -41,11 +42,12 @@ struct SecurityScannerResultView: View {
             } else {
                 VStack(spacing: 12) {
                     Image(systemName: "doc.text.magnifyingglass")
-                        .font(.system(size: 60))
-                        .foregroundColor(.secondary)
+                        .font(.largeTitle)
+                        .imageScale(.large)
+                        .foregroundStyle(.secondary)
                     Text("Select an analysis or start a new scan.")
                         .font(.title3)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
         }

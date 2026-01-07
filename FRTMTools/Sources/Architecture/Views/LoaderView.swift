@@ -112,18 +112,18 @@ public struct LoaderView: View {
                 if let title {
                     Text(title)
                         .font(.title3.weight(.semibold))
-                        .foregroundColor(.primary)
+                        .foregroundStyle(.primary)
                 }
 
                 if let subtitle {
                     Text(subtitle)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 } else {
                     // small description based on mode
                     Text(modeDescription)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
 
                 Spacer()
@@ -132,7 +132,7 @@ public struct LoaderView: View {
                     if case .determinate(let p) = style {
                         Text("\(Int((p * 100).rounded()))%")
                             .font(.caption.monospacedDigit())
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
 
                     if showsCancel, let cancelAction {

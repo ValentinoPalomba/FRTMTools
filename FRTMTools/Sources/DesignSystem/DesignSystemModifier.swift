@@ -2,7 +2,7 @@ import SwiftUI
 
 private struct DesignSystemModifier: ViewModifier {
     @Environment(\.colorScheme) private var systemColorScheme
-    @ObservedObject var themeManager: ThemeManager
+    var themeManager: ThemeManager
 
     func body(content: Content) -> some View {
         let theme = themeManager.theme(systemColorScheme: systemColorScheme)
@@ -19,4 +19,3 @@ extension View {
         modifier(DesignSystemModifier(themeManager: themeManager))
     }
 }
-

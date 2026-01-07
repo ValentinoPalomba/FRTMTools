@@ -22,18 +22,18 @@ struct OnboardingPageView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 60, height: 60)
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
             }
 
             VStack(spacing: 10) {
                 Text(title)
                     .font(.largeTitle)
-                    .fontWeight(.bold)
+                    .bold()
                     .multilineTextAlignment(.center)
 
                 Text(description)
                     .font(.title3)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                     .lineSpacing(5)

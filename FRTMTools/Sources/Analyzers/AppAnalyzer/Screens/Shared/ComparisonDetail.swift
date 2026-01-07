@@ -40,23 +40,23 @@ struct ComparisonDetail<Analysis: AppAnalysis>: View {
                                                 .font(.headline)
                                             Text("Before vs After")
                                                 .font(.caption)
-                                                .foregroundColor(.secondary)
+                                                .foregroundStyle(.secondary)
                                         }
                                         Spacer()
                                         VStack(alignment: .trailing, spacing: 2) {
                                             HStack(spacing: 6) {
                                                 Text(ByteCountFormatter.string(fromByteCount: size1, countStyle: .file))
-                                                    .foregroundColor(.blue)
+                                                    .foregroundStyle(.blue)
                                                 Text("→")
-                                                    .foregroundColor(.secondary)
+                                                    .foregroundStyle(.secondary)
                                                 Text(ByteCountFormatter.string(fromByteCount: size2, countStyle: .file))
-                                                    .foregroundColor(.orange)
+                                                    .foregroundStyle(.orange)
                                             }
                                             if diff != 0 {
                                                 Text("\(diff > 0 ? "➕" : "➖") \(ByteCountFormatter.string(fromByteCount: abs(diff), countStyle: .file))")
                                                     .font(.caption)
-                                                    .fontWeight(.semibold)
-                                                    .foregroundColor(diff > 0 ? .red : .green)
+                                                    .bold()
+                                                    .foregroundStyle(diff > 0 ? .red : .green)
                                             }
                                         }
                                     }
@@ -80,13 +80,13 @@ struct ComparisonDetail<Analysis: AppAnalysis>: View {
                                         Circle().fill(Color.blue).frame(width: 12, height: 12)
                                         Text(first.fileName)
                                             .font(.subheadline)
-                                            .foregroundColor(.blue)
+                                            .foregroundStyle(.blue)
                                     }
                                     HStack {
                                         Circle().fill(Color.orange).frame(width: 12, height: 12)
                                         Text(second.fileName)
                                             .font(.subheadline)
-                                            .foregroundColor(.orange)
+                                            .foregroundStyle(.orange)
                                     }
                                 }
                             }
@@ -191,10 +191,10 @@ struct ComparisonDetail<Analysis: AppAnalysis>: View {
                 Text("Comparison Overview")
                     .font(.title2).bold()
                 Text("\(first.fileName) → \(second.fileName)")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .font(.subheadline)
                 Text("Modified \(result.modifiedFiles.count) · Added \(result.addedFiles.count) · Removed \(result.removedFiles.count)")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .font(.caption)
             }
             Spacer()

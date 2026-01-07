@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct BadWordScannerContentView: View {
-    @ObservedObject var viewModel: BadWordScannerViewModel
+    @Bindable var viewModel: BadWordScannerViewModel
     @Environment(\.theme) private var theme
 
     var body: some View {
@@ -9,7 +9,7 @@ struct BadWordScannerContentView: View {
             Text("Bad Word Scanner")
                 .font(.largeTitle.bold())
             Text("Scan an IPA or .app bundle for profanities across resources and binaries (using `strings`).")
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
 
             HStack(spacing: 8) {
                 Button {
@@ -40,20 +40,20 @@ struct BadWordScannerContentView: View {
             if let dictionaryName = viewModel.dictionaryURL?.lastPathComponent {
                 Text("Dictionary: \(dictionaryName)")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
 
             if let error = viewModel.errorMessage {
                 Label(error, systemImage: "exclamationmark.triangle")
-                    .foregroundColor(.orange)
+                    .foregroundStyle(.orange)
             } else if let result = viewModel.scanResult {
                 summaryView(result: result, duration: viewModel.lastDuration)
             } else {
                 Text("Choose an IPA to start scanning.")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
 
-            historySection
+            BadWordScannerHistorySection(viewModel: viewModel)
 
             Spacer()
         }
@@ -72,70 +72,8 @@ struct BadWordScannerContentView: View {
                     Label(BadWordScannerViewModel.formatDuration(duration), systemImage: "clock")
                 }
             }
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         }
     }
 
-    private var historySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Previous Scans")
-                    .font(.headline)
-                Spacer()
-                Button("Refresh") {
-                    Task { await viewModel.loadHistory() }
-                }
-                .buttonStyle(.link)
-                .disabled(viewModel.isScanning)
-            }
-
-            if viewModel.history.isEmpty {
-                Text("No scans yet.")
-                    .foregroundColor(.secondary)
-            } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(viewModel.history) { record in
-                            Button {
-                                viewModel.select(record: record)
-                            } label: {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(record.fileName)
-                                            .font(.subheadline.bold())
-                                        Text(record.scannedAt.formatted(date: .abbreviated, time: .shortened))
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    Spacer()
-                                    Label("\(record.result.matches.count)", systemImage: "exclamationmark.bubble")
-                                        .foregroundColor(record.result.matches.isEmpty ? .secondary : .red)
-                                }
-                                .padding(10)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(viewModel.selectedRecordID == record.id ? theme.palette.accent.opacity(theme.colorScheme == .dark ? 0.22 : 0.16) : theme.palette.surface)
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .stroke(viewModel.selectedRecordID == record.id ? theme.palette.accent.opacity(0.55) : theme.palette.border)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .contextMenu {
-                                Button("Open in Finder") {
-                                    viewModel.reveal(record: record)
-                                }
-                                Button("Delete", role: .destructive) {
-                                    Task { await viewModel.delete(record: record) }
-                                }
-                            }
-                        }
-                        Spacer(minLength: 0)
-                    }
-                }
-            }
-        }
-    }
 }

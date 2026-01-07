@@ -221,9 +221,12 @@ struct DependencyGraphOnDemandSection: View {
     private func prepareGraph() {
         guard state == .idle else { return }
         state = .preparing
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-            renderToken = UUID()
-            state = .visible
+        Task {
+            try? await Task.sleep(for: .milliseconds(250))
+            await MainActor.run {
+                renderToken = UUID()
+                state = .visible
+            }
         }
     }
 

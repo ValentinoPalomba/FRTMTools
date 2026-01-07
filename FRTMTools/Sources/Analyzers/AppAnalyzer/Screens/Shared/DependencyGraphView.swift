@@ -84,7 +84,7 @@ struct DependencyGraphView: View {
                         // Search
                         HStack {
                             Image(systemName: "magnifyingglass")
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                             
                         }
                         .padding(8)
@@ -305,11 +305,11 @@ struct DependencyGraphView: View {
 
                         Text("Preparing export...")
                             .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundStyle(.white)
 
                         Text("Waiting for graph to stabilize")
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundStyle(.white.opacity(0.8))
                     }
                     .padding(32)
                     .background(
@@ -364,17 +364,14 @@ struct DependencyGraphView: View {
         
         
 
-        // Wait for graph to stabilize (increased to 4 seconds)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-            // Render to image
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(4))
             let renderer = ImageRenderer(content: exportView)
             renderer.scale = 2.0 // Retina quality
 
             if let nsImage = renderer.nsImage {
-                // Hide loading indicator
                 isExporting = false
 
-                // Show save panel
                 let savePanel = NSSavePanel()
                 savePanel.allowedContentTypes = [.png]
                 savePanel.nameFieldStringValue = "dependency-graph.png"
@@ -388,7 +385,6 @@ struct DependencyGraphView: View {
                     }
                 }
             } else {
-                // Hide loading indicator if render failed
                 isExporting = false
             }
         }
@@ -452,11 +448,11 @@ struct StatBadge: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .foregroundColor(color)
+                .foregroundStyle(color)
                 .font(.caption)
             Text(label)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             Text(value)
                 .font(.caption)
                 .bold()
@@ -480,7 +476,7 @@ struct FiltersPanelView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Node Types")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
 
                 ForEach(DependencyNodeType.allCases.filter { $0 != .mainApp }, id: \.self) { type in
                     Toggle(isOn: Binding(
@@ -510,7 +506,7 @@ struct FiltersPanelView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Options")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
 
                 Toggle("Show External Libraries", isOn: $showExternalLibraries)
                     .toggleStyle(.checkbox)
@@ -583,11 +579,11 @@ struct LegendGraphItem: View {
                     .frame(width: 16, height: 2)
             } else {
                 Image(systemName: icon)
-                    .foregroundColor(color)
+                    .foregroundStyle(color)
                     .font(.system(size: 8))
             }
             Text(label)
-                .foregroundColor(.primary)
+                .foregroundStyle(.primary)
         }
     }
 }
@@ -609,7 +605,7 @@ struct NodeInfoPanel: View {
                 Spacer()
                 Button(action: onClose) {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
             }
@@ -626,7 +622,7 @@ struct NodeInfoPanel: View {
                                 .frame(width: 16, height: 16)
                             Text(node.type.rawValue)
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
 
                         Text(node.name)
@@ -636,7 +632,7 @@ struct NodeInfoPanel: View {
                         if let size = node.size {
                             HStack {
                                 Image(systemName: "doc.fill")
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                     .font(.caption)
                                 Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
                                     .font(.callout)
@@ -646,11 +642,11 @@ struct NodeInfoPanel: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Path")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                             Text(node.path)
                                 .font(.caption)
                                 .textSelection(.enabled)
-                                .foregroundColor(.primary)
+                                .foregroundStyle(.primary)
                                 .lineLimit(nil)
                         }
                     }
@@ -721,7 +717,7 @@ struct DependencyRow: View {
                     .font(.callout)
                 Text(edgeType.rawValue)
                     .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
 
             Spacer()

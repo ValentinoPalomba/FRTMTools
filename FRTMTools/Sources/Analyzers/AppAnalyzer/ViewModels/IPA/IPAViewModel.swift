@@ -2,37 +2,42 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 import FRTMCore
+import Observation
 
 @MainActor
-final class IPAViewModel: ObservableObject {
+@Observable
+final class IPAViewModel {
     
     // Cache for expensive per-analysis computations
-    private var cachedCategories: [UUID: [CategoryResult]] = [:]
-    private var cachedArchs: [UUID: ArchsResult] = [:]
-    private var cachedTips: [UUID: [Tip]] = [:]
+    @ObservationIgnored private var cachedCategories: [UUID: [CategoryResult]] = [:]
+    @ObservationIgnored private var cachedArchs: [UUID: ArchsResult] = [:]
+    @ObservationIgnored private var cachedTips: [UUID: [Tip]] = [:]
     
-    @Published var analyses: [IPAAnalysis] = []
-    @Published var isLoading = false
-    @Published var isSizeLoading = false
-    @Published var isStartupTimeLoading = false
-    @Published var compareMode = false
-    @Published var selectedUUID = UUID()
-    @Published var sizeAnalysisProgress = ""
-    @Published var sizeAnalysisAlert: AlertContent?
-    @Published var startupTimeProgress = ""
-    @Published var startupTimeAlert: AlertContent?
-    @Published var expandedExecutables: Set<String> = []
+    var analyses: [IPAAnalysis] = []
+    var isLoading = false
+    var isSizeLoading = false
+    var isStartupTimeLoading = false
+    var compareMode = false
+    var selectedUUID = UUID()
+    var sizeAnalysisProgress = ""
+    var sizeAnalysisAlert: AlertContent?
+    var startupTimeProgress = ""
+    var startupTimeAlert: AlertContent?
+    var expandedExecutables: Set<String> = []
     
-    @Dependency var persistenceManager: PersistenceManager
-    @Dependency var analyzer: any Analyzer<IPAAnalysis>
+    @ObservationIgnored private let persistenceManagerDependency = Dependency<PersistenceManager>()
+    @ObservationIgnored private let analyzerDependency = Dependency<any Analyzer<IPAAnalysis>>()
+
+    private var persistenceManager: PersistenceManager { persistenceManagerDependency.wrappedValue }
+    private var analyzer: any Analyzer<IPAAnalysis> { analyzerDependency.wrappedValue }
     
     // Off-main persistence actor for file I/O
-    private lazy var fileStore = IPAFileStore(
+    @ObservationIgnored private lazy var fileStore = IPAFileStore(
         appDirectory: appDirectory,
         analysesDirectoryURL: analysesDirectoryURL
     )
     
-    private let persistenceKey = "ipa_analyses"
+    @ObservationIgnored private let persistenceKey = "ipa_analyses"
 
     func categories(for analysis: IPAAnalysis) -> [CategoryResult] {
         if let cached = cachedCategories[analysis.id] { return cached }
@@ -447,16 +452,14 @@ final class IPAViewModel: ObservableObject {
                     do {
                         try data.write(to: url)
                     } catch {
-                        DispatchQueue.main.async {
+                        Task { @MainActor in
                             self.sizeAnalysisAlert = AlertContent(title: "Export Error", message: error.localizedDescription)
                         }
                     }
                 }
             }
         } catch {
-            DispatchQueue.main.async {
-                self.sizeAnalysisAlert = AlertContent(title: "Export Error", message: error.localizedDescription)
-            }
+            self.sizeAnalysisAlert = AlertContent(title: "Export Error", message: error.localizedDescription)
         }
     }
 }

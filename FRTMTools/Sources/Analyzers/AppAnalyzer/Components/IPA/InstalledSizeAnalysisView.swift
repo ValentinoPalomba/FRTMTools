@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct InstalledSizeAnalysisView<ViewModel: InstalledSizeAnalyzing, Analysis: AppAnalysis>: View where ViewModel.Analysis == Analysis {
-    @ObservedObject var viewModel: ViewModel
+    @Bindable var viewModel: ViewModel
     let analysis: Analysis
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: DS.Spacing.lg) {
             Text("📱 Installed App Size")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             
             if viewModel.isSizeLoading {
                 VStack(alignment: .leading, spacing: 5) {
@@ -16,7 +16,7 @@ struct InstalledSizeAnalysisView<ViewModel: InstalledSizeAnalyzing, Analysis: Ap
                         .progressViewStyle(LinearProgressViewStyle())
                     Text(viewModel.sizeAnalysisProgress)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
             } else if let size = analysis.installedSize {
@@ -24,8 +24,8 @@ struct InstalledSizeAnalysisView<ViewModel: InstalledSizeAnalyzing, Analysis: Ap
                     // Total installed size
                     Text("\(size.total) MB")
                         .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
+                        .bold()
+                        .foregroundStyle(.primary)
 
                     // Breakdown
                     VStack(alignment: .leading, spacing: 6) {
@@ -46,23 +46,20 @@ struct InstalledSizeAnalysisView<ViewModel: InstalledSizeAnalyzing, Analysis: Ap
                         }
                     }
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 }
             } else {
-                Button(action: {
+                Button {
                     viewModel.analyzeSize(for: analysis.id)
-                }) {
+                } label: {
                     Text("Analyze Size")
-                        .font(.subheadline)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
 
             }
         }
-        .padding()
+        .padding(DS.Spacing.xl)
         .frame(maxWidth: .infinity, minHeight: 100, alignment: .leading)
         .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
         .alert(item: $viewModel.sizeAnalysisAlert) { alert in

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct BadWordScannerDetailView: View {
-    @ObservedObject var viewModel: BadWordScannerViewModel
+    @Bindable var viewModel: BadWordScannerViewModel
 
     var body: some View {
         Group {
@@ -9,7 +9,7 @@ struct BadWordScannerDetailView: View {
                 VStack(spacing: 16) {
                     ProgressView()
                     Text(viewModel.progressMessage ?? "Scanning IPA for bad words…")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let result = viewModel.scanResult {
@@ -17,7 +17,7 @@ struct BadWordScannerDetailView: View {
             } else if let error = viewModel.errorMessage {
                 VStack(spacing: 12) {
                     Label(error, systemImage: "exclamationmark.triangle")
-                        .foregroundColor(.orange)
+                        .foregroundStyle(.orange)
                     Button("Try Again") {
                         if let url = viewModel.selectedIPA {
                             viewModel.scan(ipaURL: url)
@@ -27,7 +27,7 @@ struct BadWordScannerDetailView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 Text("Select an IPA from the sidebar to run the scan.")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
@@ -42,7 +42,7 @@ struct BadWordScannerDetailView: View {
                             ForEach(Array(viewModel.logMessages.suffix(80).enumerated()), id: \.offset) { _, log in
                                 Text(log)
                                     .font(.caption2)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }
@@ -85,7 +85,7 @@ struct BadWordScannerDetailView: View {
     private func matchesList(grouped: [(key: String, value: [BadWordMatch])]) -> some View {
         if grouped.isEmpty {
             Text("No bad words found.")
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
         } else {
             ForEach(Array(grouped), id: \.0) { path, matches in
                 VStack(alignment: .leading, spacing: 8) {
@@ -107,12 +107,12 @@ struct BadWordScannerDetailView: View {
                     .font(.subheadline.bold())
                 Text("• \(sourceLabel(for: match))")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
             if let context = match.context, !context.isEmpty {
                 Text(context)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .lineLimit(3)
             }
         }
@@ -134,7 +134,7 @@ struct BadWordScannerDetailView: View {
                 .font(.title2.bold())
             Text(title)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
         }
         .padding()
         .background(RoundedRectangle(cornerRadius: 10).fill(color.opacity(0.1)))

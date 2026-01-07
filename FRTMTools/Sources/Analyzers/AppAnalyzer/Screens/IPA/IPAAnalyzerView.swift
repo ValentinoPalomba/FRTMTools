@@ -8,12 +8,12 @@ import Foundation
 import SwiftUI
 
 struct IPAAnalyzerContentView: View {
-    @ObservedObject var viewModel: IPAViewModel
+    @Bindable var viewModel: IPAViewModel
     
     var body: some View {
         analysesList
         .navigationTitle("IPA Analyses")
-        .onAppear {
+        .task {
             viewModel.loadAnalyses()
         }
     }
@@ -56,17 +56,20 @@ struct IPAAnalyzerContentView: View {
         HStack {
             if let firstAnalysis = viewModel.groupedAnalyses[executableName]?.first, let image = firstAnalysis.image {
                 Image(nsImage: image)
-                    .resizable().scaledToFit().frame(width: 24, height: 24).cornerRadius(5)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 24, height: 24)
+                    .clipShape(.rect(cornerRadius: 5))
             } else {
                 Image(systemName: "app.box.fill")
-                    .font(.system(size: 24))
+                    .font(.title3)
                     .frame(width: 24, height: 24)
             }
             VStack(alignment: .leading) {
                 Text(executableName).font(.headline)
                 Text("\(viewModel.groupedAnalyses[executableName]?.count ?? 0) builds")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(4)
@@ -76,28 +79,23 @@ struct IPAAnalyzerContentView: View {
     func analysisRowView(with executableName: String) -> some View {
         if let analysesForExecutable = viewModel.groupedAnalyses[executableName] {
             ForEach(analysesForExecutable) { analysis in
-                AppAnalysisRow(
-                    analysis: analysis,
-                    role: (
-                        viewModel.selectedUUID == analysis.id
-                    ) ? .base : nil
-                )
-                
-                .onTapGesture {
+                Button {
                     withAnimation {
                         viewModel.toggleSelection(analysis.id)
                     }
+                } label: {
+                    AppAnalysisRow(
+                        analysis: analysis,
+                        role: viewModel.selectedUUID == analysis.id ? .base : nil
+                    )
                 }
+                .buttonStyle(.plain)
                 .contextMenu {
-                    Button(role: .destructive) {
+                    Button("Delete", systemImage: "trash", role: .destructive) {
                         viewModel.deleteAnalysis(withId: analysis.id)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
                     }
-                    Button {
+                    Button("Show in Finder", systemImage: "folder") {
                         viewModel.revealAnalysesJSONInFinder()
-                    } label: {
-                        Label("Show in Finder", systemImage: "folder")
                     }
                 }
                 .animation(.spring(), value: viewModel.selectedUUID)
@@ -108,7 +106,7 @@ struct IPAAnalyzerContentView: View {
 
 
 struct IPAAnalyzerDetailView: View {
-    @ObservedObject var viewModel: IPAViewModel
+    @Bindable var viewModel: IPAViewModel
     @State private var showAIChat = false
 
     var body: some View {
@@ -126,11 +124,12 @@ struct IPAAnalyzerDetailView: View {
             } else {
                 VStack(spacing: 12) {
                     Image(systemName: "square.and.arrow.down.on.square")
-                        .font(.system(size: 60))
-                        .foregroundColor(.secondary)
+                        .font(.largeTitle)
+                        .imageScale(.large)
+                        .foregroundStyle(.secondary)
                     Text("Drop or import an .ipa/.app file 📦")
                         .font(.title3)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -144,7 +143,9 @@ struct IPAAnalyzerDetailView: View {
                 }
                 .help("New Analysis")
                 
-                Button(action: { viewModel.exportToCSV() }) {
+                Button {
+                    viewModel.exportToCSV()
+                } label: {
                     Label("Export as CSV", systemImage: "square.and.arrow.up")
                 }
                 

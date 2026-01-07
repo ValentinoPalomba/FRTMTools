@@ -30,7 +30,7 @@ struct ThirdPartyLibrariesListView: View {
                         }
                         Text("\(libraries.count) SDKs total • Estimated footprint \(formatSize(totalSize))")
                             .font(.footnote)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .padding(.top, 4)
                     }
                     .padding(.vertical, 8)
@@ -56,17 +56,17 @@ struct ThirdPartyLibrariesListView: View {
                 if lib.hasManifestComponent {
                     Label("Manifest component", systemImage: "checkmark.shield")
                         .labelStyle(.iconOnly)
-                        .foregroundColor(.green)
+                        .foregroundStyle(.green)
                         .help("Declared in AndroidManifest")
                 }
             }
             .font(.caption)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
             
             if !lib.packageMatches.isEmpty {
                 Text("Packages: \(lib.packageMatches.joined(separator: ", "))")
                     .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
         }
     }
