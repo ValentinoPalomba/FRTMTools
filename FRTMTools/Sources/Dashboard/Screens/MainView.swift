@@ -1,113 +1,66 @@
 import SwiftUI
 
-
 struct MainView: View {
-    @State private var selectedTool: Tool? = .ipaAnalyzer
+    @State private var model = MainViewModel()
     @Environment(\.theme) private var theme
-    
-    @StateObject private var ipaViewModel = IPAViewModel()
-    @StateObject private var apkViewModel = APKViewModel()
-    @StateObject private var unusedAssetsViewModel = UnusedAssetsViewModel()
-    @StateObject private var securityScannerViewModel = SecurityScannerViewModel()
-    @StateObject private var deadCodeViewModel = DeadCodeViewModel()
-    @StateObject private var ipaToolViewModel = IPAToolViewModel()
-    @StateObject private var badWordScannerViewModel = BadWordScannerViewModel()
-    
-    enum Tool: String, Hashable, Identifiable, CaseIterable {
-        case ipaAnalyzer = "IPA Analyzer"
-        case apkAnalyzer = "APK/ABB Analyzer"
-        case unusedAssets = "Unused Assets Analyzer"
-        case securityScanner = "Security Scanner"
-        case deadCodeScanner = "Dead Code Scanner"
-        case ipatool = "App Store"
-        case badWordScanner = "Bad Word Scanner"
-        
-        var id: String { rawValue }
-        
-        var systemImage: String {
-            switch self {
-            case .ipaAnalyzer: return "app.badge"
-            case .apkAnalyzer: return "shippingbox"
-            case .unusedAssets: return "trash"
-            case .securityScanner: return "shield.lefthalf.filled"
-            case .deadCodeScanner: return "text.magnifyingglass"
-            case .ipatool: return "bag.badge.plus"
-            case .badWordScanner: return "exclamationmark.bubble"
-            }
-        }
-        
-        var color: Color {
-            switch self {
-            case .ipaAnalyzer: return .blue
-            case .apkAnalyzer: return .green
-            case .unusedAssets: return .purple
-            case .securityScanner: return .red
-            case .deadCodeScanner: return .orange
-            case .ipatool: return .green
-            case .badWordScanner: return .pink
-            }
-        }
-    }
-
-    @State private var hoveredTool: Tool? = nil
 
     var body: some View {
         NavigationSplitView {
-            List(selection: $selectedTool) {
-                ForEach(Tool.allCases) { tool in
+            List(selection: $model.selectedTool) {
+                ForEach(MainViewModel.Tool.allCases) { tool in
                     HStack(alignment: .lastTextBaseline) {
                         SidebarIconView(
                             imageName: tool.systemImage,
-                            color: tool.color,
-                            isSelected: selectedTool == tool,
-                            isHovering: hoveredTool == tool
+                            color: toolTint(for: tool.tintRole),
+                            isSelected: model.selectedTool == tool,
+                            isHovering: model.hoveredTool == tool
                         )
                         Text(tool.rawValue)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .onHover { hovering in
-                        hoveredTool = hovering ? tool : nil
+                        model.hoveredTool = hovering ? tool : nil
                     }
                     .tag(tool)
                 }
             }
             .listStyle(.sidebar)
         } content: {
-            switch selectedTool {
+            switch model.selectedTool {
             case .ipaAnalyzer:
-                IPAAnalyzerContentView(viewModel: ipaViewModel)
+                IPAAnalyzerContentView(viewModel: model.ipaViewModel)
             case .apkAnalyzer:
-                APKAnalyzerContentView(viewModel: apkViewModel)
+                APKAnalyzerContentView(viewModel: model.apkViewModel)
             case .unusedAssets:
-                UnusedAssetsContentView(viewModel: unusedAssetsViewModel)
+                UnusedAssetsContentView(viewModel: model.unusedAssetsViewModel)
             case .securityScanner:
-                SecurityScannerContentView(viewModel: securityScannerViewModel)
+                SecurityScannerContentView(viewModel: model.securityScannerViewModel)
             case .deadCodeScanner:
-                DeadCodeContentView(viewModel: deadCodeViewModel)
+                DeadCodeContentView(viewModel: model.deadCodeViewModel)
             case .ipatool:
-                IPAToolContentView(viewModel: ipaToolViewModel)
+                IPAToolContentView(viewModel: model.ipaToolViewModel)
             case .badWordScanner:
-                BadWordScannerContentView(viewModel: badWordScannerViewModel)
+                BadWordScannerContentView(viewModel: model.badWordScannerViewModel)
             case .none:
                 Text("Select an item to see details.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         } detail: {
-            switch selectedTool {
+            switch model.selectedTool {
             case .ipaAnalyzer:
-                IPAAnalyzerDetailView(viewModel: ipaViewModel)
+                IPAAnalyzerDetailView(viewModel: model.ipaViewModel)
             case .apkAnalyzer:
-                APKAnalyzerDetailView(viewModel: apkViewModel)
+                APKAnalyzerDetailView(viewModel: model.apkViewModel)
             case .unusedAssets:
-                UnusedAssetsResultView(viewModel: unusedAssetsViewModel)
+                UnusedAssetsResultView(viewModel: model.unusedAssetsViewModel)
             case .securityScanner:
-                SecurityScannerResultView(viewModel: securityScannerViewModel)
+                SecurityScannerResultView(viewModel: model.securityScannerViewModel)
             case .deadCodeScanner:
-                DeadCodeResultView(viewModel: deadCodeViewModel)
+                DeadCodeResultView(viewModel: model.deadCodeViewModel)
             case .ipatool:
-                IPAToolSelectionDetailView(viewModel: ipaToolViewModel)
+                IPAToolSelectionDetailView(viewModel: model.ipaToolViewModel)
             case .badWordScanner:
-                BadWordScannerDetailView(viewModel: badWordScannerViewModel)
+                BadWordScannerDetailView(viewModel: model.badWordScannerViewModel)
             case .none:
                 Text("Select an item to see details.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -116,72 +69,45 @@ struct MainView: View {
         .background(theme.palette.background)
         .navigationSplitViewColumnWidth(min: 60, ideal: 100, max: 250)
         .loaderOverlay(
-            isPresented: $ipaViewModel.isLoading,
+            isPresented: Binding(
+                get: { model.activeLoader != nil },
+                set: { _ in }
+            ),
             content: {
-                LoaderView(
-                    style: .indeterminate,
-                    title: "Analyzing IPA",
-                    subtitle: "This can take a few minutes…",
-                    showsCancel: false,
-                    cancelAction: nil
-                )
-        })
-        .loaderOverlay(
-            isPresented: $apkViewModel.isLoading,
-            content: {
-                LoaderView(
-                    style: .indeterminate,
-                    title: "Analyzing APK/ABB",
-                    subtitle: "Unpacking bundle…",
-                    showsCancel: false,
-                    cancelAction: nil
-                )
-        })
-        .loaderOverlay(
-            isPresented: $unusedAssetsViewModel.isLoading,
-            content: {
-                LoaderView(
-                    style: .indeterminate,
-                    title: "Analyzing project...",
-                    subtitle: "Finding unused assets...",
-                    showsCancel: false,
-                    cancelAction: nil
-                )
-        })
-        .loaderOverlay(
-            isPresented: $deadCodeViewModel.isLoading,
-            content: {
-                LoaderView(
-                    style: .indeterminate,
-                    title: "Analyzing project...",
-                    subtitle: "Finding dead code...",
-                    showsCancel: false,
-                    cancelAction: nil
-                )
-        })
-        .loaderOverlay(
-            isPresented: $securityScannerViewModel.isLoading,
-            content: {
-                LoaderView(
-                    style: .indeterminate,
-                    title: "Scanning project...",
-                    subtitle: "Searching for secrets...",
-                    showsCancel: false,
-                    cancelAction: nil
-                )
-        })
-        .onChange(of: selectedTool) { oldValue, newValue in
-            if newValue == .ipatool {
-                ipaToolViewModel.refreshInstallationState()
+                if let loader = model.activeLoader {
+                    LoaderView(
+                        style: .indeterminate,
+                        title: loader.title,
+                        subtitle: loader.subtitle,
+                        showsCancel: false,
+                        cancelAction: nil
+                    )
+                }
             }
+        )
+        .onChange(of: model.selectedTool) { oldValue, newValue in
+            model.handleSelectedToolChange(oldValue: oldValue, newValue: newValue)
         }
-        .onAppear {
-            if selectedTool == .ipatool {
-                ipaToolViewModel.refreshInstallationState()
-            }
+        .task {
+            model.onAppear()
         }
         .onReceive(NotificationCenter.default.publisher(for: .clearIPAToolMetadataCache)) { _ in
-            ipaToolViewModel.clearMetadataCache()
+            model.clearIPAToolMetadataCache()
+        }
+    }
+
+    private func toolTint(for role: MainViewModel.TintRole) -> Color {
+        switch role {
+        case .accent:
+            theme.palette.accent
+        case .accentMuted:
+            theme.palette.accent.opacity(theme.colorScheme == .dark ? 0.7 : 0.6)
+        case .success:
+            theme.palette.success
+        case .warning:
+            theme.palette.warning
+        case .danger:
+            theme.palette.danger
         }
     }
 }

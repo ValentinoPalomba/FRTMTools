@@ -258,11 +258,11 @@ private struct TreemapCell: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(file.name)
                             .font(.system(size: 11, weight: file.name == "[Other Files]" ? .semibold : .bold))
-                            .foregroundColor(.white)
+                            .foregroundStyle(.white)
                             .lineLimit(1)
                         Text(file.sizeText)
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundStyle(.white.opacity(0.8))
                     }
                     .padding(5)
                 }
@@ -273,7 +273,7 @@ private struct TreemapCell: View {
                         HStack {
                             Spacer()
                             Image(systemName: file.name == TreemapContainerView.smallChildrenName ? "folder.fill" : "chevron.right.circle.fill")
-                                .foregroundColor(.white.opacity(0.6))
+                                .foregroundStyle(.white.opacity(0.6))
                                 .font(.system(size: 12))
                         }
                         Spacer()
@@ -282,7 +282,7 @@ private struct TreemapCell: View {
                 }
             }
             .frame(width: rect.width, height: rect.height)
-            .contentShape(Rectangle())
+            .contentShape(.rect)
             .contextMenu {
                 Button("Reveal in Finder", systemImage: "folder") {
                     revealInFinder()
@@ -358,7 +358,7 @@ private struct HoverFullContent: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 60, height: 60)
-                        .cornerRadius(8)
+                        .clipShape(.rect(cornerRadius: 8))
                         .shadow(radius: 2)
                     Spacer()
                 }
@@ -369,12 +369,12 @@ private struct HoverFullContent: View {
 
             Text(ByteCountFormatter.string(fromByteCount: file.size, countStyle: .file))
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
 
             if let subItems = file.subItems, !subItems.isEmpty {
                 Text("\(subItems.count) files")
                     .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding()
@@ -392,7 +392,7 @@ private struct HoverImageContent: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 60, height: 60)
-                    .cornerRadius(8)
+                    .clipShape(.rect(cornerRadius: 8))
                     .shadow(radius: 2)
             }
             .padding(8)

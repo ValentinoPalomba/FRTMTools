@@ -21,7 +21,7 @@ struct ExpandableGraphView<Analysis: AppAnalysis>: View {
                 Button(action: { isShowingDetail.toggle() }) {
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .padding(8)
                         .background(theme.palette.surface)
                         .clipShape(Circle())
@@ -84,7 +84,7 @@ private struct ExpandedDetailView<Analysis: AppAnalysis>: View {
                 Button(action: { isShowingDetail = false }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title2)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
             }

@@ -23,9 +23,12 @@ struct ComparisonReportView: View {
                     withAnimation {
                         showCopyConfirmation = true
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        withAnimation {
-                            showCopyConfirmation = false
+                    Task {
+                        try? await Task.sleep(for: .seconds(2))
+                        await MainActor.run {
+                            withAnimation {
+                                showCopyConfirmation = false
+                            }
                         }
                     }
                 } label: {
@@ -36,7 +39,7 @@ struct ComparisonReportView: View {
                 if showCopyConfirmation {
                     Text(language == .english ? "Copied!" : "Copiato!")
                         .font(.caption)
-                        .foregroundColor(.green)
+                        .foregroundStyle(.green)
                         .transition(.opacity)
                 }
                 Picker(language.pickerLabel, selection: $language) {
@@ -78,7 +81,7 @@ private struct ReportContentList: View {
                 HStack(alignment: .top, spacing: 8) {
                     Text("•")
                         .font(.body)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                     Text(item)
                         .font(.body)
                         .fixedSize(horizontal: false, vertical: true)

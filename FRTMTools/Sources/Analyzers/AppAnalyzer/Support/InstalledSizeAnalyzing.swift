@@ -1,6 +1,7 @@
 import Foundation
+import Observation
 @MainActor
-protocol InstalledSizeAnalyzing: ObservableObject {
+protocol InstalledSizeAnalyzing: AnyObject, Observable {
     associatedtype Analysis: AppAnalysis
     associatedtype SizeAlert: SizeAlertProtocol
 

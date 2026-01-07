@@ -35,7 +35,7 @@ struct CollapsibleSection: View {
                         Spacer()
                         Text(category.sizeText)
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Image(systemName: expandedSections.contains(category.id) ? "chevron.up" : "chevron.down")
                     }
                 }
@@ -47,7 +47,7 @@ struct CollapsibleSection: View {
                     } label: {
                         Image(systemName: "info.circle")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .padding(6)
                     }
                     .buttonStyle(.plain)

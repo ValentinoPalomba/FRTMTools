@@ -18,7 +18,7 @@ struct SummaryCard: View {
             if let icon = icon, let color = color {
                 HStack {
                     Image(systemName: icon)
-                        .foregroundColor(color)
+                        .foregroundStyle(color)
                         .font(.title3)
 
                     Spacer()
@@ -27,17 +27,17 @@ struct SummaryCard: View {
             
             Text(title)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
 
             Text(value)
                 .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.primary)
+                .bold()
+                .foregroundStyle(.primary)
 
             if let subtitle = subtitle {
                 Text(subtitle)
                     .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .lineLimit(2)
             }
         }

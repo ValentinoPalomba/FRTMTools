@@ -1,17 +1,19 @@
 import SwiftUI
+import Observation
 
 @MainActor
-final class ThemeManager: ObservableObject {
+@Observable
+final class ThemeManager {
     private enum Keys {
         static let preset = "designSystem.themePreset"
         static let mode = "designSystem.appearanceMode"
     }
 
-    @Published var themeId: String {
+    var themeId: String {
         didSet { persist() }
     }
 
-    @Published var appearanceMode: ThemeAppearanceMode {
+    var appearanceMode: ThemeAppearanceMode {
         didSet { persist() }
     }
 

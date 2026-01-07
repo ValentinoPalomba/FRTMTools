@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 struct IPAToolSelectionDetailView: View {
-    @ObservedObject var viewModel: IPAToolViewModel
+    @Bindable var viewModel: IPAToolViewModel
     @Environment(\.theme) private var theme
 
     var body: some View {
@@ -18,7 +18,8 @@ struct IPAToolSelectionDetailView: View {
             } else {
                 VStack(spacing: 12) {
                     Image(systemName: "bag.badge.plus")
-                        .font(.system(size: 52))
+                        .font(.largeTitle)
+                        .imageScale(.large)
                         .foregroundStyle(.secondary)
                     Text("Select an app from the list to inspect versions.")
                         .foregroundStyle(.secondary)

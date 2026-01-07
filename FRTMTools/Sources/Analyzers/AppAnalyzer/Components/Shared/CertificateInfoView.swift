@@ -10,13 +10,13 @@ struct CertificateInfoPopover: View {
                 HStack {
                     Image(systemName: signatureInfo.isDebugSigned ? "exclamationmark.shield.fill" : "checkmark.shield.fill")
                         .font(.title)
-                        .foregroundColor(signatureInfo.isDebugSigned ? .orange : .green)
+                        .foregroundStyle(signatureInfo.isDebugSigned ? .orange : .green)
                     VStack(alignment: .leading) {
                         Text(signatureInfo.isDebugSigned ? "Debug Certificate" : "Release Certificate")
                             .font(.headline)
                         Text("Signature: \(signatureInfo.signatureSchemesDescription)")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 .padding(.bottom, 8)
@@ -40,19 +40,19 @@ struct CertificateInfoPopover: View {
                         if cert.isExpiringSoon {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.orange)
+                                    .foregroundStyle(.orange)
                                 Text("Expiring soon")
                                     .font(.caption)
-                                    .foregroundColor(.orange)
+                                    .foregroundStyle(.orange)
                             }
                         }
 
                         Text("Valid from: \(cert.validFrom, style: .date)")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Text("Valid until: \(cert.validUntil, style: .date)")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
 
                     Divider()
@@ -122,7 +122,7 @@ struct InfoRow: View {
         if !label.isEmpty {
             HStack(alignment: .top) {
                 Text("\(label):")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .frame(width: 100, alignment: .leading)
                 Text(value)
                     .textSelection(.enabled)
@@ -147,20 +147,23 @@ struct FingerprintRow: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text("\(label):")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .font(.caption)
                 Spacer()
                 Button {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(value, forType: .string)
                     copied = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        copied = false
+                    Task {
+                        try? await Task.sleep(for: .seconds(2))
+                        await MainActor.run {
+                            copied = false
+                        }
                     }
                 } label: {
-                    Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                        .foregroundColor(copied ? .green : .accentColor)
+                    Label(copied ? "Copied" : "Copy", systemImage: copied ? "checkmark" : "doc.on.doc")
                 }
+                .labelStyle(.iconOnly)
                 .buttonStyle(.plain)
                 .help("Copy to clipboard")
             }

@@ -126,10 +126,12 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                                     angularInset: 1.5
                                 )
                                 .foregroundStyle(by: .value("Category", category.name))
-                                .annotation(position: .overlay) { 
-                                    Text("\(String(format: "%.0f", (Double(category.totalSize) / Double(viewModel.analysis.totalSize)) * 100))%")
+                                .annotation(position: .overlay) {
+                                    let totalSize = max(Double(viewModel.analysis.totalSize), 1)
+                                    let percentage = (Double(category.totalSize) / totalSize) * 100
+                                    Text("\(percentage, format: .number.precision(.fractionLength(0)))%")
                                         .font(.caption)
-                                        .foregroundColor(.white)
+                                        .foregroundStyle(.white)
                                         .bold()
                                 }
                             }
@@ -259,10 +261,10 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                                 HStack(spacing: 12) {
                                     Text("Version: \(lib.version ?? "Unknown")")
                                         .font(.caption)
-                                        .foregroundColor(.secondary)
+                                        .foregroundStyle(.secondary)
                                     Text(formatSize(lib.estimatedSize))
                                         .font(.caption)
-                                        .foregroundColor(.secondary)
+                                        .foregroundStyle(.secondary)
                                 }
                             }
                             if lib.id != displayed.last?.id {
@@ -272,7 +274,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                         if thirdPartyLibraries.count > displayed.count {
                             Text("+\(thirdPartyLibraries.count - displayed.count) more SDKs")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -286,7 +288,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                                     .font(.body)
                                 Text(link.componentName)
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                             }
                             if link.id != displayed.last?.id {
                                 Divider()
@@ -295,7 +297,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                         if deepLinks.count > displayed.count {
                             Text("+\(deepLinks.count - displayed.count) more")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -316,17 +318,17 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                                         if !filter.actions.isEmpty {
                                             Text("Actions: \(filter.actions.joined(separator: ", "))")
                                                 .font(.caption)
-                                                .foregroundColor(.secondary)
+                                                .foregroundStyle(.secondary)
                                         }
                                         if !filter.categories.isEmpty {
                                             Text("Categories: \(filter.categories.joined(separator: ", "))")
                                                 .font(.caption)
-                                                .foregroundColor(.secondary)
+                                                .foregroundStyle(.secondary)
                                         }
                                         if let dataSummary = intentDataSummary(filter.data) {
                                             Text("Data: \(dataSummary)")
                                                 .font(.caption)
-                                                .foregroundColor(.secondary)
+                                                .foregroundStyle(.secondary)
                                         }
                                     }
                                 }
@@ -338,7 +340,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                         if activityComponents.count > displayedComponents.count {
                             Text("+\(activityComponents.count - displayedComponents.count) more activities")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -350,14 +352,14 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                             let component = displayed[index]
                             HStack(spacing: 8) {
                                 Image(systemName: componentIcon(for: component.type))
-                                    .foregroundColor(.orange)
+                                    .foregroundStyle(.orange)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(component.name)
                                         .font(.body)
                                     if let label = component.label {
                                         Text(label)
                                             .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .foregroundStyle(.secondary)
                                     }
                                 }
                             }
@@ -368,7 +370,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                         if exportedComponents.count > displayed.count {
                             Text("+\(exportedComponents.count - displayed.count) more exported components")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -387,7 +389,7 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                 .font(.title3)
                 .bold()
             Text("\(analysis.playAssetPacks.count) asset pack\(analysis.playAssetPacks.count == 1 ? "" : "s") included")
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             Text(assetPackPreviewDescription(for: analysis.playAssetPacks))
                 .font(.subheadline)
         }
@@ -411,11 +413,11 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                         Spacer()
                         Text(byteFormatter.string(fromByteCount: pack.compressedSizeBytes))
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                     Text(pack.deliveryType.displayName)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 if pack.id != analysis.playAssetPacks.last?.id {
                     Divider()
@@ -446,11 +448,11 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                         Spacer()
                         Text(byteFormatter.string(fromByteCount: feature.estimatedSizeBytes))
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                     Text(feature.deliveryType.displayName)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 if feature.id != analysis.dynamicFeatures.last?.id {
                     Divider()

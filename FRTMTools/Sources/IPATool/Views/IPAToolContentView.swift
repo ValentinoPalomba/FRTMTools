@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 struct IPAToolContentView: View {
-    @ObservedObject var viewModel: IPAToolViewModel
+    @Bindable var viewModel: IPAToolViewModel
     @FocusState private var focusedField: Field?
     @Environment(\.theme) private var theme
 
@@ -36,7 +36,7 @@ struct IPAToolContentView: View {
             .padding(.vertical, 16)
         }
         .background(theme.palette.background)
-        .onAppear { viewModel.refreshInstallationState() }
+        .task { viewModel.refreshInstallationState() }
         .alert(item: $viewModel.downloadAlert) { alert in
             Alert(
                 title: Text(alert.title),
@@ -165,7 +165,7 @@ struct IPAToolContentView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Label("ipatool not detected", systemImage: "exclamationmark.triangle.fill")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundColor(.orange)
+                        .foregroundStyle(.orange)
                     Text("Install via Homebrew (`brew install ipatool`) or place the binary in your PATH. You can also add ~/homebrew/bin to PATH.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)

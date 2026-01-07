@@ -2,13 +2,13 @@ import SwiftUI
 import AppKit
 
 struct IPAToolDetailView: View {
-    @ObservedObject var viewModel: IPAToolViewModel
+    @Bindable var viewModel: IPAToolViewModel
     let selectedApp: IPAToolStoreApp
     @State private var gradientColors: [Color]
     @State private var usesLightText: Bool
 
     init(viewModel: IPAToolViewModel, selectedApp: IPAToolStoreApp) {
-        self.viewModel = viewModel
+        _viewModel = Bindable(wrappedValue: viewModel)
         self.selectedApp = selectedApp
         let palette = defaultAppGradient(for: selectedApp)
         _gradientColors = State(initialValue: palette.colors.map { Color(nsColor: $0) })
@@ -185,7 +185,7 @@ struct IPAToolDetailView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(version.displayVersion ?? version.version)
                                     .font(.body.weight(isSelected ? .semibold : .regular))
-                                    .foregroundColor(.primary)
+                                    .foregroundStyle(.primary)
                                 if let build = version.build, !build.isEmpty {
                                     Text("Build \(build)")
                                         .font(.caption)

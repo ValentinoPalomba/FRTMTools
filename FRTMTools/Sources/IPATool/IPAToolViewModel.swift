@@ -1,31 +1,33 @@
 import Foundation
+import Observation
 import SwiftUI
 
 @MainActor
-final class IPAToolViewModel: ObservableObject {
-    @Published var isInstalled: Bool = false
-    @Published var isLoggedIn: Bool = false
-    @Published var loginEmail: String = ""
-    @Published var loginPassword: String = ""
-    @Published var loginOTP: String = ""
-    @Published var loginInProgress: Bool = false
-    @Published var loginMessage: String? = nil
-    @Published var isAwaitingOTP = false
+@Observable
+final class IPAToolViewModel {
+    var isInstalled: Bool = false
+    var isLoggedIn: Bool = false
+    var loginEmail: String = ""
+    var loginPassword: String = ""
+    var loginOTP: String = ""
+    var loginInProgress: Bool = false
+    var loginMessage: String? = nil
+    var isAwaitingOTP = false
 
-    @Published var searchTerm: String = ""
-    @Published var isSearching: Bool = false
-    @Published var searchResults: [IPAToolStoreApp] = []
+    var searchTerm: String = ""
+    var isSearching: Bool = false
+    var searchResults: [IPAToolStoreApp] = []
 
-    @Published var selectedApp: IPAToolStoreApp? = nil
-    @Published var versions: [IPAToolAppVersion] = []
-    @Published var selectedVersion: IPAToolAppVersion? = nil
-    @Published var isLoadingVersions: Bool = false
+    var selectedApp: IPAToolStoreApp? = nil
+    var versions: [IPAToolAppVersion] = []
+    var selectedVersion: IPAToolAppVersion? = nil
+    var isLoadingVersions: Bool = false
 
-    @Published var isDownloading: Bool = false
-    @Published var downloadLog: String = ""
-    @Published var downloadAlert: AlertContent? = nil
+    var isDownloading: Bool = false
+    var downloadLog: String = ""
+    var downloadAlert: AlertContent? = nil
 
-    let client = IPAToolClient()
+    @ObservationIgnored let client = IPAToolClient()
 
     struct AlertContent: Identifiable {
         let id = UUID()
@@ -167,7 +169,7 @@ final class IPAToolViewModel: ObservableObject {
         if keywords.contains(where: { lower.contains($0) }) {
             return true
         }
-        let numericCharacters = lower.filter { "0123456789., ".contains($0) }.replacingOccurrences(of: " ", with: "")
+        let numericCharacters = lower.filter { "0123456789., ".contains($0) }.replacing(" ", with: "")
         return numericCharacters == "0" || numericCharacters == "0.00" || numericCharacters == "0,00"
     }
 }

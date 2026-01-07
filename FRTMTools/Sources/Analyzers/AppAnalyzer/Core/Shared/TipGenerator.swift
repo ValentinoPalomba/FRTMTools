@@ -462,12 +462,18 @@ class TipGenerator {
         }
         
         let digest = hasher.finalize()
-        return digest.map { String(format: "%02x", $0) }.joined()
+        return digest.map { byte in
+            let hex = String(byte, radix: 16)
+            return hex.count == 1 ? "0" + hex : hex
+        }.joined()
     }
     
     private static func hashData(_ data: Data) -> String {
         let digest = SHA256.hash(data: data)
-        return digest.map { String(format: "%02x", $0) }.joined()
+        return digest.map { byte in
+            let hex = String(byte, radix: 16)
+            return hex.count == 1 ? "0" + hex : hex
+        }.joined()
     }
     
     private static func imageHash(for file: FileInfo) -> String? {

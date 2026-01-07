@@ -2,7 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct StartupTimeAnalysisView: View {
-    @ObservedObject var viewModel: IPAViewModel
+    @Bindable var viewModel: IPAViewModel
     let analysis: IPAAnalysis
 
     @State private var showingFilePicker = false
@@ -14,7 +14,7 @@ struct StartupTimeAnalysisView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("🚀 Startup Time")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
 
             if viewModel.isStartupTimeLoading {
                 VStack(alignment: .leading, spacing: 5) {
@@ -22,7 +22,7 @@ struct StartupTimeAnalysisView: View {
                         .progressViewStyle(LinearProgressViewStyle())
                     Text(viewModel.startupTimeProgress)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
             } else if let startupTime = analysis.startupTime {
@@ -31,11 +31,11 @@ struct StartupTimeAnalysisView: View {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(startupTime.formattedAverage)
                             .font(.title)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
+                            .bold()
+                            .foregroundStyle(.primary)
                         Text("avg")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
 
                     // Min/Max if available
@@ -58,7 +58,7 @@ struct StartupTimeAnalysisView: View {
                             }
                         }
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                     }
 
                     // Warnings
@@ -70,7 +70,7 @@ struct StartupTimeAnalysisView: View {
                                         .font(.caption2)
                                     Text(warning)
                                         .font(.caption2)
-                                        .foregroundColor(.orange)
+                                        .foregroundStyle(.orange)
                                         .lineLimit(1)
                                 }
                             }
@@ -106,7 +106,7 @@ struct StartupTimeAnalysisView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Measure app startup time")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
 
                     HStack(spacing: 8) {
                         Button(action: {
@@ -134,7 +134,7 @@ struct StartupTimeAnalysisView: View {
 
                     Text("Tip: Install on simulator/device to auto-measure, or import logs from Console.app")
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
             }
@@ -182,9 +182,11 @@ struct StartupTimeAnalysisView: View {
 
     private func formatTime(_ time: Double) -> String {
         if time < 1.0 {
-            return String(format: "%.0f ms", time * 1000)
+            let ms = Int((time * 1000).rounded())
+            return "\(ms) ms"
         }
-        return String(format: "%.2f s", time)
+        let rounded = (time * 100).rounded() / 100
+        return "\(rounded) s"
     }
 }
 
@@ -234,7 +236,7 @@ struct DeviceSelectionSheet: View {
                         } else if availableSimulators.isEmpty {
                             Text("No simulators found")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         } else {
                             Picker("Simulator", selection: $deviceUDID) {
                                 ForEach(availableSimulators, id: \.udid) { sim in
@@ -251,7 +253,7 @@ struct DeviceSelectionSheet: View {
                         } else if availableDevices.isEmpty {
                             Text("No physical devices connected")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         } else {
                             Picker("Device", selection: $deviceUDID) {
                                 ForEach(availableDevices, id: \.udid) { device in
@@ -273,12 +275,12 @@ struct DeviceSelectionSheet: View {
                 if deviceType == .physicalDevice || deviceType == .custom {
                     Text("⚠️ Note: For physical devices, you'll need to manually launch the app and import logs.")
                         .font(.caption)
-                        .foregroundColor(.orange)
+                        .foregroundStyle(.orange)
                         .padding(.vertical, 8)
                 } else {
                     Text("💡 Tip: After installation, manually launch the app and import logs to measure startup time.")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .padding(.vertical, 8)
                 }
             }

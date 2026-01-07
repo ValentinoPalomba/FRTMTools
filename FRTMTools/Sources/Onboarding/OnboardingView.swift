@@ -2,7 +2,7 @@ import SwiftUI
 
 struct OnboardingView: View {
     @Binding var isPresented: Bool
-    @StateObject private var viewModel = OnboardingViewModel()
+    @State private var viewModel = OnboardingViewModel()
 
     var body: some View {
         VStack {

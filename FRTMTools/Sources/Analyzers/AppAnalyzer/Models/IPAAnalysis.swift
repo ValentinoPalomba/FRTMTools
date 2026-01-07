@@ -30,9 +30,10 @@ struct IPAAnalysis: AppAnalysis {
 
         var formattedAverage: String {
             if averageTime < 1.0 {
-                return String(format: "%.0f ms", averageTime * 1000)
+                let ms = Int((averageTime * 1000).rounded())
+                return "\(ms) ms"
             }
-            return String(format: "%.2f s", averageTime)
+            return averageTime.formatted(.number.precision(.fractionLength(2))) + " s"
         }
     }
     var startupTime: StartupTime?

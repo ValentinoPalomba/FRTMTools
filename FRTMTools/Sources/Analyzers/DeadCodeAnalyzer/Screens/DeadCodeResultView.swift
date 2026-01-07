@@ -4,7 +4,7 @@ import SourceGraph
 import Charts
 
 struct DeadCodeResultView: View {
-    @ObservedObject var viewModel: DeadCodeViewModel
+    @Bindable var viewModel: DeadCodeViewModel
     @State private var showingFilterSheet = false
     @State private var expandedCodeTypes: Set<String> = []
     var body: some View {
@@ -14,8 +14,9 @@ struct DeadCodeResultView: View {
                     // Empty state for a completed scan with no results
                     VStack {
                         Image(systemName: "checkmark.seal.fill")
-                            .font(.system(size: 60))
-                            .foregroundColor(.green)
+                            .font(.largeTitle)
+                            .imageScale(.large)
+                            .foregroundStyle(.green)
                         Text("No dead code found in \(analysis.projectName).")
                             .font(.largeTitle)
                     }
@@ -62,19 +63,22 @@ struct DeadCodeResultView: View {
                 // Placeholder for when no analysis is selected
                 VStack {
                     Image(systemName: "list.bullet.indent")
-                        .font(.system(size: 60))
-                        .foregroundColor(.secondary)
+                        .font(.largeTitle)
+                        .imageScale(.large)
+                        .foregroundStyle(.secondary)
                     Text("Select an Analysis")
                         .font(.largeTitle)
                     Text("Choose an analysis from the sidebar to see the results.")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
         .navigationTitle(viewModel.selectedAnalysis?.projectName ?? "Dead Code Results")
         .toolbar {
             ToolbarItem {
-                Button(action: { showingFilterSheet = true }) {
+                Button {
+                    showingFilterSheet = true
+                } label: {
                     Label("Filter", systemImage: "line.3.horizontal.decrease.circle")
                 }
                 .disabled(viewModel.selectedAnalysis == nil || viewModel.selectedAnalysis?.results.isEmpty == true)
@@ -156,44 +160,46 @@ struct DeadCodeCollapsibleSection: View {
                     HStack {
                         Text("\(group.results.count) items")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     }
                 }
                 .buttonStyle(.plain)
             }
             .padding()
-            .contentShape(Rectangle())
+            .contentShape(.rect)
             
             if isExpanded {
                 Divider()
                 LazyVStack(alignment: .leading, spacing: 10) {
                     ForEach(group.results) { result in
-                        HStack(spacing: 12) {
-                            Text(result.icon)
-                                .font(.title)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(result.name ?? "Unknown")
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                                
-                                Text(result.annotationDescription)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                
-                                HStack(spacing: 4) {
-                                    Image(systemName: "location.fill")
-                                    Text(result.location)
-                                }
-                                .font(.caption)
-                                .foregroundColor(.accentColor)
-                            }
-                        }
-                        .padding(.horizontal)
-                        .onTapGesture {
+                        Button {
                             openInXcode(location: result.location)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Text(result.icon)
+                                    .font(.title)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(result.name ?? "Unknown")
+                                        .font(.headline)
+                                        .bold()
+                                    
+                                    Text(result.annotationDescription)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                    
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "location.fill")
+                                        Text(result.location)
+                                    }
+                                    .font(.caption)
+                                    .foregroundStyle(.tint)
+                                }
+                            }
+                            .padding(.horizontal)
                         }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.bottom, 10)

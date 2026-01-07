@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct AIChatView: View {
-    @StateObject private var viewModel: AIChatViewModel
-    @ObservedObject private var configurationStore: LocalAIConfigurationStore
+    @State private var viewModel: AIChatViewModel
+    @State private var configurationStore: LocalAIConfigurationStore
     @Environment(\.theme) private var theme
 
     @State private var inputText = ""
@@ -13,8 +13,8 @@ struct AIChatView: View {
 
     init(context: AnalysisContext) {
         let store = LocalAIConfigurationStore.shared
-        _viewModel = StateObject(wrappedValue: AIChatViewModel(context: context, configurationStore: store))
-        _configurationStore = ObservedObject(initialValue: store)
+        _viewModel = State(initialValue: AIChatViewModel(context: context, configurationStore: store))
+        _configurationStore = State(initialValue: store)
         self.displayContext = context
     }
 
@@ -114,17 +114,16 @@ struct AIChatView: View {
                     .lineLimit(1...4)
                     .focused($isInputFocused)
                     .disabled(viewModel.isSending)
-                Button {
+                Button("Send", systemImage: "paperplane.fill") {
                     sendMessage()
-                } label: {
-                    Image(systemName: "paperplane.fill")
-                        .foregroundStyle(.white)
-                        .padding(8)
-                        .background(
-                            Capsule()
-                                .fill(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSending ? theme.palette.border.opacity(0.9) : theme.palette.accent)
-                        )
                 }
+                .labelStyle(.iconOnly)
+                .foregroundStyle(.white)
+                .padding(8)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSending ? theme.palette.border.opacity(0.9) : theme.palette.accent)
+                )
                 .buttonStyle(.plain)
                 .disabled(viewModel.isSending || inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
@@ -157,6 +156,7 @@ struct AIChatView: View {
 
     private var settingsPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
+            @Bindable var configurationStore = configurationStore
             Text("Local model configuration")
                 .font(.headline)
 
@@ -193,7 +193,7 @@ struct AIChatView: View {
 
             HStack {
                 Slider(value: binding(\.temperature), in: 0...1, step: 0.05)
-                Text(String(format: "Temperature %.2f", configurationStore.configuration.temperature))
+                Text("Temperature \(configurationStore.configuration.temperature, format: .number.precision(.fractionLength(2)))")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }

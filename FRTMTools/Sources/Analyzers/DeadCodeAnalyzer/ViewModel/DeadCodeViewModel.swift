@@ -3,6 +3,7 @@ import SwiftUI
 import PeripheryKit
 @preconcurrency import SourceGraph
 import FRTMCore
+import Observation
 import UniformTypeIdentifiers
 
 extension Accessibility: @retroactive CaseIterable {
@@ -12,50 +13,52 @@ extension Accessibility: @retroactive CaseIterable {
 }
 
 @MainActor
-class DeadCodeViewModel: ObservableObject {
+@Observable
+final class DeadCodeViewModel {
     // MARK: - Dependencies & Persistence
-    @Dependency var persistenceManager: PersistenceManager
+    @ObservationIgnored private let persistenceManagerDependency = Dependency<PersistenceManager>()
+    private var persistenceManager: PersistenceManager { persistenceManagerDependency.wrappedValue }
     private let persistenceKey = "dead_code_analyses"
 
     // MARK: - Published Properties
-    @Published var analyses: [DeadCodeAnalysis] = [] {
+    var analyses: [DeadCodeAnalysis] = [] {
         didSet {
             updateFilteredAndGroupedResults()
         }
     }
-    @Published var selectedAnalysisID: UUID? {
+    var selectedAnalysisID: UUID? {
         didSet {
             updateFilteredAndGroupedResults()
         }
     }
     
-    @Published var isLoading = false
-    @Published var isLoadingSchemes = false
+    var isLoading = false
+    var isLoadingSchemes = false
 
-    @Published var error: Error?
+    var error: Error?
 
     // Filter properties
-    @Published var selectedKinds: Set<String> = Set(Declaration.Kind.allCases.map { $0.displayName }) {
+    var selectedKinds: Set<String> = Set(Declaration.Kind.allCases.map { $0.displayName }) {
         didSet {
             updateFilteredAndGroupedResults()
         }
     }
-    @Published var selectedAccessibilities: Set<Accessibility> = Set(Accessibility.allCases) {
+    var selectedAccessibilities: Set<Accessibility> = Set(Accessibility.allCases) {
         didSet {
             updateFilteredAndGroupedResults()
         }
     }
 
     // Derived data for the view
-    @Published var filteredResults: [SerializableDeadCodeResult] = []
-    @Published var resultsByKind: [DeadCodeGroup] = []
+    var filteredResults: [SerializableDeadCodeResult] = []
+    var resultsByKind: [DeadCodeGroup] = []
     
     // Sequence token to ensure only the most recent async update applies
-    private var updateSequence: Int = 0
+    @ObservationIgnored private var updateSequence: Int = 0
     
     // Schemes for a selected project before scanning
-    @Published var schemes: [String] = []
-    @Published var selectedScheme: String?
+    var schemes: [String] = []
+    var selectedScheme: String?
     var projectToScan: URL?
 
     // MARK: - Init
@@ -117,9 +120,7 @@ class DeadCodeViewModel: ObservableObject {
         do {
             let csvString = try analysis.export()
             guard let data = csvString.data(using: .utf8) else {
-                DispatchQueue.main.async {
-                    self.error = NSError(domain: "CSVError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to encode CSV data."])
-                }
+                self.error = NSError(domain: "CSVError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to encode CSV data."])
                 return
             }
             
@@ -132,16 +133,14 @@ class DeadCodeViewModel: ObservableObject {
                     do {
                         try data.write(to: url)
                     } catch {
-                        DispatchQueue.main.async {
+                        Task { @MainActor in
                             self.error = error
                         }
                     }
                 }
             }
         } catch {
-            DispatchQueue.main.async {
-                self.error = error
-            }
+            self.error = error
         }
     }
     private func updateFilteredAndGroupedResults() {
@@ -314,4 +313,3 @@ class DeadCodeViewModel: ObservableObject {
         }
     }
 }
-

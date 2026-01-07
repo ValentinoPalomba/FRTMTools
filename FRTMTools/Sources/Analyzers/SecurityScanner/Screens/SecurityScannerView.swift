@@ -2,13 +2,13 @@
 import SwiftUI
 
 struct SecurityScannerContentView: View {
-    @ObservedObject var viewModel: SecurityScannerViewModel
+    @Bindable var viewModel: SecurityScannerViewModel
 
     var body: some View {
         VStack {
             if viewModel.analyses.isEmpty {
                 Text("No scans performed yet.")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             } else {
                 List(selection: $viewModel.selectedAnalysisID) {
                     ForEach(viewModel.analyses) {
@@ -21,7 +21,7 @@ struct SecurityScannerContentView: View {
                                 
                                 Text(analysis.projectPath)
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                     .lineLimit(1)
                                     .truncationMode(.middle)
                             }
@@ -53,13 +53,15 @@ struct SecurityScannerContentView: View {
             }
             
             ToolbarItem {
-                Button(action: { viewModel.exportToCSV() }) {
+                Button {
+                    viewModel.exportToCSV()
+                } label: {
                     Label("Export as CSV", systemImage: "square.and.arrow.up")
                 }
                 .disabled(viewModel.selectedAnalysis == nil || viewModel.selectedAnalysis?.findings.isEmpty == true)
             }
         }
-        .onAppear {
+        .task {
             viewModel.loadAnalyses()
         }
         .alert(item: $viewModel.analysisToOverwrite) {

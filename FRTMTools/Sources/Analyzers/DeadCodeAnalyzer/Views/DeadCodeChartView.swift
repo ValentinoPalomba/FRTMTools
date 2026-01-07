@@ -37,7 +37,7 @@ struct DeadCodeChartView: View {
                     if data.count > (chartData.map({$0.count}).reduce(0, +) / 10) { // only show count if slice is big enough
                         Text("\(data.count)")
                             .font(.caption)
-                            .foregroundColor(.white)
+                            .foregroundStyle(.white)
                             .bold()
                     }
                 }

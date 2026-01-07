@@ -1,8 +1,10 @@
-
 import SwiftUI
+import Observation
 
-class OnboardingViewModel: ObservableObject {
-    @Published var currentPage = 0
+@MainActor
+@Observable
+final class OnboardingViewModel {
+    var currentPage = 0
 
     let pages: [OnboardingPage] = [
         .init(

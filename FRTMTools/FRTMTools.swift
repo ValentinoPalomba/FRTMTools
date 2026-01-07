@@ -17,7 +17,7 @@ struct FRTMTools: App {
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
     @State private var showCleanCacheConfirmation = false
     @State private var showClearAppStoreCacheConfirmation = false
-    @StateObject private var themeManager = ThemeManager()
+    @State private var themeManager = ThemeManager()
     
     private var extractedIPAsCacheURL: URL { CacheLocations.extractedIPAsDirectory }
 
@@ -45,7 +45,7 @@ struct FRTMTools: App {
     var body: some Scene {
         WindowGroup {
             MainView()
-                .environmentObject(themeManager)
+                .environment(themeManager)
                 .designSystem(themeManager)
                 .sheet(isPresented: $showOnboarding) {
                     OnboardingView(isPresented: $showOnboarding)
@@ -69,11 +69,12 @@ struct FRTMTools: App {
         }
         Settings {
             ThemeSettingsView()
-                .environmentObject(themeManager)
+                .environment(themeManager)
                 .designSystem(themeManager)
         }
         .commands {
             CommandMenu("Theme") {
+                @Bindable var themeManager = themeManager
                 Picker("Preset", selection: $themeManager.themeId) {
                     ForEach(ThemeCatalog.all) { theme in
                         Text(theme.displayName).tag(theme.id)

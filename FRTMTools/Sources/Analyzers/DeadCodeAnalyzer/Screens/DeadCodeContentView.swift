@@ -1,13 +1,13 @@
 import SwiftUI
 
 struct DeadCodeContentView: View {
-    @ObservedObject var viewModel: DeadCodeViewModel
+    @Bindable var viewModel: DeadCodeViewModel
 
     var body: some View {
         VStack(alignment: .leading) {
-            Button(action: {
+            Button {
                 viewModel.selectProjectFromFile()
-            }) {
+            } label: {
                 Label("Scan New Project", systemImage: "plus.circle")
             }
             .padding()
@@ -15,7 +15,7 @@ struct DeadCodeContentView: View {
             List(selection: $viewModel.selectedAnalysisID) {
                 if viewModel.analyses.isEmpty {
                     Text("No scans yet. Run a new scan to begin.")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 } else {
                     ForEach(viewModel.analyses) { analysis in
                         VStack(alignment: .leading) {
@@ -27,7 +27,7 @@ struct DeadCodeContentView: View {
                                 .font(.caption)
                             Text("\(analysis.results.count) issues found")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                         .padding(.vertical, 4)
                         .tag(analysis.id)
@@ -51,7 +51,7 @@ struct DeadCodeContentView: View {
 }
 
 struct SchemeSelectionView: View {
-    @ObservedObject var viewModel: DeadCodeViewModel
+    @Bindable var viewModel: DeadCodeViewModel
 
     var body: some View {
         VStack(spacing: 20) {
@@ -78,7 +78,7 @@ struct SchemeSelectionView: View {
                 .keyboardShortcut(.defaultAction)
             } else {
                 Text("No schemes found for this project.")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
         }
         .frame(width: 400, height: 250)
@@ -97,10 +97,9 @@ func format(duration: TimeInterval) -> String {
         return "\(minutes)m \(seconds)s"
     } else {
         if duration < 1 {
-            return String(format: "%.2fs", duration)
-        } else {
-            return "\(seconds)s"
+            let rounded = (duration * 100).rounded() / 100
+            return "\(rounded)s"
         }
+        return "\(seconds)s"
     }
 }
-

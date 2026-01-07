@@ -2,34 +2,40 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 import FRTMCore
+import Observation
 
-final class APKViewModel: ObservableObject, InstalledSizeAnalyzing {
+@MainActor
+@Observable
+final class APKViewModel: InstalledSizeAnalyzing {
 
     typealias Analysis = APKAnalysis
     typealias SizeAlert = AlertContent
 
-    private var cachedCategories: [UUID: [CategoryResult]] = [:]
-    private var cachedArchs: [UUID: ArchsResult] = [:]
-    private var cachedTips: [UUID: [Tip]] = [:]
+    @ObservationIgnored private var cachedCategories: [UUID: [CategoryResult]] = [:]
+    @ObservationIgnored private var cachedArchs: [UUID: ArchsResult] = [:]
+    @ObservationIgnored private var cachedTips: [UUID: [Tip]] = [:]
 
-    @Published var analyses: [APKAnalysis] = []
-    @Published var isLoading = false
-    @Published var isSizeLoading = false
-    @Published var compareMode = false
-    @Published var selectedUUID = UUID()
-    @Published var sizeAnalysisProgress = ""
-    @Published var sizeAnalysisAlert: AlertContent?
-    @Published var expandedExecutables: Set<String> = []
+    var analyses: [APKAnalysis] = []
+    var isLoading = false
+    var isSizeLoading = false
+    var compareMode = false
+    var selectedUUID = UUID()
+    var sizeAnalysisProgress = ""
+    var sizeAnalysisAlert: AlertContent?
+    var expandedExecutables: Set<String> = []
 
-    @Dependency var persistenceManager: PersistenceManager
-    @Dependency var analyzer: any Analyzer<APKAnalysis>
+    @ObservationIgnored private let persistenceManagerDependency = Dependency<PersistenceManager>()
+    @ObservationIgnored private let analyzerDependency = Dependency<any Analyzer<APKAnalysis>>()
 
-    private lazy var fileStore = APKFileStore(
+    private var persistenceManager: PersistenceManager { persistenceManagerDependency.wrappedValue }
+    private var analyzer: any Analyzer<APKAnalysis> { analyzerDependency.wrappedValue }
+
+    @ObservationIgnored private lazy var fileStore = APKFileStore(
         appDirectory: appDirectory,
         analysesDirectoryURL: analysesDirectoryURL
     )
 
-    private let persistenceKey = "apk_analyses"
+    @ObservationIgnored private let persistenceKey = "apk_analyses"
 
     struct AlertContent: Identifiable, SizeAlertProtocol {
         let id = UUID()
@@ -252,16 +258,14 @@ final class APKViewModel: ObservableObject, InstalledSizeAnalyzing {
                     do {
                         try data.write(to: url)
                     } catch {
-                        DispatchQueue.main.async {
+                        Task { @MainActor in
                             self.sizeAnalysisAlert = AlertContent(title: "Export Error", message: error.localizedDescription)
                         }
                     }
                 }
             }
         } catch {
-            DispatchQueue.main.async {
-                self.sizeAnalysisAlert = AlertContent(title: "Export Error", message: error.localizedDescription)
-            }
+            self.sizeAnalysisAlert = AlertContent(title: "Export Error", message: error.localizedDescription)
         }
     }
 

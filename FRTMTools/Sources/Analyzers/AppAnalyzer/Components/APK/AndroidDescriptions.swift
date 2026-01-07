@@ -11,7 +11,7 @@ struct AndroidPermissionsPopover: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Image(systemName: "lock.shield.fill")
-                    .foregroundColor(.red)
+                    .foregroundStyle(.red)
                     .font(.title2)
 
                 Text("Permissions")
@@ -22,7 +22,7 @@ struct AndroidPermissionsPopover: View {
 
                 Text("\(orderedPermissions.count)")
                     .font(.title3)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
             .padding()
 
@@ -54,7 +54,7 @@ private struct AndroidPermissionRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon(for: permission))
-                .foregroundColor(color(for: permission))
+                .foregroundStyle(color(for: permission))
                 .frame(width: 20)
                 .font(.body)
 
@@ -65,13 +65,13 @@ private struct AndroidPermissionRow: View {
 
                 Text(permission)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
 
                 if let description = description(for: permission) {
                     Text(description)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -294,7 +294,7 @@ struct AndroidCategoryInfoPopover: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: info.iconName)
-                    .foregroundColor(info.color)
+                    .foregroundStyle(info.color)
                     .font(.title2)
 
                 Text(info.name)
@@ -310,7 +310,7 @@ struct AndroidCategoryInfoPopover: View {
 
                 Text(info.description)
                     .font(.body)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if let examples = info.examples, !examples.isEmpty {
@@ -322,10 +322,10 @@ struct AndroidCategoryInfoPopover: View {
                         ForEach(examples, id: \.self) { example in
                             HStack(alignment: .top, spacing: 6) {
                                 Text("•")
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                 Text(example)
                                     .font(.body)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -338,7 +338,7 @@ struct AndroidCategoryInfoPopover: View {
 
                     Text(impact)
                         .font(.body)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -359,18 +359,18 @@ struct AndroidFeaturesPopover: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Image(systemName: "puzzlepiece.extension")
-                    .foregroundColor(.accentColor)
+                    .foregroundStyle(Color.accentColor)
                     .font(.title2)
 
                 Text("Hardware Features")
                     .font(.title2)
-                    .fontWeight(.bold)
+                    .bold()
 
                 Spacer()
 
                 Text("\(totalCount)")
                     .font(.title3)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
             .padding()
 
@@ -381,7 +381,7 @@ struct AndroidFeaturesPopover: View {
                     if orderedRequired.isEmpty, orderedOptional.isEmpty {
                         Text("No feature declarations reported by aapt.")
                             .font(.callout)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .padding()
                     } else {
                         if !orderedRequired.isEmpty {
@@ -407,7 +407,7 @@ struct AndroidFeaturesPopover: View {
             ForEach(features, id: \.self) { feature in
                 HStack(alignment: .center, spacing: 12) {
                     Image(systemName: icon(for: feature))
-                        .foregroundColor(isRequired ? .red : .secondary)
+                        .foregroundStyle(isRequired ? .red : .secondary)
                         .frame(width: 20)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(feature)
@@ -416,14 +416,14 @@ struct AndroidFeaturesPopover: View {
                             .truncationMode(.middle)
                         Text(isRequired ? "Required" : "Optional")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                     Spacer()
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
                 .background(Color(.controlBackgroundColor))
-                .cornerRadius(8)
+                .clipShape(.rect(cornerRadius: 8))
             }
         }
     }
