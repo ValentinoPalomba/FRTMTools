@@ -60,6 +60,9 @@ brew install frtmtools
 Run `frtmtools --help` for the command list or see [Docs/CLI.md](Docs/CLI.md) for more
 options.
 
+Tip: run `frtmtools serve` to start a local, interactive dashboard in your browser with
+persistent history.
+
 ## Development Notes
 
 - **Language stack** – Swift + SwiftUI, Combine, and a few helper frameworks (Periphery,

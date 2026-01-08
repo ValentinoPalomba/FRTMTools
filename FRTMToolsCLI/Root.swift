@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Dispatch
 
 @main
 struct FRTMToolsCLI {
@@ -27,35 +28,57 @@ private final class DashboardCommand {
         do {
             let configuration = try parseArguments()
             log("Mode: \(configuration.command.rawValue.uppercased())")
-            log("Input: \(configuration.inputURL.path)")
+            if let inputURL = configuration.inputURL {
+                log("Input: \(inputURL.path)")
+            }
             if let secondary = configuration.secondaryInputURL {
                 log("Input (compare): \(secondary.path)")
             }
-            log("Output: \(configuration.outputURL.path)")
+            if let outputURL = configuration.outputURL {
+                log("Output: \(outputURL.path)")
+            }
+
+            if configuration.command == .serve {
+                let config = configuration.serverConfiguration ?? DashboardServer.Configuration(host: "127.0.0.1", port: 8765, openBrowser: true, dataDirectoryOverride: nil)
+                let server = DashboardServer(configuration: config)
+                let url = try await server.start()
+                print("Dashboard server running at \(url.absoluteString)")
+                withExtendedLifetime(server) { _ = DispatchSemaphore(value: 0).wait(timeout: .distantFuture) }
+                return 0
+            }
 
             let html: String
             switch configuration.command {
             case .ipa:
+                guard let inputURL = configuration.inputURL, configuration.outputURL != nil else {
+                    throw CLIError.invalidArguments("Missing input or output path.")
+                }
                 let analyzer = IPAAnalyzer()
                 log("Starting IPA analysis…")
-                guard let analysis = try await analyzer.analyze(at: configuration.inputURL) else {
-                    throw CLIError.unsupportedFile("Unable to analyze file at \(configuration.inputURL.path). Make sure it is a valid IPA or .app bundle.")
+                guard let analysis = try await analyzer.analyze(at: inputURL) else {
+                    throw CLIError.unsupportedFile("Unable to analyze file at \(inputURL.path). Make sure it is a valid IPA or .app bundle.")
                 }
                 log("Analysis completed. Building dashboard…")
                 html = AppDashboardHTMLBuilder(platform: .ipa(analysis)).build()
             case .apk:
+                guard let inputURL = configuration.inputURL, configuration.outputURL != nil else {
+                    throw CLIError.invalidArguments("Missing input or output path.")
+                }
                 let analyzer = APKAnalyzer()
                 log("Starting APK analysis…")
-                guard let analysis = try await analyzer.analyze(at: configuration.inputURL) else {
-                    throw CLIError.unsupportedFile("Unable to analyze file at \(configuration.inputURL.path). Make sure it is a valid APK or AAB.")
+                guard let analysis = try await analyzer.analyze(at: inputURL) else {
+                    throw CLIError.unsupportedFile("Unable to analyze file at \(inputURL.path). Make sure it is a valid APK or AAB.")
                 }
                 log("Analysis completed. Building dashboard…")
                 html = AppDashboardHTMLBuilder(platform: .apk(analysis)).build()
             case .compare:
+                guard let inputURL = configuration.inputURL, configuration.outputURL != nil else {
+                    throw CLIError.invalidArguments("Missing input or output path.")
+                }
                 guard let secondaryURL = configuration.secondaryInputURL else {
                     throw CLIError.invalidArguments("Comparison requires two input packages.")
                 }
-                let firstPlatform = try detectPlatform(for: configuration.inputURL)
+                let firstPlatform = try detectPlatform(for: inputURL)
                 let secondPlatform = try detectPlatform(for: secondaryURL)
                 guard firstPlatform == secondPlatform else {
                     throw CLIError.invalidArguments("Both packages must belong to the same platform (IPA vs IPA or APK/AAB).")
@@ -64,8 +87,8 @@ private final class DashboardCommand {
                 case .ipa:
                     log("Analyzing first IPA build…")
                     let firstAnalyzer = IPAAnalyzer()
-                    guard let before = try await firstAnalyzer.analyze(at: configuration.inputURL) else {
-                        throw CLIError.unsupportedFile("Unable to analyze file at \(configuration.inputURL.path). Make sure it is a valid IPA or .app bundle.")
+                    guard let before = try await firstAnalyzer.analyze(at: inputURL) else {
+                        throw CLIError.unsupportedFile("Unable to analyze file at \(inputURL.path). Make sure it is a valid IPA or .app bundle.")
                     }
                     log("Analyzing second IPA build…")
                     let secondAnalyzer = IPAAnalyzer()
@@ -77,8 +100,8 @@ private final class DashboardCommand {
                 case .apk:
                     log("Analyzing first Android build…")
                     let firstAnalyzer = APKAnalyzer()
-                    guard let before = try await firstAnalyzer.analyze(at: configuration.inputURL) else {
-                        throw CLIError.unsupportedFile("Unable to analyze file at \(configuration.inputURL.path). Make sure it is a valid APK or AAB.")
+                    guard let before = try await firstAnalyzer.analyze(at: inputURL) else {
+                        throw CLIError.unsupportedFile("Unable to analyze file at \(inputURL.path). Make sure it is a valid APK or AAB.")
                     }
                     log("Analyzing second Android build…")
                     let secondAnalyzer = APKAnalyzer()
@@ -88,12 +111,17 @@ private final class DashboardCommand {
                     log("Building comparison dashboard…")
                     html = ComparisonDashboardHTMLBuilder(platform: .apk(before, after)).build()
                 }
+            case .serve:
+                throw CLIError.invalidArguments("Serve is handled separately.")
             }
 
-            try ensureParentFolderExists(for: configuration.outputURL)
-            try html.write(to: configuration.outputURL, atomically: true, encoding: .utf8)
+            guard let outputURL = configuration.outputURL else {
+                throw CLIError.invalidArguments("Missing output path.")
+            }
+            try ensureParentFolderExists(for: outputURL)
+            try html.write(to: outputURL, atomically: true, encoding: .utf8)
 
-            print("Dashboard generated at \(configuration.outputURL.path)")
+            print("Dashboard generated at \(outputURL.path)")
             return 0
         } catch CLIError.helpRequested {
             printUsage()
@@ -117,9 +145,54 @@ private final class DashboardCommand {
             throw CLIError.helpRequested
         }
         guard let command = Command(rawValue: commandString.lowercased()) else {
-            throw CLIError.invalidArguments("Unknown command '\(commandString)'. Expected 'ipa', 'apk', or 'compare'.")
+            throw CLIError.invalidArguments("Unknown command '\(commandString)'. Expected 'ipa', 'apk', 'compare', or 'serve'.")
         }
         args.removeFirst()
+
+        if command == .serve {
+            var host = "127.0.0.1"
+            var port: UInt16 = 8765
+            var openBrowser = true
+            var dataDir: String?
+
+            var index = 0
+            while index < args.count {
+                let argument = args[index]
+                switch argument {
+                case "-h", "--help":
+                    throw CLIError.helpRequested
+                case "--host":
+                    index += 1
+                    guard index < args.count else { throw CLIError.invalidArguments("Missing value for \(argument).") }
+                    host = args[index]
+                case "--port":
+                    index += 1
+                    guard index < args.count else { throw CLIError.invalidArguments("Missing value for \(argument).") }
+                    guard let intPort = UInt16(args[index]) else {
+                        throw CLIError.invalidArguments("Invalid port: \(args[index]).")
+                    }
+                    port = intPort
+                case "--no-open":
+                    openBrowser = false
+                case "--data-dir":
+                    index += 1
+                    guard index < args.count else { throw CLIError.invalidArguments("Missing value for \(argument).") }
+                    dataDir = args[index]
+                default:
+                    throw CLIError.invalidArguments("Unknown option '\(argument)' for serve.")
+                }
+                index += 1
+            }
+
+            let dataURL = dataDir.map { URL(fileURLWithPath: $0).standardizedFileURL }
+            return Configuration(
+                command: command,
+                inputURL: nil,
+                secondaryInputURL: nil,
+                outputURL: nil,
+                serverConfiguration: DashboardServer.Configuration(host: host, port: port, openBrowser: openBrowser, dataDirectoryOverride: dataURL)
+            )
+        }
 
         var outputPath: String?
         var inputPaths: [String] = []
@@ -151,6 +224,8 @@ private final class DashboardCommand {
             if inputPaths.count != 1 {
                 throw CLIError.invalidArguments("Please provide the path to the package you want to analyze.")
             }
+        case .serve:
+            break
         }
 
         guard let primaryPath = inputPaths.first else {
@@ -194,10 +269,12 @@ private final class DashboardCommand {
                 resolvedOutputURL = inputURL
                     .deletingLastPathComponent()
                     .appendingPathComponent(suggestedName)
+            case .serve:
+                throw CLIError.invalidArguments("Serve does not write an HTML file. Did you mean: \(arguments.first ?? "frtmtools") serve")
             }
         }
 
-        return Configuration(command: command, inputURL: inputURL, secondaryInputURL: secondaryURL, outputURL: resolvedOutputURL)
+        return Configuration(command: command, inputURL: inputURL, secondaryInputURL: secondaryURL, outputURL: resolvedOutputURL, serverConfiguration: nil)
     }
 
     private func ensureParentFolderExists(for fileURL: URL) throws {
@@ -212,15 +289,21 @@ private final class DashboardCommand {
           \(commandName) ipa <path-to-ipa-or-app> [--output <path>]
           \(commandName) apk <path-to-apk-or-aab> [--output <path>]
           \(commandName) compare <first-package> <second-package> [--output <path>]
+          \(commandName) serve [--port <port>] [--host <host>] [--no-open] [--data-dir <path>]
 
         Options:
           -o, --output <path>   Write the generated HTML dashboard to the provided path.
           -h, --help            Show this message.
+          --port <port>         Port for the local dashboard server (default: 8765).
+          --host <host>         Host for the local dashboard server (default: 127.0.0.1).
+          --no-open             Do not auto-open the browser.
+          --data-dir <path>     Override dashboard persistent storage directory.
 
         Examples:
           \(commandName) ipa Payload/MyApp.ipa --output /tmp/MyApp-dashboard.html
           \(commandName) apk ~/Downloads/sample.apk
           \(commandName) compare build-old.ipa build-new.ipa --output ~/Desktop/comparison.html
+          \(commandName) serve --port 8765
         """
         print(message)
     }
@@ -236,15 +319,17 @@ private final class DashboardCommand {
 private extension DashboardCommand {
     struct Configuration {
         let command: Command
-        let inputURL: URL
+        let inputURL: URL?
         let secondaryInputURL: URL?
-        let outputURL: URL
+        let outputURL: URL?
+        let serverConfiguration: DashboardServer.Configuration?
     }
 
     enum Command: String {
         case ipa
         case apk
         case compare
+        case serve
     }
 
     enum PackagePlatform {
