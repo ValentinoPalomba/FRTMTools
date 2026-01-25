@@ -62,4 +62,28 @@ final class IPADetailViewModel: AppDetailViewModel {
         return map
     }()
 
+    /// URL to the main executable binary within the app bundle
+    var mainBinaryURL: URL? {
+        guard let executableName = analysis.executableName else { return nil }
+        let fm = FileManager.default
+
+        // iOS app structure: AppName.app/ExecutableName
+        let iosPath = analysis.url.appendingPathComponent(executableName)
+        if fm.fileExists(atPath: iosPath.path) {
+            return iosPath
+        }
+
+        // macOS app structure: AppName.app/Contents/MacOS/ExecutableName
+        let macPath = analysis.url.appendingPathComponent("Contents/MacOS/\(executableName)")
+        if fm.fileExists(atPath: macPath.path) {
+            return macPath
+        }
+
+        return nil
+    }
+
+    /// URL to the .app bundle for framework size calculations
+    var appBundleURL: URL {
+        analysis.url
+    }
 }

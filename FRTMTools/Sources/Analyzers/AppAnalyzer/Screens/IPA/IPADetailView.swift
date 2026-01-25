@@ -108,6 +108,12 @@ struct DetailView<ViewModel: AppDetailViewModel>: View {
                     DependencyGraphOnDemandSection(graph: dependencyGraph)
                         .padding(.horizontal)
                 }
+
+                // Binary Composition Section (on demand)
+                if let ipaVM = viewModel as? IPADetailViewModel, let mainBinaryURL = ipaVM.mainBinaryURL {
+                    BinaryCompositionOnDemandSection(binaryURL: mainBinaryURL, appBundleURL: ipaVM.appBundleURL)
+                        .padding(.horizontal)
+                }
                 
                 HStack(alignment: .top, spacing: 24) {
                     // Pie chart
