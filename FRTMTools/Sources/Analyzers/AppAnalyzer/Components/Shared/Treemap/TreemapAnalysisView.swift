@@ -258,11 +258,11 @@ private struct TreemapCell: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(file.name)
                             .font(.system(size: 11, weight: file.name == "[Other Files]" ? .semibold : .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.primary)
                             .lineLimit(1)
                         Text(file.sizeText)
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.8))
+                            .foregroundStyle(.secondary)
                     }
                     .padding(5)
                 }
@@ -273,7 +273,7 @@ private struct TreemapCell: View {
                         HStack {
                             Spacer()
                             Image(systemName: file.name == TreemapContainerView.smallChildrenName ? "folder.fill" : "chevron.right.circle.fill")
-                                .foregroundStyle(.white.opacity(0.6))
+                                .foregroundStyle(.secondary)
                                 .font(.system(size: 12))
                         }
                         Spacer()
