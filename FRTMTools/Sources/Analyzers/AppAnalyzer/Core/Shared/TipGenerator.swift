@@ -26,6 +26,7 @@ class TipGenerator {
         let name: String
         let size: Int64
         let internalName: String?
+        let contentHash: String
     }
     
     static func generateTips(for analysis: any AppAnalysis) -> [Tip] {
@@ -408,17 +409,25 @@ class TipGenerator {
         from files: [FileInfo],
         filter: (FileInfo) -> Bool
     ) -> [DuplicateFileKey: [FileInfo]] {
-        Dictionary(
-            grouping: files.filter(filter),
-            by: { file in
-                DuplicateFileKey(
-                    name: file.name,
-                    size: file.size,
-                    internalName: file.internalName
+        let candidates: [(DuplicateFileKey, FileInfo)] = files
+            .filter(filter)
+            .compactMap { file in
+                guard file.type != .directory else { return nil }
+                guard let contentHash = duplicateContentHash(for: file) else { return nil }
+                return (
+                    DuplicateFileKey(
+                        name: file.name,
+                        size: file.size,
+                        internalName: file.internalName,
+                        contentHash: contentHash
+                    ),
+                    file
                 )
             }
-        )
-        .filter { $0.value.count > 1 }
+
+        return Dictionary(grouping: candidates, by: { $0.0 })
+            .mapValues { $0.map(\.1) }
+            .filter { $0.value.count > 1 }
     }
     
     private static func totalDuplicateSavings(
@@ -475,7 +484,15 @@ class TipGenerator {
             return hex.count == 1 ? "0" + hex : hex
         }.joined()
     }
-    
+
+    private static func duplicateContentHash(for file: FileInfo) -> String? {
+        if let internalData = file.internalImageData, !internalData.isEmpty {
+            return hashData(internalData)
+        }
+        guard let fullPath = file.fullPath else { return nil }
+        return hashFile(at: fullPath)
+    }
+
     private static func imageHash(for file: FileInfo) -> String? {
         if let internalData = file.internalImageData, !internalData.isEmpty {
             return hashData(internalData)
