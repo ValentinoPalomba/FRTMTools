@@ -91,7 +91,7 @@
 				Sources/Analyzers/AppAnalyzer/SubAnalyzer/IPA/BinaryAnalyzer.swift,
 				Sources/Analyzers/AppAnalyzer/SubAnalyzer/IPA/CarAnalyzer.swift,
 				Sources/Analyzers/AppAnalyzer/SubAnalyzer/IPA/DependencyAnalyzer.swift,
-				Sources/Analyzers/AppAnalyzer/ViewModel/ComparisonReportViewModel.swift,
+				Sources/Analyzers/AppAnalyzer/ViewModels/ComparisonReportViewModel.swift,
 				Sources/Architecture/Dependency/Analyzer.swift,
 				Sources/Architecture/Interfaces/Exportable.swift,
 				"Sources/Extensions/URL+Extensions.swift",
@@ -311,6 +311,7 @@
 		E6BBAFBE2EDF423E004F7E30 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = frtmtools/frtmtools.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				MACOSX_DEPLOYMENT_TARGET = 15.5;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -323,6 +324,7 @@
 		E6BBAFBF2EDF423E004F7E30 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = frtmtools/frtmtools.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				MACOSX_DEPLOYMENT_TARGET = 15.5;
 				PRODUCT_NAME = "$(TARGET_NAME)";

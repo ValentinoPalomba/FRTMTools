@@ -2,7 +2,7 @@ import SwiftUI
 import Charts
 
 struct UnusedAssetsContentView: View {
-    @ObservedObject var viewModel: UnusedAssetsViewModel
+    @Bindable var viewModel: UnusedAssetsViewModel
     
     var body: some View {
         // Sidebar
@@ -17,7 +17,7 @@ struct UnusedAssetsContentView: View {
                             
                             Text(analysis.projectPath)
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                         }
@@ -36,7 +36,7 @@ struct UnusedAssetsContentView: View {
             .listStyle(.plain)
             
         }
-        .onAppear {
+        .task {
             viewModel.loadAnalyses()
         }
         .errorAlert(error: $viewModel.error)
@@ -54,7 +54,7 @@ struct UnusedAssetsContentView: View {
 }
 
 struct UnusedAssetsResultView: View {
-    @ObservedObject var viewModel: UnusedAssetsViewModel
+    @Bindable var viewModel: UnusedAssetsViewModel
     
     var body: some View {
         if let result = viewModel.selectedAnalysis {
@@ -63,13 +63,14 @@ struct UnusedAssetsResultView: View {
             // Empty state for when no analyses exist
             VStack(spacing: 20) {
                 Image(systemName: "doc.text.magnifyingglass")
-                    .font(.system(size: 60))
-                    .foregroundColor(.secondary)
+                    .font(.largeTitle)
+                    .imageScale(.large)
+                    .foregroundStyle(.secondary)
                 Text("Unused Assets Analyzer")
                     .font(.title)
                 Text("Analyze a project to see the results here.")
                     .multilineTextAlignment(.center)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .frame(maxWidth: 300)
                 Button("Analyze Project Folder", action: viewModel.selectProjectFolder)
                     .controlSize(.large)
@@ -81,7 +82,7 @@ struct UnusedAssetsResultView: View {
 
 struct AnalysisResultView: View {
     let result: UnusedAssetResult
-    @ObservedObject var viewModel: UnusedAssetsViewModel
+    @Bindable var viewModel: UnusedAssetsViewModel
     
     @State private var showAISummary: Bool = false
     @State private var expandedAssetTypes: Set<String> = []
@@ -121,7 +122,7 @@ struct AnalysisResultView: View {
             )
             SummaryCard(
                 title: "⏱️ Scan Duration",
-                value: "\(String(format: "%.2f", result.scanDuration))s",
+                value: result.scanDuration.formatted(.number.precision(.fractionLength(2))) + "s",
                 subtitle: "Time taken"
             )
         }
@@ -145,9 +146,9 @@ struct AnalysisResultView: View {
                 .annotation(position: .overlay) {
                     let percentage = (Double(assetGroup.totalSize) / Double(result.totalUnusedSize)) * 100
                     if percentage > 5 {
-                        Text("\(String(format: "%.0f", percentage))%")
+                        Text("\(percentage, format: .number.precision(.fractionLength(0)))%")
                             .font(.caption)
-                            .foregroundColor(.white)
+                            .foregroundStyle(.white)
                             .bold()
                     }
                 }
@@ -156,8 +157,7 @@ struct AnalysisResultView: View {
             .chartLegend(position: .bottom, spacing: 12)
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+        .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
     }
     
     
@@ -178,8 +178,7 @@ struct AnalysisResultView: View {
             .chartLegend(.hidden)
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+        .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
     }
     
     var body: some View {
@@ -244,8 +243,12 @@ struct AnalysisResultView: View {
                     }
                     .padding()
                     .background(.ultraThinMaterial)
-                    .cornerRadius(16)
+                    .clipShape(.rect(cornerRadius: 16))
                     .shadow(radius: 8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(Color.primary.opacity(0.06))
+                    )
                     .padding()
                     .padding(.horizontal, 32)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -298,13 +301,14 @@ struct AnalysisResultView: View {
         var body: some View {
             VStack(spacing: 20) {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 60))
-                    .foregroundColor(.green)
+                    .font(.largeTitle)
+                    .imageScale(.large)
+                    .foregroundStyle(.green)
                 Text("No Unused Assets Found!")
                     .font(.title)
-                Text("Scanned \(result.totalAssetsScanned) assets in \(String(format: "%.2f", result.scanDuration))s and everything looks clean.")
+                Text("Scanned \(result.totalAssetsScanned) assets in \(result.scanDuration.formatted(.number.precision(.fractionLength(2))))s and everything looks clean.")
                     .multilineTextAlignment(.center)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .frame(maxWidth: 350)
                 Button("Re-analyze Project", systemImage: "arrow.clockwise") {
                     viewModel.analyzeProject(at: URL(fileURLWithPath: result.projectPath), overwriting: result.id)
@@ -321,7 +325,7 @@ struct AssetCollapsibleSection: View {
     let assetGroup: AssetTypeGroup
     let isExpanded: Bool
     let action: () -> Void
-    @ObservedObject var viewModel: UnusedAssetsViewModel
+    @Bindable var viewModel: UnusedAssetsViewModel
     
     private var areAllAssetsInGroupSelected: Bool {
         let groupAssetIDs = Set(assetGroup.assets.map { $0.id })
@@ -346,17 +350,17 @@ struct AssetCollapsibleSection: View {
                     HStack {
                         Text("\(assetGroup.assets.count) items - \(ByteCountFormatter.string(fromByteCount: assetGroup.totalSize, countStyle: .file))")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     }
                 }
                 .buttonStyle(.plain)
             }
             .padding()
-            .background(Color(NSColor.controlBackgroundColor))
-            .contentShape(Rectangle())
+            .contentShape(.rect)
             
             if isExpanded {
+                Divider()
                 LazyVStack(alignment: .leading, spacing: 10) {
                     ForEach(assetGroup.assets.sorted(by: { $0.size > $1.size })) { asset in
                         HStack {
@@ -369,14 +373,14 @@ struct AssetCollapsibleSection: View {
                             .toggleStyle(.checkbox)
                             
                             Image(systemName: asset.type.iconName)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                                 .frame(width: 20)
                             Text(asset.path)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                             Spacer()
                             Text(ByteCountFormatter.string(fromByteCount: asset.size, countStyle: .file))
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                                 .font(.system(.body, design: .monospaced))
                         }
                         .padding(.horizontal)
@@ -384,12 +388,9 @@ struct AssetCollapsibleSection: View {
                     }
                 }
                 .padding(.bottom, 10)
-                .background(Color(NSColor.controlBackgroundColor))
             }
         }
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
+        .dsSurface(.surface, cornerRadius: 12, border: true, shadow: true)
     }
 }
 

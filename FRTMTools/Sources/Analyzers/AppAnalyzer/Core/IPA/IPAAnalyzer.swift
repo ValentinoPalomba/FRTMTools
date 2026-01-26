@@ -52,8 +52,19 @@ final class IPAAnalyzer: Analyzer {
     
     private static let excludedScanDirectories: Set<String> = ["_CodeSignature", "CodeResources"]
     private static let excludedScanExtensions: Set<String> = ["storyboardc", "lproj", "nib"]
+    private static let machOMagicNumbers: Set<UInt32> = [
+        0xfeedface, // MH_MAGIC
+        0xcefaedfe, // MH_CIGAM
+        0xfeedfacf, // MH_MAGIC_64
+        0xcffaedfe, // MH_CIGAM_64
+        0xcafebabe, // FAT_MAGIC
+        0xbebafeca, // FAT_CIGAM
+        0xcafed00d, // FAT_MAGIC_64
+        0xd00dfeca  // FAT_CIGAM_64
+    ]
     let carAnalyzer = CarAnalyzer()
     let dependencyAnalyzer = DependencyAnalyzer()
+    let binaryAnalyzer = BinaryAnalyzer()
     
     func analyze(at url: URL) async throws -> IPAAnalysis? {
         try await analyze(at: url, progress: nil)
@@ -119,11 +130,22 @@ final class IPAAnalyzer: Analyzer {
     private func performAnalysisOnAppBundle(appBundleURL: URL, originalFileName: String, originalURL: URL? = nil, progress: (@Sendable (String) -> Void)? = nil) -> IPAAnalysis? {
         let layout = detectLayout(for: appBundleURL)
         
-        // Scan resources
-        let rootFile = scan(url: layout.resourcesRoot, rootURL: layout.resourcesRoot, appBundleURL: layout.appURL, layout: layout, progress: progress)
+        let plist = extractInfoPlist(from: layout)
+        let mainExecutableURL = findMainExecutableURL(in: layout, plist: plist)
+
+        // Scan resources collecting binary nodes along the way
+        var binaryEntries: [FileInfo] = []
+        let rootFile = scan(
+            url: layout.resourcesRoot,
+            rootURL: layout.resourcesRoot,
+            layout: layout,
+            plist: plist,
+            mainExecutableURL: mainExecutableURL,
+            binaryCollector: &binaryEntries,
+            progress: progress
+        )
         
         // Metadata
-        let plist = extractInfoPlist(from: layout)
         let execName = plist?["CFBundleExecutable"] as? String ?? layout.appURL.deletingPathExtension().lastPathComponent
         let version = plist?["CFBundleShortVersionString"] as? String
         let build = plist?["CFBundleVersion"] as? String
@@ -131,10 +153,27 @@ final class IPAAnalyzer: Analyzer {
         
         let icon = extractAppIcon(from: layout, plist: plist)
         
-        var isStripped = false
-        if let binaryURL = findMainExecutableURL(in: layout, plist: plist) {
-            isStripped = isBinaryStripped(at: binaryURL)
+        let binaryFiles = binaryEntries.filter { $0.fullPath != nil }
+        var seenBinaryPaths = Set<String>()
+        var nonStrippedBinaries: [IPAAnalysis.BinaryStrippingInfo] = []
+        for binary in binaryFiles {
+            guard let fullPath = binary.fullPath else { continue }
+            let resolvedPath = URL(fileURLWithPath: fullPath).resolvingSymlinksInPath().path
+            guard !resolvedPath.isEmpty, seenBinaryPaths.insert(resolvedPath).inserted else { continue }
+            let binaryURL = URL(fileURLWithPath: resolvedPath)
+            if !isBinaryStripped(at: binaryURL) {
+                let saving = estimatedStrippingSaving(forBinarySize: binary.size)
+                let info = IPAAnalysis.BinaryStrippingInfo(
+                    name: binary.name,
+                    path: binary.path,
+                    fullPath: binary.fullPath,
+                    size: binary.size,
+                    potentialSaving: saving
+                )
+                nonStrippedBinaries.append(info)
+            }
         }
+        let isStripped = nonStrippedBinaries.isEmpty
 
         // Analyze dependencies
         let dependencyGraph = dependencyAnalyzer.analyzeDependencies(rootFile: rootFile, layout: layout, plist: plist)
@@ -147,6 +186,7 @@ final class IPAAnalyzer: Analyzer {
             version: version,
             buildNumber: build,
             isStripped: isStripped,
+            nonStrippedBinaries: nonStrippedBinaries,
             allowsArbitraryLoads: allowsArbitraryLoads,
             dependencyGraph: dependencyGraph
         )
@@ -167,7 +207,15 @@ final class IPAAnalyzer: Analyzer {
     
     // MARK: - File scan
     
-    private func scan(url: URL, rootURL: URL, appBundleURL: URL, layout: AppBundleLayout, progress: (@Sendable (String) -> Void)? = nil) -> FileInfo {
+    private func scan(
+        url: URL,
+        rootURL: URL,
+        layout: AppBundleLayout,
+        plist: [String: Any]?,
+        mainExecutableURL: URL?,
+        binaryCollector: inout [FileInfo],
+        progress: (@Sendable (String) -> Void)? = nil
+    ) -> FileInfo {
         let fm = FileManager.default
         var isDir: ObjCBool = false
         fm.fileExists(atPath: url.path, isDirectory: &isDir)
@@ -190,9 +238,25 @@ final class IPAAnalyzer: Analyzer {
         let relativePath = url.path.replacingOccurrences(of: rootURL.path, with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         let subItems: [FileInfo]?
         if isDir.boolValue {
-            subItems = (try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: .skipsHiddenFiles))?
-                .map { scan(url: $0, rootURL: rootURL, appBundleURL: appBundleURL, layout: layout, progress: progress) }
-                .sorted(by: { $0.size > $1.size })
+            if let childURLs = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: .skipsHiddenFiles) {
+                var childInfos: [FileInfo] = []
+                childInfos.reserveCapacity(childURLs.count)
+                for childURL in childURLs {
+                    let info = scan(
+                        url: childURL,
+                        rootURL: rootURL,
+                        layout: layout,
+                        plist: plist,
+                        mainExecutableURL: mainExecutableURL,
+                        binaryCollector: &binaryCollector,
+                        progress: progress
+                    )
+                    childInfos.append(info)
+                }
+                subItems = childInfos.sorted(by: { $0.size > $1.size })
+            } else {
+                subItems = nil
+            }
         } else {
             subItems = nil
         }
@@ -203,8 +267,8 @@ final class IPAAnalyzer: Analyzer {
 
         
         let size = url.allocatedSize()
-        let type = fileType(for: url, layout: layout)
-        return FileInfo(
+        let type = fileType(for: url, layout: layout, plist: plist, mainExecutableURL: mainExecutableURL)
+        let fileInfo = FileInfo(
             path: relativePath,
             fullPath: url.path,
             name: url.lastPathComponent,
@@ -212,13 +276,17 @@ final class IPAAnalyzer: Analyzer {
             size: size,
             subItems: subItems
         )
+        if type == .binary {
+            binaryCollector.append(fileInfo)
+        }
+        return fileInfo
     }
 
     private func analyzeCarFile(at url: URL, relativePath: String) -> FileInfo {
         return carAnalyzer.analyzeCarFile(at: url, relativePath: relativePath)
     }
     
-    private func fileType(for url: URL, layout: AppBundleLayout) -> FileType {
+    private func fileType(for url: URL, layout: AppBundleLayout, plist: [String: Any]?, mainExecutableURL: URL?) -> FileType {
         if url == layout.appURL {
             return .app
         }
@@ -232,11 +300,12 @@ final class IPAAnalyzer: Analyzer {
             }
         }
         
-        if let binaryURL = findMainExecutableURL(in: layout, plist: extractInfoPlist(from: layout)), url == binaryURL {
+        if let binaryURL = mainExecutableURL, url == binaryURL {
             return .binary
         }
         
-        switch url.pathExtension.lowercased() {
+        let pathExtension = url.pathExtension.lowercased()
+        switch pathExtension {
         case "framework": return .framework
         case "bundle": return .bundle
         case "car": return .assets
@@ -245,6 +314,9 @@ final class IPAAnalyzer: Analyzer {
         default:
             var isDir: ObjCBool = false
             FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
+            if !isDir.boolValue, isPotentialBinaryExtension(pathExtension), isMachOBinary(at: url) {
+                return .binary
+            }
             return isDir.boolValue ? .directory : .file
         }
     }
@@ -301,7 +373,32 @@ final class IPAAnalyzer: Analyzer {
     
 
     func isBinaryStripped(at binaryURL: URL) -> Bool {
-        let binaryAnalyzer = BinaryAnalyzer()
         return binaryAnalyzer.isBinaryStripped(at: binaryURL)
+    }
+
+    private func isMachOBinary(at url: URL) -> Bool {
+        let fm = FileManager.default
+        var isDir: ObjCBool = false
+        guard fm.fileExists(atPath: url.path, isDirectory: &isDir), !isDir.boolValue else {
+            return false
+        }
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
+        defer { try? handle.close() }
+        guard let magicData = try? handle.read(upToCount: 4), magicData.count == 4 else {
+            return false
+        }
+        let rawValue = magicData.withUnsafeBytes { $0.load(as: UInt32.self) }
+        let bigEndianValue = UInt32(bigEndian: rawValue)
+        return Self.machOMagicNumbers.contains(bigEndianValue)
+    }
+
+    private func estimatedStrippingSaving(forBinarySize size: Int64) -> Int64 {
+        guard size > 0 else { return 0 }
+        let estimated = Int64(Double(size) * 0.25)
+        return max(estimated, 1)
+    }
+
+    private func isPotentialBinaryExtension(_ ext: String) -> Bool {
+        return ext.isEmpty || ext == "dylib" || ext == "so"
     }
 }

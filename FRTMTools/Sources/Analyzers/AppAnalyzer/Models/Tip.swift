@@ -5,6 +5,7 @@ struct Tip: Identifiable {
         case general
         case duplicateFiles
         case duplicateImages
+        case unstrippedBinaries
     }
 
     let id = UUID()

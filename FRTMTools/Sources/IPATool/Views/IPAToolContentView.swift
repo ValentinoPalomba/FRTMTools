@@ -2,8 +2,9 @@ import SwiftUI
 import AppKit
 
 struct IPAToolContentView: View {
-    @ObservedObject var viewModel: IPAToolViewModel
+    @Bindable var viewModel: IPAToolViewModel
     @FocusState private var focusedField: Field?
+    @Environment(\.theme) private var theme
 
     private enum Field: Hashable {
         case email
@@ -34,8 +35,8 @@ struct IPAToolContentView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
         }
-        .background(Color(nsColor: .windowBackgroundColor))
-        .onAppear { viewModel.refreshInstallationState() }
+        .background(theme.palette.background)
+        .task { viewModel.refreshInstallationState() }
         .alert(item: $viewModel.downloadAlert) { alert in
             Alert(
                 title: Text(alert.title),
@@ -138,7 +139,7 @@ struct IPAToolContentView: View {
             if viewModel.isAwaitingOTP {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "bell.badge")
-                        .foregroundStyle(Color(nsColor: .controlAccentColor))
+                        .foregroundStyle(theme.palette.accent)
                     Text("A verification code has been sent to your trusted device. Enter the OTP above and press Submit OTP within a few minutes.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -155,15 +156,16 @@ struct IPAToolContentView: View {
                 .padding(10)
                 .background(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color(nsColor: .controlBackgroundColor))
+                        .fill(theme.palette.surface)
                 )
+                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(theme.palette.border))
             }
 
             if !viewModel.isInstalled {
                 VStack(alignment: .leading, spacing: 4) {
                     Label("ipatool not detected", systemImage: "exclamationmark.triangle.fill")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundColor(.orange)
+                        .foregroundStyle(.orange)
                     Text("Install via Homebrew (`brew install ipatool`) or place the binary in your PATH. You can also add ~/homebrew/bin to PATH.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)

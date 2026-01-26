@@ -4,6 +4,7 @@ import AppKit
 struct SearchResultRow: View {
     let app: IPAToolStoreApp
     let isSelected: Bool
+    @Environment(\.theme) private var theme
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -32,11 +33,11 @@ struct SearchResultRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(isSelected ? Color.accentColor.opacity(0.12) : Color(nsColor: .controlBackgroundColor))
+                .fill(isSelected ? theme.palette.accent.opacity(theme.colorScheme == .dark ? 0.18 : 0.12) : theme.palette.surface)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(isSelected ? Color.accentColor.opacity(0.6) : Color.black.opacity(0.04))
+                .stroke(isSelected ? theme.palette.accent.opacity(0.55) : theme.palette.border)
         )
     }
 }

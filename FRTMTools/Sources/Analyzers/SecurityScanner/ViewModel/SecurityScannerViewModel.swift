@@ -1,17 +1,22 @@
 
 import SwiftUI
 import FRTMCore
+import Observation
 
 @MainActor
-class SecurityScannerViewModel: ObservableObject {
-    @Published var analyses: [SecurityScanResult] = []
-    @Published var selectedAnalysisID: UUID?
-    @Published var isLoading = false
+@Observable
+final class SecurityScannerViewModel {
+    var analyses: [SecurityScanResult] = []
+    var selectedAnalysisID: UUID?
+    var isLoading = false
     
-    @Published var analysisToOverwrite: SecurityScanResult?
+    var analysisToOverwrite: SecurityScanResult?
 
-    @Dependency var persistenceManager: PersistenceManager
-    @Dependency var scanner: any Analyzer<SecurityScanResult>
+    @ObservationIgnored private let persistenceManagerDependency = Dependency<PersistenceManager>()
+    @ObservationIgnored private let scannerDependency = Dependency<any Analyzer<SecurityScanResult>>()
+
+    private var persistenceManager: PersistenceManager { persistenceManagerDependency.wrappedValue }
+    private var scanner: any Analyzer<SecurityScanResult> { scannerDependency.wrappedValue }
     
     private let persistenceKey = "security_scan_analyses"
 

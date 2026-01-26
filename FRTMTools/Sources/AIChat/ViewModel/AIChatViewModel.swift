@@ -1,15 +1,17 @@
 import Foundation
+import Observation
 
 @MainActor
-final class AIChatViewModel: ObservableObject {
-    @Published private(set) var messages: [AIChatMessage] = []
-    @Published var isSending = false
-    @Published var errorMessage: String?
+@Observable
+final class AIChatViewModel {
+    private(set) var messages: [AIChatMessage] = []
+    var isSending = false
+    var errorMessage: String?
 
     let context: AnalysisContext
     let configurationStore: LocalAIConfigurationStore
 
-    private let client: LocalAIModeling
+    @ObservationIgnored private let client: LocalAIModeling
 
     init(
         context: AnalysisContext,

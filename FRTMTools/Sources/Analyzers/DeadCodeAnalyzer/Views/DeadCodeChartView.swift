@@ -37,7 +37,7 @@ struct DeadCodeChartView: View {
                     if data.count > (chartData.map({$0.count}).reduce(0, +) / 10) { // only show count if slice is big enough
                         Text("\(data.count)")
                             .font(.caption)
-                            .foregroundColor(.white)
+                            .foregroundStyle(.white)
                             .bold()
                     }
                 }
@@ -47,8 +47,7 @@ struct DeadCodeChartView: View {
             .padding(.horizontal)
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.controlBackgroundColor)))
-        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+        .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
     }
 }
 

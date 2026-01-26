@@ -1,27 +1,30 @@
 import Foundation
 import AppKit
+import Observation
 import UniformTypeIdentifiers
 
 @MainActor
-final class BadWordScannerViewModel: ObservableObject {
-    @Published var selectedIPA: URL?
-    @Published var scanResult: BadWordScanResult?
-    @Published var isScanning = false
-    @Published var errorMessage: String?
-    @Published var progressMessage: String?
-    @Published var logMessages: [String] = []
-    @Published var history: [BadWordScanRecord] = []
-    @Published var lastDuration: TimeInterval?
-    @Published var dictionaryURL: URL?
-    @Published var dictionaryCount: Int = 0
-    @Published var selectedRecordID: UUID?
+@Observable
+final class BadWordScannerViewModel {
+    var selectedIPA: URL?
+    var scanResult: BadWordScanResult?
+    var isScanning = false
+    var errorMessage: String?
+    var progressMessage: String?
+    var logMessages: [String] = []
+    var history: [BadWordScanRecord] = []
+    var lastDuration: TimeInterval?
+    var dictionaryURL: URL?
+    var dictionaryCount: Int = 0
+    var selectedRecordID: UUID?
 
-    private let analyzer = IPAAnalyzer()
-    private let store = BadWordScanStore()
+    @ObservationIgnored private let analyzer = IPAAnalyzer()
+    @ObservationIgnored private let store = BadWordScanStore()
+    @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored private let dictionaryPathKey = "BadWordScanner.dictionaryPath"
+    @ObservationIgnored private var currentScanTask: Task<Void, Never>?
+
     internal var dictionaryWords: Set<String> = []
-    private let defaults = UserDefaults.standard
-    private let dictionaryPathKey = "BadWordScanner.dictionaryPath"
-    private var currentScanTask: Task<Void, Never>?
 
     init() {
         Task { await loadHistory() }
@@ -173,9 +176,11 @@ final class BadWordScannerViewModel: ObservableObject {
     static func formatDuration(_ seconds: TimeInterval?) -> String {
         guard let seconds else { return "–" }
         if seconds < 1 {
-            return String(format: "%.0f ms", seconds * 1000)
+            let ms = Int((seconds * 1000).rounded())
+            return "\(ms) ms"
         } else if seconds < 60 {
-            return String(format: "%.1f s", seconds)
+            let rounded = (seconds * 10).rounded() / 10
+            return "\(rounded) s"
         } else {
             let mins = Int(seconds) / 60
             let secs = Int(seconds) % 60

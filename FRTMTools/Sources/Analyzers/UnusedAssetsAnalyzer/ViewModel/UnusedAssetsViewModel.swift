@@ -1,19 +1,24 @@
 import SwiftUI
 import FRTMCore
+import Observation
 
 @MainActor
-class UnusedAssetsViewModel: ObservableObject {
-    @Published var analyses: [UnusedAssetResult] = []
-    @Published var selectedAnalysisID: UUID?
-    @Published var isLoading = false
-    @Published var error: UnusedAssetsError?
+@Observable
+final class UnusedAssetsViewModel {
+    var analyses: [UnusedAssetResult] = []
+    var selectedAnalysisID: UUID?
+    var isLoading = false
+    var error: UnusedAssetsError?
     
-    @Published var selectedAssets = Set<AssetInfo.ID>()
+    var selectedAssets = Set<AssetInfo.ID>()
     
-    @Published var analysisToOverwrite: UnusedAssetResult?
+    var analysisToOverwrite: UnusedAssetResult?
 
-    @Dependency var persistenceManager: PersistenceManager
-    @Dependency var assetAnalyzer: any Analyzer<UnusedAssetResult>
+    @ObservationIgnored private let persistenceManagerDependency = Dependency<PersistenceManager>()
+    @ObservationIgnored private let assetAnalyzerDependency = Dependency<any Analyzer<UnusedAssetResult>>()
+
+    private var persistenceManager: PersistenceManager { persistenceManagerDependency.wrappedValue }
+    private var assetAnalyzer: any Analyzer<UnusedAssetResult> { assetAnalyzerDependency.wrappedValue }
     
     private let persistenceKey = "unused_assets_analyses"
 
@@ -71,22 +76,18 @@ class UnusedAssetsViewModel: ObservableObject {
                 if let analysisResult = try await assetAnalyzer.analyze(
                     at: url
                 ) {
-                    DispatchQueue.main.async {
-                        if let overwritingID = overwriting, let index = self.analyses.firstIndex(where: { $0.id == overwritingID }) {
-                            self.analyses[index] = analysisResult
-                        } else {
-                            self.analyses.append(analysisResult)
-                        }
-                        self.selectedAnalysisID = analysisResult.id
-                        self.saveAnalyses()
-                        self.isLoading = false
+                    if let overwritingID = overwriting, let index = self.analyses.firstIndex(where: { $0.id == overwritingID }) {
+                        self.analyses[index] = analysisResult
+                    } else {
+                        self.analyses.append(analysisResult)
                     }
+                    self.selectedAnalysisID = analysisResult.id
+                    self.saveAnalyses()
+                    self.isLoading = false
                 }
             } catch {
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                    self.error = UnusedAssetsError.invalidConfiguration
-                }
+                self.isLoading = false
+                self.error = UnusedAssetsError.invalidConfiguration
             }
         }
     }

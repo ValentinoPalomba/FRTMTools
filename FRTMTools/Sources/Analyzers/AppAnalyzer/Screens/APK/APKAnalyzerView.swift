@@ -2,12 +2,12 @@ import Foundation
 import SwiftUI
 
 struct APKAnalyzerContentView: View {
-    @ObservedObject var viewModel: APKViewModel
+    @Bindable var viewModel: APKViewModel
 
     var body: some View {
         analysesList
             .navigationTitle("APK/ABB Analyses")
-            .onAppear {
+            .task {
                 viewModel.loadAnalyses()
             }
     }
@@ -55,10 +55,13 @@ struct APKAnalyzerContentView: View {
         HStack {
             if let image = latest?.image {
                 Image(nsImage: image)
-                    .resizable().scaledToFit().frame(width: 24, height: 24).cornerRadius(5)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 24, height: 24)
+                    .clipShape(.rect(cornerRadius: 5))
             } else {
                 Image(systemName: "shippingbox.fill")
-                    .font(.system(size: 24))
+                    .font(.title3)
                     .frame(width: 24, height: 24)
             }
             VStack(alignment: .leading) {
@@ -66,13 +69,13 @@ struct APKAnalyzerContentView: View {
                 if let packageSubtitle {
                     Text(packageSubtitle)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(builds.count) builds")
                 }
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             }
         }
         .padding(4)
@@ -82,28 +85,23 @@ struct APKAnalyzerContentView: View {
     func analysisRowView(with identifier: String) -> some View {
         if let analysesForIdentifier = viewModel.groupedAnalyses[identifier] {
             ForEach(analysesForIdentifier) { analysis in
-                AppAnalysisRow(
-                    analysis: analysis,
-                    role: (
-                        viewModel.selectedUUID == analysis.id
-                    ) ? .base : nil
-                )
-
-                .onTapGesture {
+                Button {
                     withAnimation {
                         viewModel.toggleSelection(analysis.id)
                     }
+                } label: {
+                    AppAnalysisRow(
+                        analysis: analysis,
+                        role: viewModel.selectedUUID == analysis.id ? .base : nil
+                    )
                 }
+                .buttonStyle(.plain)
                 .contextMenu {
-                    Button(role: .destructive) {
+                    Button("Delete", systemImage: "trash", role: .destructive) {
                         viewModel.deleteAnalysis(withId: analysis.id)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
                     }
-                    Button {
+                    Button("Show in Finder", systemImage: "folder") {
                         viewModel.revealAnalysesJSONInFinder()
-                    } label: {
-                        Label("Show in Finder", systemImage: "folder")
                     }
                 }
                 .animation(.spring(), value: viewModel.selectedUUID)
@@ -113,7 +111,7 @@ struct APKAnalyzerContentView: View {
 }
 
 struct APKAnalyzerDetailView: View {
-    @ObservedObject var viewModel: APKViewModel
+    @Bindable var viewModel: APKViewModel
     @State private var showAIChat = false
 
     var body: some View {
@@ -131,11 +129,12 @@ struct APKAnalyzerDetailView: View {
             } else {
                 VStack(spacing: 12) {
                     Image(systemName: "square.and.arrow.down.on.square")
-                        .font(.system(size: 60))
-                        .foregroundColor(.secondary)
+                        .font(.largeTitle)
+                        .imageScale(.large)
+                        .foregroundStyle(.secondary)
                     Text("Drop or import an .apk/.aab file 🤖")
                         .font(.title3)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -149,7 +148,9 @@ struct APKAnalyzerDetailView: View {
                 }
                 .help("New Analysis")
 
-                Button(action: { viewModel.exportToCSV() }) {
+                Button {
+                    viewModel.exportToCSV()
+                } label: {
                     Label("Export as CSV", systemImage: "square.and.arrow.up")
                 }
 

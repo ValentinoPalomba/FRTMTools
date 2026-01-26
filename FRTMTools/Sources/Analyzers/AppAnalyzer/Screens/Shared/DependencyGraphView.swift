@@ -18,6 +18,7 @@ struct DependencyGraphView: View {
     @State var showLegend = true
     @State var showControls = false
     @State var isExporting = false
+    @Environment(\.theme) private var theme
 
     init(graph: DependencyGraph) {
         self.graph = graph
@@ -83,11 +84,11 @@ struct DependencyGraphView: View {
                         // Search
                         HStack {
                             Image(systemName: "magnifyingglass")
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                             
                         }
                         .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(Color(NSColor.controlBackgroundColor)))
+                        .dsSurface(.surface, cornerRadius: 8, border: true, shadow: false)
                         .frame(maxWidth: 300)
                         
                         Spacer()
@@ -149,7 +150,7 @@ struct DependencyGraphView: View {
                         }
                     }
                     .padding()
-                    .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+                    .background(theme.palette.surface.opacity(theme.colorScheme == .dark ? 0.75 : 0.6))
                 }
                 HStack(spacing: 0) {
                     // Graph view
@@ -169,8 +170,9 @@ struct DependencyGraphView: View {
                                             .padding(8)
                                             .background(
                                                 Circle()
-                                                    .fill(Color(NSColor.controlBackgroundColor).opacity(0.9))
-                                                    .shadow(radius: 4)
+                                                    .fill(theme.palette.elevatedSurface.opacity(theme.colorScheme == .dark ? 0.9 : 0.85))
+                                                    .overlay(Circle().stroke(theme.palette.border))
+                                                    .shadow(color: theme.palette.shadow.opacity(theme.colorScheme == .dark ? 0.28 : 0.12), radius: 4)
                                             )
                                     }
                                     .buttonStyle(.plain)
@@ -270,7 +272,7 @@ struct DependencyGraphView: View {
                             showExternalLibraries: $showExternalLibraries
                         )
                         .frame(width: 250)
-                        .background(Color(NSColor.controlBackgroundColor))
+                        .background(theme.palette.surface)
                         .transition(.move(edge: .trailing))
                     }
                     
@@ -284,7 +286,7 @@ struct DependencyGraphView: View {
                             onClose: { selectedNode = nil }
                         )
                         .frame(width: 300)
-                        .background(Color(NSColor.controlBackgroundColor))
+                        .background(theme.palette.surface)
                         .transition(.move(edge: .trailing))
                     }
                 }
@@ -303,17 +305,18 @@ struct DependencyGraphView: View {
 
                         Text("Preparing export...")
                             .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundStyle(.white)
 
                         Text("Waiting for graph to stabilize")
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundStyle(.white.opacity(0.8))
                     }
                     .padding(32)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(NSColor.controlBackgroundColor))
-                            .shadow(radius: 20)
+                            .fill(theme.palette.surface)
+                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(theme.palette.border))
+                            .shadow(color: theme.palette.shadow.opacity(0.35), radius: 20)
                     )
                 }
             }
@@ -361,17 +364,14 @@ struct DependencyGraphView: View {
         
         
 
-        // Wait for graph to stabilize (increased to 4 seconds)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-            // Render to image
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(4))
             let renderer = ImageRenderer(content: exportView)
             renderer.scale = 2.0 // Retina quality
 
             if let nsImage = renderer.nsImage {
-                // Hide loading indicator
                 isExporting = false
 
-                // Show save panel
                 let savePanel = NSSavePanel()
                 savePanel.allowedContentTypes = [.png]
                 savePanel.nameFieldStringValue = "dependency-graph.png"
@@ -385,7 +385,6 @@ struct DependencyGraphView: View {
                     }
                 }
             } else {
-                // Hide loading indicator if render failed
                 isExporting = false
             }
         }
@@ -449,18 +448,18 @@ struct StatBadge: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .foregroundColor(color)
+                .foregroundStyle(color)
                 .font(.caption)
             Text(label)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             Text(value)
                 .font(.caption)
                 .bold()
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(RoundedRectangle(cornerRadius: 6).fill(Color(NSColor.controlBackgroundColor)))
+        .dsSurface(.surface, cornerRadius: 6, border: true, shadow: false)
     }
 }
 
@@ -477,7 +476,7 @@ struct FiltersPanelView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Node Types")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
 
                 ForEach(DependencyNodeType.allCases.filter { $0 != .mainApp }, id: \.self) { type in
                     Toggle(isOn: Binding(
@@ -507,7 +506,7 @@ struct FiltersPanelView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Options")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
 
                 Toggle("Show External Libraries", isOn: $showExternalLibraries)
                     .toggleStyle(.checkbox)
@@ -532,6 +531,8 @@ struct FiltersPanelView: View {
 }
 
 struct LegendView: View {
+    @Environment(\.theme) private var theme
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Legend")
@@ -557,9 +558,10 @@ struct LegendView: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color(NSColor.controlBackgroundColor).opacity(0.95))
-                .shadow(radius: 4)
+                .fill(theme.palette.elevatedSurface.opacity(theme.colorScheme == .dark ? 0.92 : 0.96))
         )
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(theme.palette.border))
+        .shadow(color: theme.palette.shadow.opacity(theme.colorScheme == .dark ? 0.28 : 0.12), radius: 4)
     }
 }
 
@@ -577,11 +579,11 @@ struct LegendGraphItem: View {
                     .frame(width: 16, height: 2)
             } else {
                 Image(systemName: icon)
-                    .foregroundColor(color)
+                    .foregroundStyle(color)
                     .font(.system(size: 8))
             }
             Text(label)
-                .foregroundColor(.primary)
+                .foregroundStyle(.primary)
         }
     }
 }
@@ -592,6 +594,7 @@ struct NodeInfoPanel: View {
     let outgoingEdges: [DependencyEdge]
     let allNodes: Set<DependencyNode>
     let onClose: () -> Void
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -602,12 +605,12 @@ struct NodeInfoPanel: View {
                 Spacer()
                 Button(action: onClose) {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
             }
             .padding()
-            .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+            .background(theme.palette.surface.opacity(theme.colorScheme == .dark ? 0.75 : 0.55))
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
@@ -619,7 +622,7 @@ struct NodeInfoPanel: View {
                                 .frame(width: 16, height: 16)
                             Text(node.type.rawValue)
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
 
                         Text(node.name)
@@ -629,7 +632,7 @@ struct NodeInfoPanel: View {
                         if let size = node.size {
                             HStack {
                                 Image(systemName: "doc.fill")
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                     .font(.caption)
                                 Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
                                     .font(.callout)
@@ -639,11 +642,11 @@ struct NodeInfoPanel: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Path")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                             Text(node.path)
                                 .font(.caption)
                                 .textSelection(.enabled)
-                                .foregroundColor(.primary)
+                                .foregroundStyle(.primary)
                                 .lineLimit(nil)
                         }
                     }
@@ -701,6 +704,7 @@ struct NodeInfoPanel: View {
 struct DependencyRow: View {
     let node: DependencyNode
     let edgeType: DependencyEdgeType
+    @Environment(\.theme) private var theme
 
     var body: some View {
         HStack(spacing: 8) {
@@ -713,14 +717,15 @@ struct DependencyRow: View {
                     .font(.callout)
                 Text(edgeType.rawValue)
                     .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
 
             Spacer()
         }
         .padding(.vertical, 4)
         .padding(.horizontal, 8)
-        .background(RoundedRectangle(cornerRadius: 6).fill(Color(NSColor.controlBackgroundColor).opacity(0.5)))
+        .background(RoundedRectangle(cornerRadius: 6).fill(theme.palette.surface.opacity(theme.colorScheme == .dark ? 0.65 : 0.45)))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(theme.palette.border.opacity(0.7)))
     }
 
     private func colorForNodeType(_ type: DependencyNodeType) -> Color {
@@ -756,6 +761,7 @@ struct GraphExportView: View {
     let nodeSizeForNode: (DependencyNode) -> CGFloat
     let colorForNodeType: (DependencyNodeType) -> Color
     let edgeColorForType: (DependencyEdgeType) -> Color
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(spacing: 0) {
@@ -763,7 +769,7 @@ struct GraphExportView: View {
             legendContent
         }
         .frame(width: 1920, height: 1080)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(theme.palette.background)
     }
 
     private var graphContent: some View {

@@ -357,6 +357,9 @@ private extension String {
     var stableHash: String {
         let data = Data(self.utf8)
         let digest = Insecure.SHA1.hash(data: data)
-        return digest.map { String(format: "%02hhx", $0) }.joined()
+        return digest.map { byte in
+            let hex = String(byte, radix: 16)
+            return hex.count == 1 ? "0" + hex : hex
+        }.joined()
     }
 }

@@ -26,6 +26,7 @@ class TipGenerator {
         let name: String
         let size: Int64
         let internalName: String?
+        let contentHash: String
     }
     
     static func generateTips(for analysis: any AppAnalysis) -> [Tip] {
@@ -41,8 +42,15 @@ class TipGenerator {
     private static func generateIPATips(for analysis: IPAAnalysis) -> [Tip] {
         var tips: [Tip] = []
         let allFiles = flatten(file: analysis.rootFile)
+        let binaryFiles = allFiles.filter { $0.type == .binary }
+        let mainBinary: FileInfo? = {
+            if let execName = analysis.executableName {
+                return binaryFiles.first(where: { $0.name == execName })
+            }
+            return binaryFiles.first
+        }()
 
-        if let binary = allFiles.first(where: { $0.type == .binary }) {
+        if let binary = mainBinary {
             if binary.size > 50 * 1024 * 1024 {
                 tips.append(Tip(
                     text: "The main binary is very large (\(ByteCountFormatter.string(fromByteCount: binary.size, countStyle: .file))). Consider enabling Link Time Optimization (LTO), removing unused code, or reviewing Swift optimization flags.",
@@ -74,12 +82,28 @@ class TipGenerator {
             }
         }
 
-        if !analysis.isStripped, let binary = allFiles.first(where: { $0.type == .binary }) {
-            let potentialSaving = ByteCountFormatter.string(fromByteCount: Int64(Double(binary.size) * 0.25), countStyle: .file)
-            tips.append(Tip(
-                text: "The binary is not fully stripped. Stripping could save up to \(potentialSaving) or more, reduce binary size, and make reverse-engineering more difficult.",
+        let nonStrippedBinaries = analysis.nonStrippedBinaries
+        if !nonStrippedBinaries.isEmpty {
+            let totalSaving = nonStrippedBinaries.reduce(Int64(0)) { $0 + $1.potentialSaving }
+            var strippingTip = Tip(
+                text: "\(nonStrippedBinaries.count) binaries are not fully stripped. Removing debug symbols could save approximately \(ByteCountFormatter.string(fromByteCount: totalSaving, countStyle: .file)) and makes reverse-engineering harder.",
                 category: .warning
-            ))
+            )
+            strippingTip.kind = .unstrippedBinaries
+            let sortedFindings = nonStrippedBinaries.sorted { $0.potentialSaving > $1.potentialSaving }
+            for finding in sortedFindings {
+                let identifier = (finding.path?.isEmpty == false ? finding.path! : nil)
+                    ?? (finding.fullPath ?? finding.name)
+                let savingText = ByteCountFormatter.string(fromByteCount: finding.potentialSaving, countStyle: .file)
+                let sizeText = ByteCountFormatter.string(fromByteCount: finding.size, countStyle: .file)
+                var subTip = Tip(
+                    text: "\(identifier): file size \(sizeText), estimated saving \(savingText) when stripped.",
+                    category: .warning
+                )
+                subTip.kind = .unstrippedBinaries
+                strippingTip.subTips.append(subTip)
+            }
+            tips.append(strippingTip)
         }
 
         if analysis.allowsArbitraryLoads {
@@ -385,17 +409,25 @@ class TipGenerator {
         from files: [FileInfo],
         filter: (FileInfo) -> Bool
     ) -> [DuplicateFileKey: [FileInfo]] {
-        Dictionary(
-            grouping: files.filter(filter),
-            by: { file in
-                DuplicateFileKey(
-                    name: file.name,
-                    size: file.size,
-                    internalName: file.internalName
+        let candidates: [(DuplicateFileKey, FileInfo)] = files
+            .filter(filter)
+            .compactMap { file in
+                guard file.type != .directory else { return nil }
+                guard let contentHash = duplicateContentHash(for: file) else { return nil }
+                return (
+                    DuplicateFileKey(
+                        name: file.name,
+                        size: file.size,
+                        internalName: file.internalName,
+                        contentHash: contentHash
+                    ),
+                    file
                 )
             }
-        )
-        .filter { $0.value.count > 1 }
+
+        return Dictionary(grouping: candidates, by: { $0.0 })
+            .mapValues { $0.map(\.1) }
+            .filter { $0.value.count > 1 }
     }
     
     private static func totalDuplicateSavings(
@@ -439,14 +471,28 @@ class TipGenerator {
         }
         
         let digest = hasher.finalize()
-        return digest.map { String(format: "%02x", $0) }.joined()
+        return digest.map { byte in
+            let hex = String(byte, radix: 16)
+            return hex.count == 1 ? "0" + hex : hex
+        }.joined()
     }
     
     private static func hashData(_ data: Data) -> String {
         let digest = SHA256.hash(data: data)
-        return digest.map { String(format: "%02x", $0) }.joined()
+        return digest.map { byte in
+            let hex = String(byte, radix: 16)
+            return hex.count == 1 ? "0" + hex : hex
+        }.joined()
     }
-    
+
+    private static func duplicateContentHash(for file: FileInfo) -> String? {
+        if let internalData = file.internalImageData, !internalData.isEmpty {
+            return hashData(internalData)
+        }
+        guard let fullPath = file.fullPath else { return nil }
+        return hashFile(at: fullPath)
+    }
+
     private static func imageHash(for file: FileInfo) -> String? {
         if let internalData = file.internalImageData, !internalData.isEmpty {
             return hashData(internalData)

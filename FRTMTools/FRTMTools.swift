@@ -17,6 +17,7 @@ struct FRTMTools: App {
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
     @State private var showCleanCacheConfirmation = false
     @State private var showClearAppStoreCacheConfirmation = false
+    @State private var themeManager = ThemeManager()
     
     private var extractedIPAsCacheURL: URL { CacheLocations.extractedIPAsDirectory }
 
@@ -44,6 +45,8 @@ struct FRTMTools: App {
     var body: some Scene {
         WindowGroup {
             MainView()
+                .environment(themeManager)
+                .designSystem(themeManager)
                 .sheet(isPresented: $showOnboarding) {
                     OnboardingView(isPresented: $showOnboarding)
                 }
@@ -64,7 +67,45 @@ struct FRTMTools: App {
                     Text("This will delete cached ipatool version metadata so the app can fetch fresh data.")
                 }
         }
+        Settings {
+            ThemeSettingsView()
+                .environment(themeManager)
+                .designSystem(themeManager)
+        }
         .commands {
+            CommandMenu("Theme") {
+                @Bindable var themeManager = themeManager
+                Picker("Preset", selection: $themeManager.themeId) {
+                    ForEach(ThemeCatalog.all) { theme in
+                        Text(theme.displayName).tag(theme.id)
+                    }
+                }
+
+                Picker("Appearance", selection: $themeManager.appearanceMode) {
+                    ForEach(ThemeAppearanceMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+
+                Divider()
+
+                Button("Previous Preset") {
+                    themeManager.cyclePreset(forward: false)
+                }
+                .keyboardShortcut("[", modifiers: [.command, .option])
+
+                Button("Next Preset") {
+                    themeManager.cyclePreset(forward: true)
+                }
+                .keyboardShortcut("]", modifiers: [.command, .option])
+
+                Divider()
+
+                Button("Reset Theme") {
+                    themeManager.reset()
+                }
+            }
+
             CommandMenu("Cache") {
                 Button("Show Extracted IPAs in Finder") {
                     showExtractedIPAsInFinder()

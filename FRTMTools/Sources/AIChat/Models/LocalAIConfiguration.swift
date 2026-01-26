@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 struct LocalAIConfiguration: Codable, Equatable {
     enum ResponseLanguage: String, Codable, CaseIterable, Sendable {
@@ -78,15 +79,16 @@ struct LocalAIConfiguration: Codable, Equatable {
 }
 
 @MainActor
-final class LocalAIConfigurationStore: ObservableObject {
+@Observable
+final class LocalAIConfigurationStore {
     static let shared = LocalAIConfigurationStore()
 
-    @Published var configuration: LocalAIConfiguration {
+    var configuration: LocalAIConfiguration {
         didSet { persistConfiguration() }
     }
 
-    private let defaults = UserDefaults.standard
-    private let storageKey = "local_ai_configuration"
+    @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored private let storageKey = "local_ai_configuration"
 
     private init() {
         if

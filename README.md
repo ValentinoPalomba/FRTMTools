@@ -1,74 +1,87 @@
-# FRTMTools 🛠️✨
+# FRTMTools
 
-**Your App's Best Friend for Analysis, Comparison, and Optimization.**
+A desktop + CLI toolkit for dissecting mobile application bundles. Feed it an IPA, APK,
+or AAB and you’ll get instant visibility into binaries, resources, dependencies, and
+security posture—with actionable tips on how to slim everything down.
 
-FRTMTools is not just a tool; it's your secret weapon. A powerful macOS application forged for developers who want to look under the hood of their `.ipa` files. Get mind-blowing insights into your app's DNA, track down every byte, and discover optimization opportunities with an interface so beautiful, you'll want to leave it open all day.
+## Highlights
 
-## ✨ Key Features
+- **Cross-platform bundle analysis** – A single scan surfaces IPA internals (Mach-O
+  binaries, frameworks, bundles) and Android specifics (Dex vs native libs, manifest
+  components, permissions).
+- **Binary stripping insights** – Every Mach-O discovered during the scan is checked for
+  debug symbols. Unstripped binaries are listed with per-file savings in both the app and
+  the generated HTML dashboards.
+- **Unused asset hunter** – Scans your bundle for orphaned images, sounds, and localized
+  files, helping you delete the dead weight before shipping.
+- **Dead code scanner** – Integrates a Periphery-based pass to highlight Swift symbols
+  that are compiled but never used.
+- **Bad word scanner** – Looks inside binaries/resources to ensure profanity or banned
+  strings don’t slip into production builds.
+- **Side-by-side comparisons** – Compare two builds to understand size deltas per file
+  or category before publishing.
+- **Optimization tips** – The `TipGenerator` catches duplicate assets, oversized
+  resources, ATS exceptions, dangerous permissions, and more.
+- **Beautiful SwiftUI dashboards** – Interactive charts, dependency graphs, manifest
+  insights, and summary cards for both iOS and Android packages.
+- **Full-featured CLI** – Automate scans inside CI using the same analyzer core as the
+  macOS app. The CLI generates the same interactive HTML dashboards.
 
-### 📊 Deep IPA Analysis
-*Get a ridiculously detailed overview of your app's structure: binary, resources, frameworks, and more.*
-![IPA Analysis](.github/Resources/AnalysisViiew.png)
+## Screenshots
 
-### ↔️ The Ultimate IPA Diff Tool
-*Analyze two app versions side-by-side. Know exactly what changed in file size and composition between builds.*
-![Compare View](.github/Resources/CompareView.png)
+| IPA Analysis | Compare View | Asset Hunter |
+| --- | --- | --- |
+| ![IPA Analysis](.github/Resources/AnalysisViiew.png) | ![Compare View](.github/Resources/CompareView.png) | ![Unused Asset Hunter](.github/Resources/UnusedAsset.png) |
 
-### 🗑️ Unused Assets Hunter
-*Find forgotten assets bloating your app. This feature scans your project to identify and help you remove unused resources.*
-![Unused Asset Hunter](.github/Resources/UnusedAsset.png)
+## Repository Layout
 
-### 💀 Dead Code Scanner
-*Hunt down and eliminate unused code. This powerful scanner analyzes your source files to find dead code, helping you clean up your project and reduce its size.*
+```
+Sources/Analyzers/AppAnalyzer/
+├─ Core/            # Analyzer engines (IPA/APK/shared)
+├─ Components/      # SwiftUI building blocks (Shared, IPA, APK)
+├─ Screens/         # Feature-level views grouped by platform
+├─ ViewModels/      # Shared + platform-specific view models
+├─ Support/         # Protocols/utilities shared by the UI
+└─ SubAnalyzer/     # Lower-level analyzers (BinaryAnalyzer, etc.)
+```
 
-### 🛡️ Security Scanner
-*Proactively scan your application for common security vulnerabilities. Get a detailed report of potential risks and take action to secure your app before it ships.*
+## Documentation
 
-## 🔥 More Features
+- [Analyzer details](Docs/Analyzers.md)
+- [CLI usage](Docs/CLI.md)
 
-*   **📈 Visual Size Distribution:** See where the bytes are hiding with an interactive chart.
-*   **🔝 Top File Spotter:** Immediately see the largest files within your frameworks.
-*   **🌳 File Tree Explorer:** Navigate the entire contents of your unpacked `.ipa`.
-*   **🎨 A Work of Art UI:** A sleek, modern interface built with SwiftUI.
-
-## 🚀 Get Started in a Flash
-
-1.  **Download** the latest masterpiece from the Releases page.
-2.  **Unleash** the application.
-3.  **Drag and drop** an `.ipa` file onto the window. Prepare to be amazed.
-
-## 🖥️ CLI Version via Homebrew
-
-Prefer running analyses from the terminal? Install the CLI version with Homebrew:
+## Installing the CLI
 
 ```bash
 brew tap valentinopalomba/frtmtools
 brew install frtmtools
 ```
 
-Once installed, run `frtmtools --help` to explore the available commands.
+Run `frtmtools --help` for the command list or see [Docs/CLI.md](Docs/CLI.md) for more
+options.
 
-## 💻 The Magic Inside
+Tip: run `frtmtools serve` to start a local, interactive dashboard in your browser with
+persistent history.
 
-*   **Swift & SwiftUI:** Forged with modern Apple technologies for a buttery-smooth experience on macOS.
-*   **Combine:** For a reactive and declarative data flow that just works.
-*   **Periphery:** Leverages a fork of the powerful [Periphery](https://github.com/peripheryapp/periphery) tool for high-precision dead code analysis.
+## Development Notes
 
-## 👥 Contributors
+- **Language stack** – Swift + SwiftUI, Combine, and a few helper frameworks (Periphery,
+  ForceSimulation, etc.).
+- **Project organization** – Shared SwiftUI components live under `Components/`, while
+  platform-specific screens and view models stay in `Screens/IPA`, `Screens/APK`, and
+  `ViewModels/IPA`, `ViewModels/APK` respectively.
+- **Tips engine** – `TipGenerator` consumes the analyzer output to produce both UI
+  warnings and CLI messages. Any new analyzer signal should be exposed through this class
+  so it automatically flows everywhere.
 
-A huge thank you to all the amazing people who contributed to this project:  
+## Contributing
 
-- [@Davide Fiorino](https://github.com/DaveFiorino) 🚀
+We welcome pull requests! Open an issue if you spot a bug or want to propose a feature.
+Keep PRs focused, include tests or sample reports when relevant, and follow the existing
+Swift style.
 
----
-
-## 🙏 Join the Revolution
-
-Got ideas? Found a bug? Contributions are what make the world go 'round. Feel free to open an issue or submit a pull request.
-
----
+## Support the Project
 
 [![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/fratm)
 
-
-*Crafted with ❤️ and a lot of ☕ for the iOS developer community.*
+Crafted with ❤️ for the iOS & Android developer community.

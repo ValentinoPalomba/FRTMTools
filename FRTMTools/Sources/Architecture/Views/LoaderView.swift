@@ -31,6 +31,7 @@ public struct LoaderView: View {
     @State private var rotation: Double = 0
     @State private var pulse: CGFloat = 1
     @State private var sparklesPhase: Double = 0
+    @Environment(\.theme) private var theme
 
     public init(style: Style = .indeterminate,
                 title: String? = nil,
@@ -58,7 +59,7 @@ public struct LoaderView: View {
                         .fill(.ultraThinMaterial)
                         .background(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .strokeBorder(.secondary.opacity(0.08), lineWidth: 1)
+                                .strokeBorder(theme.palette.border.opacity(theme.colorScheme == .dark ? 0.22 : 0.50), lineWidth: 1)
                         )
                 )
                 .shadow(color: Color.black.opacity(0.35), radius: 30, x: 0, y: 10)
@@ -102,7 +103,7 @@ public struct LoaderView: View {
                 // subtle centered icon
                 Image(systemName: "sparkles")
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(LinearGradient(colors: [.accentColor, .mint], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .foregroundStyle(LinearGradient(colors: [theme.palette.accent, theme.palette.accent.opacity(0.45)], startPoint: .topLeading, endPoint: .bottomTrailing))
                     .opacity(0.9)
             }
             .frame(width: 110)
@@ -111,18 +112,18 @@ public struct LoaderView: View {
                 if let title {
                     Text(title)
                         .font(.title3.weight(.semibold))
-                        .foregroundColor(.primary)
+                        .foregroundStyle(.primary)
                 }
 
                 if let subtitle {
                     Text(subtitle)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 } else {
                     // small description based on mode
                     Text(modeDescription)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
 
                 Spacer()
@@ -131,7 +132,7 @@ public struct LoaderView: View {
                     if case .determinate(let p) = style {
                         Text("\(Int((p * 100).rounded()))%")
                             .font(.caption.monospacedDigit())
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
 
                     if showsCancel, let cancelAction {
@@ -170,6 +171,7 @@ private struct IndeterminateRing: View {
     @State private var trimEnd: CGFloat = 0.2
     @State private var trimStart: CGFloat = 0.0
     @State private var forward = true
+    @Environment(\.theme) private var theme
 
     var body: some View {
         ZStack {
@@ -178,7 +180,7 @@ private struct IndeterminateRing: View {
                 .stroke(style: StrokeStyle(lineWidth: 8, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .frame(width: size, height: size)
-                .foregroundStyle(AngularGradient(gradient: Gradient(colors: [Color.accentColor.opacity(1), Color.accentColor.opacity(0.25), Color.accentColor.opacity(1)]), center: .center))
+                .foregroundStyle(AngularGradient(gradient: Gradient(colors: [theme.palette.accent.opacity(1), theme.palette.accent.opacity(0.25), theme.palette.accent.opacity(1)]), center: .center))
                 .onAppear {
                     animate()
                 }
@@ -200,6 +202,7 @@ private struct IndeterminateRing: View {
 private struct DeterminateRing: View {
     var progress: Double // 0...1
     let size: CGFloat
+    @Environment(\.theme) private var theme
 
     var body: some View {
         ZStack {
@@ -215,7 +218,7 @@ private struct DeterminateRing: View {
                 .frame(width: size, height: size)
                 .animation(.easeInOut(duration: 0.35), value: progress)
                 .foregroundStyle(LinearGradient(
-                    colors: [Color.accentColor, Color.green.opacity(0.9)],
+                    colors: [theme.palette.accent, theme.palette.accent.opacity(0.65)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing)
                 )
@@ -227,6 +230,7 @@ private struct DeterminateRing: View {
 struct SparklesOverlay: View {
     var phase: Double // 0..1
     var count = 6
+    @Environment(\.theme) private var theme
 
     var body: some View {
         GeometryReader { geo in
@@ -240,7 +244,7 @@ struct SparklesOverlay: View {
                         .offset(x: CGFloat(cos(angle) * r), y: CGFloat(sin(angle) * r))
                         .scaleEffect(0.9 + CGFloat(sin(phase * 2 * .pi + Double(i)) * 0.12))
                         .blur(radius: 0.25)
-                        .foregroundStyle(LinearGradient(colors: [Color.accentColor.opacity(0.9), Color.white.opacity(0.9)], startPoint: .top, endPoint: .bottom))
+                        .foregroundStyle(LinearGradient(colors: [theme.palette.accent.opacity(0.9), theme.palette.accent.opacity(0.15)], startPoint: .top, endPoint: .bottom))
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height)
@@ -272,22 +276,27 @@ fileprivate struct VisualEffectBlur: NSViewRepresentable {
 // MARK: - Preview
 struct LoaderView_Previews: PreviewProvider {
     static var previews: some View {
+        let lightTheme = Theme.fallback(colorScheme: .light)
+        let darkTheme = Theme.fallback(colorScheme: .dark)
+
         Group {
             ZStack {
-                Color(NSColor.windowBackgroundColor)
+                lightTheme.palette.background
                     .ignoresSafeArea()
                 LoaderView(style: .indeterminate, title: "Analyzing IPA", subtitle: "This can take a few seconds…", showsCancel: true) {
                     print("Cancel tapped")
                 }
             }
             .previewDisplayName("Indeterminate")
+            .environment(\.theme, lightTheme)
 
             ZStack {
-                Color(NSColor.windowBackgroundColor)
+                darkTheme.palette.background
                     .ignoresSafeArea()
                 LoaderView(style: .determinate(progress: 0.42), title: "Uploading", subtitle: "Preparing data…", showsCancel: true)
             }
             .previewDisplayName("Determinate")
+            .environment(\.theme, darkTheme)
         }
         .frame(width: 600, height: 300)
     }

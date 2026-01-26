@@ -92,7 +92,7 @@ struct AnalysisContextBuilder {
         let rows = topCategories.enumerated().map { index, category in
             let humanSize = byteFormatter.string(fromByteCount: category.totalSize)
             let ratio = Double(category.totalSize) / totalDouble
-            let percentage = String(format: "%.1f%%", ratio * 100)
+            let percentage = (ratio * 100).formatted(.number.precision(.fractionLength(1))) + "%"
             return "\(index + 1). \(category.name): \(humanSize) (\(percentage))"
         }
         return "Category distribution:\n" + rows.joined(separator: "\n")
