@@ -109,11 +109,34 @@ struct CollapsibleSection: View {
 
 extension Array where Element == FileInfo {
     func exportAsCSV(fileName: String) -> URL? {
-        var csvText = "File Name,Size\n"
+        var csvText = "File Name,Size (Bytes),Size\n"
+        
+        // Flatten all items to include children (e.g., contents of Assets.car)
+        var allFiles: [(file: FileInfo, path: String)] = []
+        
+        func collectFiles(from file: FileInfo, parentPath: String = "") {
+            let currentPath = parentPath.isEmpty ? file.name : "\(parentPath)/\(file.name)"
+            allFiles.append((file: file, path: currentPath))
+            
+            // If this file has children (like Assets.car), recursively add them
+            if let children = file.subItems {
+                for child in children {
+                    collectFiles(from: child, parentPath: currentPath)
+                }
+            }
+        }
         
         for file in self {
+            collectFiles(from: file)
+        }
+        
+        // Sort by size descending (heaviest first)
+        allFiles.sort { $0.file.size > $1.file.size }
+        
+        for (file, path) in allFiles {
             let sizeString = ByteCountFormatter.string(fromByteCount: file.size, countStyle: .file)
-            csvText += "\(file.name),\(sizeString)\n"
+            let escapedPath = path.replacingOccurrences(of: "\"", with: "\"\"")
+            csvText += "\"\(escapedPath)\",\(file.size),\(sizeString)\n"
         }
         
         let tempDir = FileManager.default.temporaryDirectory
