@@ -183,11 +183,18 @@ class CategoryGenerator {
 
     private static func aggregatedSize(for item: FileInfo, seen: inout Set<UUID>) -> Int64 {
         guard seen.insert(item.id).inserted else { return 0 }
+        
+        // For Assets.car files, use the file's own size as it represents the actual catalog size
+        // The subItems are extracted assets whose sizes don't represent the full catalog
+        if item.name.hasSuffix(".car") {
+            return item.size
+        }
+        
         if let children = item.subItems, !children.isEmpty {
             let childSum = children.reduce(Int64(0)) { $0 + aggregatedSize(for: $1, seen: &seen) }
-            if childSum > 0 {
-                return childSum
-            }
+            // For regular directories/containers, use child sum if it's larger than the item's own size
+            // This handles cases where item.size might be metadata/header size
+            return max(childSum, item.size)
         }
         return item.size
     }
