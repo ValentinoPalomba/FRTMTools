@@ -11,21 +11,12 @@
       }
     },
     {
-      "identity" : "commandline",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/benoit-pereira-da-silva/CommandLine.git",
-      "state" : {
-        "revision" : "3eaafd5941e359f025a411e3b5947f96d82d1bc9",
-        "version" : "4.0.9"
-      }
-    },
-    {
       "identity" : "fengniao",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/onevcat/FengNiao.git",
       "state" : {
         "branch" : "master",
-        "revision" : "e99846f07287d7f0b32a667b2e4c8e1a4b86b486"
+        "revision" : "5e9ee68b3a30a7d606857a09f4d7f1d85b233f3f"
       }
     },
     {
