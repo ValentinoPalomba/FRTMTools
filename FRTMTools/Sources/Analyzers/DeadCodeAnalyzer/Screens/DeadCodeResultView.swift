@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import PeripheryKit
 import SourceGraph
 import Charts
@@ -31,6 +32,9 @@ struct DeadCodeResultView: View {
                                 topIssuesChartView
                             }
                             .padding(.horizontal)
+
+                            DeadCodeDependencyTreeView(viewModel: viewModel)
+                                .padding(.horizontal)
                             
                             VStack(spacing: 12) {
                                 Text("All Issues")
@@ -91,13 +95,18 @@ struct DeadCodeResultView: View {
                 .disabled(viewModel.selectedAnalysis == nil || viewModel.selectedAnalysis?.results.isEmpty == true)
             }
         }
-        .sheet(isPresented: $showingFilterSheet) {
+        .inspector(isPresented: $showingFilterSheet) {
             DeadCodeFilterView(
                 selectedKinds: $viewModel.selectedKinds,
-                selectedAccessibilities: $viewModel.selectedAccessibilities
+                selectedAccessibilities: $viewModel.selectedAccessibilities,
+                minimumClusterSize: $viewModel.minimumClusterSize,
+                includesIsolatedClusters: $viewModel.includesIsolatedClusters,
+                showsOnlyFullyRemovableClusters: $viewModel.showsOnlyFullyRemovableClusters,
+                showsOnlyMultiFileClusters: $viewModel.showsOnlyMultiFileClusters
             )
+            .inspectorColumnWidth(min: 280, ideal: 320, max: 420)
         }
-        .errorAlert(error: $viewModel.error)
+        .deadCodeFeedbackSheet(error: $viewModel.error)
     }
 
     @ViewBuilder
@@ -117,6 +126,11 @@ struct DeadCodeResultView: View {
                 title: "⏱️ Scan Duration",
                 value: format(duration: analysis.scanTimeDuration),
                 subtitle: "Time of scan"
+            )
+            SummaryCard(
+                title: "🕸️ Dead Clusters",
+                value: "\(viewModel.dependencyClusters.count)",
+                subtitle: "\(viewModel.safeFileRemovalCount) whole-file candidates"
             )
         }
         .padding(.horizontal)
@@ -233,5 +247,143 @@ fileprivate extension String {
             return String(self.prefix(length)) + "..."
         }
         return self
+    }
+}
+
+private struct DeadCodeErrorPresentation: Identifiable {
+    let title: String
+    let message: String
+    let systemImage: String
+    let tint: Color
+
+    var id: String { "\(title):\(message)" }
+
+    var summary: String {
+        let firstSection = message.components(separatedBy: "\n\n").first ?? message
+        guard firstSection.count > 360 else { return firstSection }
+        return String(firstSection.prefix(360)) + "…"
+    }
+
+    var technicalDetails: String? {
+        let sections = message.components(separatedBy: "\n\n")
+        if sections.count > 1 {
+            return sections.dropFirst().joined(separator: "\n\n")
+        }
+        return message.count > 360 ? message : nil
+    }
+
+    init(error: Error) {
+        if let localizedError = error as? LocalizedError,
+           let description = localizedError.errorDescription {
+            message = description
+        } else {
+            message = error.localizedDescription
+        }
+
+        if let removalError = error as? DeadCodeRemovalError {
+            switch removalError {
+            case .buildFailed:
+                title = "Build Failed — Sources Restored"
+                systemImage = "arrow.uturn.backward.circle.fill"
+                tint = .orange
+            case .rollbackFailed:
+                title = "Sources Need Manual Recovery"
+                systemImage = "exclamationmark.octagon.fill"
+                tint = .red
+            default:
+                title = "Removal Was Not Applied"
+                systemImage = "xmark.circle.fill"
+                tint = .orange
+            }
+        } else if error is DeadCodeSurgicalRemovalError {
+            title = "Safe Removal Needs Review"
+            systemImage = "exclamationmark.triangle.fill"
+            tint = .orange
+        } else {
+            title = "Dead Code Scanner Error"
+            systemImage = "exclamationmark.circle.fill"
+            tint = .red
+        }
+    }
+}
+
+private struct DeadCodeErrorSheet: View {
+    let presentation: DeadCodeErrorPresentation
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .top, spacing: 14) {
+                    Image(systemName: presentation.systemImage)
+                        .font(.title)
+                        .foregroundStyle(presentation.tint)
+                        .frame(width: 38)
+
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(presentation.title)
+                            .font(.title3.weight(.semibold))
+                        Text(presentation.summary)
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                    }
+                }
+
+                if let details = presentation.technicalDetails {
+                    GroupBox {
+                        ScrollView([.horizontal, .vertical]) {
+                            Text(details)
+                                .font(.system(.caption, design: .monospaced))
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(8)
+                        }
+                        .frame(maxHeight: 280)
+                    } label: {
+                        Label("Technical Details", systemImage: "doc.text.magnifyingglass")
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(20)
+            .frame(width: 680, height: 460)
+            .navigationTitle("Operation Details")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") {
+                        dismiss()
+                    }
+                    .keyboardShortcut(.cancelAction)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Copy Details", systemImage: "doc.on.doc") {
+                        let pasteboard = NSPasteboard.general
+                        pasteboard.clearContents()
+                        pasteboard.setString(presentation.message, forType: .string)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private extension View {
+    func deadCodeFeedbackSheet(error: Binding<Error?>) -> some View {
+        let presentation = Binding<DeadCodeErrorPresentation?>(
+            get: {
+                error.wrappedValue.map(DeadCodeErrorPresentation.init)
+            },
+            set: { newValue in
+                if newValue == nil {
+                    error.wrappedValue = nil
+                }
+            }
+        )
+
+        return sheet(item: presentation) { item in
+            DeadCodeErrorSheet(presentation: item)
+        }
     }
 }

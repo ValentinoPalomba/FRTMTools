@@ -10,12 +10,16 @@ struct DeadCodeContentView: View {
             } label: {
                 Label("Scan New Project", systemImage: "plus.circle")
             }
-            .padding()
+            .controlSize(.large)
+            .padding([.horizontal, .top])
 
             List(selection: $viewModel.selectedAnalysisID) {
                 if viewModel.analyses.isEmpty {
-                    Text("No scans yet. Run a new scan to begin.")
-                        .foregroundStyle(.secondary)
+                    ContentUnavailableView(
+                        "No Scans Yet",
+                        systemImage: "text.magnifyingglass",
+                        description: Text("Run a scan to inspect unused declarations.")
+                    )
                 } else {
                     ForEach(viewModel.analyses) { analysis in
                         VStack(alignment: .leading) {
@@ -41,48 +45,90 @@ struct DeadCodeContentView: View {
                     }
                 }
             }
-            .listStyle(InsetListStyle())
+            .listStyle(.inset)
         }
         .navigationTitle("Dead Code Scans")
-        .sheet(isPresented: .constant(viewModel.projectToScan != nil && viewModel.isLoadingSchemes)) {
+        .sheet(isPresented: schemeSelectionPresented, onDismiss: viewModel.cancelSchemeSelection) {
             SchemeSelectionView(viewModel: viewModel)
         }
+    }
+
+    private var schemeSelectionPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.projectToScan != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.cancelSchemeSelection()
+                }
+            }
+        )
     }
 }
 
 struct SchemeSelectionView: View {
+    @Environment(\.dismiss) private var dismiss
     @Bindable var viewModel: DeadCodeViewModel
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Select Scheme for")
-                .font(.title2)
-            Text(viewModel.projectToScan?.lastPathComponent ?? "")
-                .font(.title2.bold())
-
-            if viewModel.isLoadingSchemes && viewModel.schemes.isEmpty {
-                ProgressView("Loading Schemes...")
-            } else if !viewModel.schemes.isEmpty {
-                Picker("Available Schemes", selection: $viewModel.selectedScheme) {
-                    Text("Select a scheme").tag(String?.none)
-                    ForEach(viewModel.schemes, id: \.self) { scheme in
-                        Text(scheme).tag(scheme as String?)
+        VStack(spacing: 0) {
+            Form {
+                Section {
+                    LabeledContent("Project") {
+                        Text(viewModel.projectToScan?.lastPathComponent ?? "Unknown")
+                            .lineLimit(1)
+                            .truncationMode(.middle)
                     }
                 }
-                .pickerStyle(MenuPickerStyle())
+
+                Section("Scheme") {
+                    if viewModel.isLoadingSchemes {
+                        HStack(spacing: 10) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("Loading schemes…")
+                                .foregroundStyle(.secondary)
+                        }
+                    } else if viewModel.schemes.isEmpty {
+                        ContentUnavailableView(
+                            "No Schemes Found",
+                            systemImage: "xcode",
+                            description: Text("The selected project has no shared schemes.")
+                        )
+                    } else {
+                        Picker("Available Scheme", selection: $viewModel.selectedScheme) {
+                            Text("Choose a scheme").tag(String?.none)
+                            ForEach(viewModel.schemes, id: \.self) { scheme in
+                                Text(scheme).tag(scheme as String?)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+                }
+            }
+            .formStyle(.grouped)
+
+            Divider()
+
+            HStack {
+                Button("Cancel", role: .cancel) {
+                    viewModel.cancelSchemeSelection()
+                    dismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+
+                Spacer()
 
                 Button("Run Scan") {
                     viewModel.runScan()
+                    dismiss()
                 }
-                .disabled(viewModel.selectedScheme == nil)
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.selectedScheme == nil || viewModel.isLoadingSchemes)
                 .keyboardShortcut(.defaultAction)
-            } else {
-                Text("No schemes found for this project.")
-                    .foregroundStyle(.secondary)
             }
+            .padding()
         }
-        .frame(width: 400, height: 250)
-        .padding()
+        .frame(width: 460, height: 300)
     }
 }
 
