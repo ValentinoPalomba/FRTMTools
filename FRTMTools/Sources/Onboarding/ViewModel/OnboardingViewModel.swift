@@ -41,8 +41,7 @@ final class OnboardingViewModel {
         currentPage -= 1
     }
 
-    func completeOnboarding(presentationBinding: Binding<Bool>) {
+    func completeOnboarding() {
         UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
-        presentationBinding.wrappedValue = false
     }
 }

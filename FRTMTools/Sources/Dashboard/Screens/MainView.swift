@@ -8,7 +8,7 @@ struct MainView: View {
         NavigationSplitView {
             List(selection: $model.selectedTool) {
                 ForEach(MainViewModel.Tool.allCases) { tool in
-                    HStack {
+                    HStack(spacing: 10) {
                         SidebarIconView(
                             imageName: tool.systemImage,
                             color: toolTint(for: tool.tintRole),
@@ -18,33 +18,44 @@ struct MainView: View {
                         Text(tool.rawValue)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .contentShape(.rect)
                     .onHover { hovering in
                         model.hoveredTool = hovering ? tool : nil
                     }
                     .tag(tool)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(tool.rawValue)
                 }
             }
             .listStyle(.sidebar)
+            .navigationTitle("Tools")
+            .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 280)
         } content: {
-            switch model.selectedTool {
-            case .ipaAnalyzer:
-                IPAAnalyzerContentView(viewModel: model.ipaViewModel)
-            case .apkAnalyzer:
-                APKAnalyzerContentView(viewModel: model.apkViewModel)
-            case .unusedAssets:
-                UnusedAssetsContentView(viewModel: model.unusedAssetsViewModel)
-            case .securityScanner:
-                SecurityScannerContentView(viewModel: model.securityScannerViewModel)
-            case .deadCodeScanner:
-                DeadCodeContentView(viewModel: model.deadCodeViewModel)
-            case .ipatool:
-                IPAToolContentView(viewModel: model.ipaToolViewModel)
-            case .badWordScanner:
-                BadWordScannerContentView(viewModel: model.badWordScannerViewModel)
-            case .none:
-                Text("Select an item to see details.")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            Group {
+                switch model.selectedTool {
+                case .ipaAnalyzer:
+                    IPAAnalyzerContentView(viewModel: model.ipaViewModel)
+                case .apkAnalyzer:
+                    APKAnalyzerContentView(viewModel: model.apkViewModel)
+                case .unusedAssets:
+                    UnusedAssetsContentView(viewModel: model.unusedAssetsViewModel)
+                case .securityScanner:
+                    SecurityScannerContentView(viewModel: model.securityScannerViewModel)
+                case .deadCodeScanner:
+                    DeadCodeContentView(viewModel: model.deadCodeViewModel)
+                case .ipatool:
+                    IPAToolContentView(viewModel: model.ipaToolViewModel)
+                case .badWordScanner:
+                    BadWordScannerContentView(viewModel: model.badWordScannerViewModel)
+                case .none:
+                    ContentUnavailableView(
+                        "Choose a Tool",
+                        systemImage: "wrench.and.screwdriver",
+                        description: Text("Select a tool from the sidebar to get started.")
+                    )
+                }
             }
+            .navigationSplitViewColumnWidth(min: 300, ideal: 360, max: 520)
         } detail: {
             switch model.selectedTool {
             case .ipaAnalyzer:
@@ -62,12 +73,15 @@ struct MainView: View {
             case .badWordScanner:
                 BadWordScannerDetailView(viewModel: model.badWordScannerViewModel)
             case .none:
-                Text("Select an item to see details.")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ContentUnavailableView(
+                    "No Tool Selected",
+                    systemImage: "sidebar.left",
+                    description: Text("Choose a tool to inspect its results.")
+                )
             }
         }
         .background(theme.palette.background)
-        .navigationSplitViewColumnWidth(min: 60, ideal: 100, max: 250)
+        .frame(minWidth: 980, minHeight: 640)
         .loaderOverlay(
             isPresented: Binding(
                 get: { model.activeLoader != nil },
@@ -93,6 +107,9 @@ struct MainView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .clearIPAToolMetadataCache)) { _ in
             model.clearIPAToolMetadataCache()
+        }
+        .onDisappear {
+            model.hoveredTool = nil
         }
     }
 

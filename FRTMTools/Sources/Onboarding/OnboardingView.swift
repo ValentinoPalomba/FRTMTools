@@ -1,12 +1,12 @@
 import SwiftUI
 
 struct OnboardingView: View {
-    @Binding var isPresented: Bool
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel = OnboardingViewModel()
 
     var body: some View {
-        VStack {
-            // Page Content
+        VStack(spacing: 0) {
             ZStack {
                 let page = viewModel.pages[viewModel.currentPage]
                 OnboardingPageView(
@@ -15,20 +15,26 @@ struct OnboardingView: View {
                     description: page.description,
                     color: page.color
                 )
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing),
-                    removal: .move(edge: .leading)
-                ))
+                .transition(pageTransition)
                 .id(viewModel.currentPage)
             }
             .frame(maxHeight: .infinity)
 
-            // Navigation
-            ZStack {
-                HStack {
-                    // Previous Button
+            Divider()
+
+            HStack(spacing: 16) {
+                if viewModel.isLastPage {
+                    Spacer()
+
+                    Button("Start Using FRTM Tools") {
+                        viewModel.completeOnboarding()
+                        dismiss()
+                    }
+                    .keyboardShortcut(.defaultAction)
+                    .controlSize(.large)
+                } else {
                     Button("Back") {
-                        withAnimation(.easeInOut(duration: 0.4)) {
+                        withAnimation(pageAnimation) {
                             viewModel.previousPage()
                         }
                     }
@@ -37,30 +43,47 @@ struct OnboardingView: View {
 
                     Spacer()
 
-                    // Next Button
+                    pageIndicator
+
+                    Spacer()
+
                     Button("Next") {
-                        withAnimation(.easeInOut(duration: 0.4)) {
+                        withAnimation(pageAnimation) {
                             viewModel.nextPage()
                         }
                     }
+                    .keyboardShortcut(.defaultAction)
                     .keyboardShortcut(.rightArrow)
                 }
-                .padding(30)
-                .opacity(viewModel.isLastPage ? 0 : 1)
-
-                Button("Start now") {
-                    viewModel.completeOnboarding(presentationBinding: $isPresented)
-                }
-                .keyboardShortcut(.defaultAction)
-                .controlSize(.large)
-                .frame(maxWidth: .infinity)
-                .padding(30)
-                .opacity(viewModel.isLastPage ? 1 : 0)
             }
-            .animation(.easeInOut(duration: 0.4), value: viewModel.isLastPage)
+            .padding(.horizontal, 28)
+            .frame(height: 76)
         }
-        .frame(width: 550, height: 500)
+        .frame(width: 580, height: 520)
         .background(.regularMaterial)
         .buttonStyle(.borderedProminent)
+    }
+
+    private var pageIndicator: some View {
+        HStack(spacing: 7) {
+            ForEach(viewModel.pages.indices, id: \.self) { index in
+                Circle()
+                    .fill(index == viewModel.currentPage ? Color.accentColor : Color.secondary.opacity(0.3))
+                    .frame(width: 7, height: 7)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Page \(viewModel.currentPage + 1) of \(viewModel.pages.count)")
+    }
+
+    private var pageAnimation: Animation? {
+        reduceMotion ? nil : .easeInOut(duration: 0.28)
+    }
+
+    private var pageTransition: AnyTransition {
+        reduceMotion ? .opacity : .asymmetric(
+            insertion: .move(edge: .trailing).combined(with: .opacity),
+            removal: .move(edge: .leading).combined(with: .opacity)
+        )
     }
 }

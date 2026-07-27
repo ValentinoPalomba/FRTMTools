@@ -23,6 +23,7 @@ struct OnboardingPageView: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 60, height: 60)
                     .foregroundStyle(.white)
+                    .accessibilityHidden(true)
             }
 
             VStack(spacing: 10) {
@@ -37,8 +38,10 @@ struct OnboardingPageView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                     .lineSpacing(5)
+                    .frame(maxWidth: 440)
             }
         }
         .padding(40)
+        .accessibilityElement(children: .combine)
     }
 }

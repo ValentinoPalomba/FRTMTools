@@ -62,12 +62,27 @@ struct InstalledSizeAnalysisView<ViewModel: InstalledSizeAnalyzing, Analysis: Ap
         .padding(DS.Spacing.xl)
         .frame(maxWidth: .infinity, minHeight: 100, alignment: .leading)
         .dsSurface(.surface, cornerRadius: 16, border: true, shadow: true)
-        .alert(item: $viewModel.sizeAnalysisAlert) { alert in
-            Alert(
-                title: Text(alert.title),
-                message: Text(alert.message),
-                dismissButton: .default(Text("OK"))
-            )
+        .alert(
+            viewModel.sizeAnalysisAlert?.title ?? "Size Analysis",
+            isPresented: sizeAlertPresented,
+            presenting: viewModel.sizeAnalysisAlert
+        ) { _ in
+            Button("OK", role: .cancel) {
+                viewModel.sizeAnalysisAlert = nil
+            }
+        } message: { alert in
+            Text(alert.message)
         }
+    }
+
+    private var sizeAlertPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.sizeAnalysisAlert != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.sizeAnalysisAlert = nil
+                }
+            }
+        )
     }
 }

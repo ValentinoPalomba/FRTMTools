@@ -7,26 +7,28 @@ struct SecurityScannerContentView: View {
     var body: some View {
         VStack {
             if viewModel.analyses.isEmpty {
-                Text("No scans performed yet.")
-                    .foregroundStyle(.secondary)
+                ContentUnavailableView {
+                    Label("No Security Scans", systemImage: "shield.lefthalf.filled")
+                } description: {
+                    Text("Scan a project to inspect potential security findings.")
+                } actions: {
+                    Button("Scan Project", action: viewModel.selectFolderAndScan)
+                }
             } else {
                 List(selection: $viewModel.selectedAnalysisID) {
-                    ForEach(viewModel.analyses) {
-                        analysis in
-                        NavigationLink(value: analysis.id) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("📦 \(analysis.projectName)")
-                                    .font(.headline)
-                                    .lineLimit(1)
-                                
-                                Text(analysis.projectPath)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                            }
-                            .padding()
+                    ForEach(viewModel.analyses) { analysis in
+                        VStack(alignment: .leading, spacing: 3) {
+                            Label(analysis.projectName, systemImage: "shippingbox")
+                                .font(.headline)
+                                .lineLimit(1)
+
+                            Text(analysis.projectPath)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
                         }
+                        .padding(.vertical, 4)
                         .tag(analysis.id)
                         .contextMenu {
                             Button(role: .destructive) {
@@ -37,7 +39,7 @@ struct SecurityScannerContentView: View {
                         }
                     }
                 }
-                .listStyle(.plain)
+                .listStyle(.inset)
             }
         }
         .navigationTitle("Security Scans")
@@ -64,14 +66,26 @@ struct SecurityScannerContentView: View {
         .task {
             viewModel.loadAnalyses()
         }
-        .alert(item: $viewModel.analysisToOverwrite) {
-            analysis in
-            Alert(
-                title: Text("Analysis Exists"),
-                message: Text("An analysis for \(analysis.projectName) already exists. Do you want to overwrite it?"),
-                primaryButton: .destructive(Text("Overwrite")) { viewModel.forceReanalyze() },
-                secondaryButton: .cancel() { viewModel.cancelOverwrite() }
-            )
+        .alert(
+            "Analysis Exists",
+            isPresented: overwriteConfirmationPresented,
+            presenting: viewModel.analysisToOverwrite
+        ) { _ in
+            Button("Overwrite", role: .destructive, action: viewModel.forceReanalyze)
+            Button("Cancel", role: .cancel, action: viewModel.cancelOverwrite)
+        } message: { analysis in
+            Text("An analysis for \(analysis.projectName) already exists. Do you want to overwrite it?")
         }
+    }
+
+    private var overwriteConfirmationPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.analysisToOverwrite != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.cancelOverwrite()
+                }
+            }
+        )
     }
 }

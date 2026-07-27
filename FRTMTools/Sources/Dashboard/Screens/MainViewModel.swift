@@ -7,7 +7,7 @@ import SwiftUI
 final class MainViewModel {
     enum Tool: String, Hashable, Identifiable, CaseIterable {
         case ipaAnalyzer = "IPA Analyzer"
-        case apkAnalyzer = "APK/ABB Analyzer"
+        case apkAnalyzer = "APK/AAB Analyzer"
         case unusedAssets = "Unused Assets Analyzer"
         case securityScanner = "Security Scanner"
         case deadCodeScanner = "Dead Code Scanner"
@@ -75,7 +75,7 @@ final class MainViewModel {
 
         if apkViewModel.isLoading {
             return LoaderPresentation(
-                title: "Analyzing APK/ABB",
+                title: "Analyzing APK/AAB",
                 subtitle: "Unpacking bundle…"
             )
         }
@@ -121,4 +121,3 @@ final class MainViewModel {
         ipaToolViewModel.clearMetadataCache()
     }
 }
-

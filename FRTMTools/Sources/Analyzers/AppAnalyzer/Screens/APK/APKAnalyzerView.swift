@@ -6,7 +6,7 @@ struct APKAnalyzerContentView: View {
 
     var body: some View {
         analysesList
-            .navigationTitle("APK/ABB Analyses")
+            .navigationTitle("APK/AAB Analyses")
             .task {
                 viewModel.loadAnalyses()
             }
@@ -144,7 +144,7 @@ struct APKAnalyzerDetailView: View {
                 Button {
                     viewModel.selectFile()
                 } label: {
-                    Label("Add APK/ABB", systemImage: "plus")
+                    Label("Add APK/AAB", systemImage: "plus")
                 }
                 .help("New Analysis")
 

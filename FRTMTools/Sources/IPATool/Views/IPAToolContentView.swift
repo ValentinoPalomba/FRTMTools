@@ -37,13 +37,28 @@ struct IPAToolContentView: View {
         }
         .background(theme.palette.background)
         .task { viewModel.refreshInstallationState() }
-        .alert(item: $viewModel.downloadAlert) { alert in
-            Alert(
-                title: Text(alert.title),
-                message: Text(alert.message),
-                dismissButton: .default(Text("OK"))
-            )
+        .alert(
+            viewModel.downloadAlert?.title ?? "App Store",
+            isPresented: downloadAlertPresented,
+            presenting: viewModel.downloadAlert
+        ) { _ in
+            Button("OK", role: .cancel) {
+                viewModel.downloadAlert = nil
+            }
+        } message: { alert in
+            Text(alert.message)
         }
+    }
+
+    private var downloadAlertPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.downloadAlert != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.downloadAlert = nil
+                }
+            }
+        )
     }
 
     // MARK: - Sections

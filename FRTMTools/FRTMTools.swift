@@ -10,16 +10,17 @@ import AppKit
 
 @main
 struct FRTMTools: App {
-    
-    init() {
-        DependencyRegister.register()
-    }
+
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
     @State private var showCleanCacheConfirmation = false
     @State private var showClearAppStoreCacheConfirmation = false
     @State private var themeManager = ThemeManager()
-    
+
     private var extractedIPAsCacheURL: URL { CacheLocations.extractedIPAsDirectory }
+
+    init() {
+        DependencyRegister.register()
+    }
 
     private func ensureExtractedCacheExists() {
         CacheLocations.ensureExtractedIPAsDirectoryExists()
@@ -43,12 +44,13 @@ struct FRTMTools: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup("FRTM Tools", id: "main") {
             MainView()
                 .environment(themeManager)
                 .designSystem(themeManager)
                 .sheet(isPresented: $showOnboarding) {
-                    OnboardingView(isPresented: $showOnboarding)
+                    OnboardingView()
+                        .interactiveDismissDisabled()
                 }
                 .alert("Clean Extracted IPAs Cache?", isPresented: $showCleanCacheConfirmation) {
                     Button("Delete", role: .destructive) {
@@ -67,6 +69,7 @@ struct FRTMTools: App {
                     Text("This will delete cached ipatool version metadata so the app can fetch fresh data.")
                 }
         }
+        .defaultSize(width: 1_280, height: 820)
         Settings {
             ThemeSettingsView()
                 .environment(themeManager)
@@ -123,6 +126,8 @@ struct FRTMTools: App {
                     showClearAppStoreCacheConfirmation = true
                 }
             }
+
+            InspectorCommands()
         }
     }
 }

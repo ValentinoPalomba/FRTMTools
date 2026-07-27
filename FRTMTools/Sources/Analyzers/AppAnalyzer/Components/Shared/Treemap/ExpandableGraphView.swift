@@ -30,6 +30,8 @@ struct ExpandableGraphView<Analysis: AppAnalysis>: View {
 
                 }
                 .buttonStyle(.plain)
+                .help("Open Treemap Detail")
+                .accessibilityLabel("Open Treemap Detail")
             }
 
             let baseURL: URL? = {
@@ -53,15 +55,15 @@ struct ExpandableGraphView<Analysis: AppAnalysis>: View {
         .dsSurface(.surface, cornerRadius: 16, border: true, shadow: false)
         .padding()
         .sheet(isPresented: $isShowingDetail) {
-            ExpandedDetailView(analysis: analysis, isShowingDetail: $isShowingDetail)
+            ExpandedDetailView(analysis: analysis)
         }
     }
 }
 
 private struct ExpandedDetailView<Analysis: AppAnalysis>: View {
-    var analysis: Analysis
-    @Binding var isShowingDetail: Bool
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.theme) private var theme
+    var analysis: Analysis
 
     var body: some View {
         let baseURL: URL? = {
@@ -81,12 +83,15 @@ private struct ExpandedDetailView<Analysis: AppAnalysis>: View {
                 Text("Treemap Detail")
                     .font(.title2).bold()
                 Spacer()
-                Button(action: { isShowingDetail = false }) {
+                Button(action: dismiss.callAsFunction) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title2)
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .keyboardShortcut(.cancelAction)
+                .help("Close Treemap Detail")
+                .accessibilityLabel("Close Treemap Detail")
             }
             .padding()
             

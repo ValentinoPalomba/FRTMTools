@@ -149,22 +149,34 @@ struct StartupTimeAnalysisView: View {
         ) { result in
             handleFileSelection(result)
         }
-        .alert(item: $viewModel.startupTimeAlert) { alert in
-            Alert(
-                title: Text(alert.title),
-                message: Text(alert.message),
-                dismissButton: .default(Text("OK"))
-            )
+        .alert(
+            viewModel.startupTimeAlert?.title ?? "Startup Time",
+            isPresented: startupTimeAlertPresented,
+            presenting: viewModel.startupTimeAlert
+        ) { _ in
+            Button("OK", role: .cancel) {
+                viewModel.startupTimeAlert = nil
+            }
+        } message: { alert in
+            Text(alert.message)
         }
         .sheet(isPresented: $showingDeviceSelector) {
             DeviceSelectionSheet(
-                deviceUDID: $deviceUDID,
-                onInstall: {
-                    showingDeviceSelector = false
-                    viewModel.installAndMeasureStartupTime(deviceUDID: deviceUDID, launchCount: 0)
-                }
+                viewModel: viewModel,
+                deviceUDID: $deviceUDID
             )
         }
+    }
+
+    private var startupTimeAlertPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.startupTimeAlert != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.startupTimeAlert = nil
+                }
+            }
+        )
     }
 
     private func handleFileSelection(_ result: Result<[URL], Error>) {
@@ -193,10 +205,10 @@ struct StartupTimeAnalysisView: View {
 // MARK: - Device Selection Sheet
 
 struct DeviceSelectionSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let viewModel: IPAViewModel
     @Binding var deviceUDID: String
-    let onInstall: () -> Void
 
-    @Environment(\.dismiss) var dismiss
     @State private var availableSimulators: [(name: String, udid: String)] = []
     @State private var availableDevices: [(name: String, udid: String)] = []
     @State private var isLoadingSimulators = false
@@ -291,13 +303,15 @@ struct DeviceSelectionSheet: View {
                 Button("Cancel") {
                     dismiss()
                 }
-                .keyboardShortcut(.escape)
+                .keyboardShortcut(.cancelAction)
 
                 Button("Install") {
-                    onInstall()
+                    viewModel.installAndMeasureStartupTime(deviceUDID: deviceUDID, launchCount: 0)
+                    dismiss()
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(deviceUDID.isEmpty)
+                .keyboardShortcut(.defaultAction)
             }
             .padding(.bottom)
         }

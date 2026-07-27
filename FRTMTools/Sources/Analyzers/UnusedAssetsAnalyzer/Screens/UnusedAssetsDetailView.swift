@@ -5,36 +5,54 @@ struct UnusedAssetsContentView: View {
     @Bindable var viewModel: UnusedAssetsViewModel
     
     var body: some View {
-        // Sidebar
         VStack(spacing: 0) {
-            List(selection: $viewModel.selectedAnalysisID) {
-                ForEach(viewModel.analyses) { analysis in
-                    NavigationLink(value: analysis.id) {
+            if viewModel.analyses.isEmpty {
+                ContentUnavailableView {
+                    Label("No Asset Scans", systemImage: "photo.stack")
+                } description: {
+                    Text("Analyze a project to find assets that are no longer referenced.")
+                } actions: {
+                    Button("Analyze Project", action: viewModel.selectProjectFolder)
+                }
+            } else {
+                List(selection: $viewModel.selectedAnalysisID) {
+                    ForEach(viewModel.analyses) { analysis in
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("📦 \(analysis.projectName)")
+                            Label(analysis.projectName, systemImage: "shippingbox")
                                 .font(.headline)
                                 .lineLimit(1)
-                            
+
                             Text(analysis.projectPath)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                         }
-                        .padding()
-                    }
-                    .contextMenu {
-                        Button("Re-analyze", systemImage: "arrow.clockwise") {
-                            viewModel.analyzeProject(at: URL(fileURLWithPath: analysis.projectPath), overwriting: analysis.id)
-                        }
-                        Button("Delete", systemImage: "trash", role: .destructive) {
-                            viewModel.deleteAnalysis(analysis)
+                        .padding(.vertical, 4)
+                        .tag(analysis.id)
+                        .contextMenu {
+                            Button("Re-analyze", systemImage: "arrow.clockwise") {
+                                viewModel.analyzeProject(at: URL(fileURLWithPath: analysis.projectPath), overwriting: analysis.id)
+                            }
+                            Button("Delete", systemImage: "trash", role: .destructive) {
+                                viewModel.deleteAnalysis(analysis)
+                            }
                         }
                     }
                 }
+                .listStyle(.inset)
             }
-            .listStyle(.plain)
-            
+        }
+        .navigationTitle("Asset Scans")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Analyze Project", systemImage: "folder.badge.plus", action: viewModel.selectProjectFolder)
+            }
+
+            ToolbarItem {
+                Button("Export as CSV", systemImage: "square.and.arrow.up", action: viewModel.exportToCSV)
+                    .disabled(viewModel.selectedAnalysis == nil)
+            }
         }
         .task {
             viewModel.loadAnalyses()
@@ -42,7 +60,7 @@ struct UnusedAssetsContentView: View {
         .errorAlert(error: $viewModel.error)
         .alert(
             "Analysis Exists",
-            isPresented: .constant(viewModel.analysisToOverwrite != nil),
+            isPresented: overwriteConfirmationPresented,
             presenting: viewModel.analysisToOverwrite
         ) { analysis in
             Button("Overwrite", action: viewModel.forceReanalyze)
@@ -50,6 +68,17 @@ struct UnusedAssetsContentView: View {
         } message: { analysis in
             Text("An analysis for \(analysis.projectName) already exists. Do you want to overwrite it?")
         }
+    }
+
+    private var overwriteConfirmationPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.analysisToOverwrite != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.cancelOverwrite()
+                }
+            }
+        )
     }
 }
 

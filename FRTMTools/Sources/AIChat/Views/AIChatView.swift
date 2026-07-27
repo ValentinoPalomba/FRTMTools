@@ -1,9 +1,10 @@
 import SwiftUI
 
 struct AIChatView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.theme) private var theme
     @State private var viewModel: AIChatViewModel
     @State private var configurationStore: LocalAIConfigurationStore
-    @Environment(\.theme) private var theme
 
     @State private var inputText = ""
     @State private var showSettings = false
@@ -60,6 +61,14 @@ struct AIChatView: View {
                     Label("Model Settings", systemImage: "slider.horizontal.3")
                 }
                 .buttonStyle(.bordered)
+
+                Button("Close", systemImage: "xmark") {
+                    dismiss()
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
+                .keyboardShortcut(.cancelAction)
+                .help("Close AI Insights")
             }
 
             if showSettings {
@@ -114,6 +123,7 @@ struct AIChatView: View {
                     .lineLimit(1...4)
                     .focused($isInputFocused)
                     .disabled(viewModel.isSending)
+                    .onSubmit(sendMessage)
                 Button("Send", systemImage: "paperplane.fill") {
                     sendMessage()
                 }
