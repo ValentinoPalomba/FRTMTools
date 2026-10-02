@@ -11,6 +11,10 @@ import Dispatch
 @main
 struct FRTMToolsCLI {
     static func main() async {
+        if CommandLine.arguments.dropFirst().first == "audit" {
+            do { exit(try AuditCommand.run(Array(CommandLine.arguments.dropFirst(2)))) }
+            catch { fputs("Error: \(error.localizedDescription)\n", stderr); exit(3) }
+        }
         let command = DashboardCommand(arguments: CommandLine.arguments)
         let exitCode = await command.run()
         exit(exitCode)
@@ -144,8 +148,9 @@ private final class DashboardCommand {
         guard let commandString = args.first else {
             throw CLIError.helpRequested
         }
+        if ["-h", "--help"].contains(commandString) { throw CLIError.helpRequested }
         guard let command = Command(rawValue: commandString.lowercased()) else {
-            throw CLIError.invalidArguments("Unknown command '\(commandString)'. Expected 'ipa', 'apk', 'compare', or 'serve'.")
+            throw CLIError.invalidArguments("Unknown command '\(commandString)'. Expected 'ipa', 'apk', 'audit', 'compare', or 'serve'.")
         }
         args.removeFirst()
 
@@ -286,6 +291,7 @@ private final class DashboardCommand {
         let commandName = (arguments.first as NSString?)?.lastPathComponent ?? "FRTMToolsCLI"
         let message = """
         Usage:
+          \(commandName) audit <package-or-folder> [--output <directory>] [--offline]
           \(commandName) ipa <path-to-ipa-or-app> [--output <path>]
           \(commandName) apk <path-to-apk-or-aab> [--output <path>]
           \(commandName) compare <first-package> <second-package> [--output <path>]
