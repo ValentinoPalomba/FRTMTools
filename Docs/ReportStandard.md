@@ -1,4 +1,4 @@
-# Report standard FRTMTools 1.2
+# Report standard FRTMTools 1.3
 
 Reference layout: `report_ISPmobile_20260908.html` provided on 2026-10-01.
 The contract defines presentation and fields, not the reference app's values.
@@ -6,9 +6,10 @@ The contract defines presentation and fields, not the reference app's values.
 ## Presentation
 
 One unified HTML report per app, with the tabs **Sintesi**, **Analisi iOS**,
-**Analisi Android**, **Insight**. The layout uses a gradient hero, platform
-metadata, KPI cards, horizontal bars/doughnuts, searchable/sortable tables,
-status badges, severity filters, remediation actions and individual PDF downloads.
+**Analisi Android**, **Insight**. The layout uses a restrained header, platform
+metadata, KPI strips, horizontal bars/doughnuts, searchable/sortable tables with pagination,
+status badges, severity filters, expandable finding evidence, remediation actions and individual PDF downloads.
+Localization inventories are deferred and omitted, including when restyling cached records.
 Charts and tables work offline. No methodology or source-list sections are shown.
 PDFs use the same platform fields, with a layout suitable for pagination.
 
@@ -36,7 +37,6 @@ are omitted. The collector preserves raw diagnostics in `audit-evidence`.
 | Hardening | Platform protections and binary indicators, with scope limitations |
 | Build quality | Debug, signing, development/test files, sharing/backup settings |
 | Connections/debug | ATS/cleartext configuration and debugging information |
-| Localization | Observed `.lproj` directories; only observed directories; unmeasured completeness omitted |
 | Dead code | Omitted: not collected automatically |
 | Android permissions | Permission, SDK restrictions, sensitive capability classification |
 | Android components | Name/type/exported/required permission |
@@ -74,7 +74,7 @@ The included mapping pairs the supplied InvestoPro PRE identifiers. Other apps
 can use a JSON object `{ "bundle.or.package.id": "App name" }`.
 Individual reports remain available even when a unified view groups platforms.
 
-## Automatic evidence policy (1.2)
+## Automatic evidence policy (1.3)
 
 Finding records must originate from the collector (`origin: cli`). Manual code-flow
 reviews, manually curated advisory applicability/exclusions without collected metadata, dead-code counts,
@@ -86,7 +86,7 @@ The field catalogue above describes possible information. Sections without
 collectable data are absent. Layout, categories, sorting and filtering remain
 consistent for the sections actually populated.
 
-## Automatic dependency assessment (1.2)
+## Automatic dependency assessment (1.3)
 
 Exact official podspecs map framework versions to upstream tags. Repository
 advisories are paginated; Maven OSV matches are enriched with full records.

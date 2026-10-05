@@ -7,7 +7,7 @@ def fixture():
 class ReportStandardTests(unittest.TestCase):
  def test_unobtainable_sections_and_measurements_are_omitted(self):
   model=engine.standard_platform(fixture(),[{'path':'Example','bytes':300}],[],{},[])
-  self.assertEqual(model['schemaVersion'],'1.2')
+  self.assertEqual(model['schemaVersion'],'1.3')
   self.assertFalse({'deadCode','dynamicModules','excludedAdvisories'} & {b['key'] for b in model['blocks']})
   for key in ['packageBytes','installEstimate','downloadEstimate']:self.assertNotIn(key,model['summary'])
   self.assertEqual(sum(model['summary']['checks'].values()),len(model['checks']))
@@ -32,6 +32,16 @@ class ReportStandardTests(unittest.TestCase):
   result=engine.standard_html('</script><script>alert(1)</script>',{'ios':model})
   self.assertNotIn('</script><script>alert(1)',result)
   self.assertIn('\\u003c/script',result)
+ def test_localization_is_omitted_from_collected_and_cached_models(self):
+  d=fixture();d['localizations']=['en','it','fr']
+  model=engine.standard_platform(d,[],[],{},[])
+  self.assertNotIn('localization',[b['key'] for b in model['blocks']])
+  model['blocks'].append({'key':'localization','title':'Traduzioni obsolete','headers':['Lingua'],'rows':[['fr']],'note':''})
+  result=engine.standard_html('Example',{'ios':model})
+  import re,json
+  data=json.loads(re.search(r'const DATA=(.*?);</script>',result,re.S).group(1))
+  self.assertNotIn('localization',[b['key'] for b in data['platforms']['ios']['blocks']])
+  self.assertNotIn('Traduzioni obsolete',result)
  def test_row_column_alignment(self):
   model=engine.standard_platform(fixture(),[],[],{},[])
   for block in model['blocks']:

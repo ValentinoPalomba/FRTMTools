@@ -135,7 +135,7 @@ python3 -m unittest discover -s script/tests -v
 
 ### Standard presentation
 
-`audit` generates the versioned [Report Standard 1.2](ReportStandard.md), based
+`audit` generates the versioned [Report Standard 1.3](ReportStandard.md), based
 on the supplied unified HTML layout: Sintesi, Analisi iOS, Analisi Android,
 Insight. Each app folder contains `report-unificato.html`; individual HTML/PDFs
 and JSON remain in platform subfolders. Fields without automatically obtained evidence are omitted. Manual findings
