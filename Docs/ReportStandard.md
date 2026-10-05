@@ -25,7 +25,7 @@ are omitted. The collector preserves raw diagnostics in `audit-evidence`.
 | --- | --- |
 | Summary | Artefact, identifier, version/build/date, package and logical sizes, install/download estimates, files, components, findings, advisory count, check counts, confirmed exploits |
 | Archive contents | Measured IPA/ZIP bytes/hash, compressed/uncompressed totals per top-level group; Payload remains distinct from Symbols and other contents |
-| Size breakdown | App code, native components and resources, logical bytes/MiB, category percentages |
+| Size breakdown | App code, native components and resources, logical bytes/MB, category percentages |
 | Category distribution | Largest files, sizes and category; graphs use disjoint categories |
 | External SDKs | Name/group, included version, current release, status/unknown version |
 | Component security | Candidate advisory ID, component/version, severity if attested, prerequisites/limits, correction |
@@ -45,6 +45,10 @@ are omitted. The collector preserves raw diagnostics in `audit-evidence`.
 | Actions | Correction, proposed team, expected evidence; no invented deadlines |
 
 ## Meaning of the numbers
+
+- Headline sizes and graphs use decimal MB (1 MB = 1,000,000 bytes). Raw byte counts remain in the evidence. They do not measure the installed size on a specific device.
+- The summary highlights the first three priorities; the platform tab retains every finding and evidence record.
+
 
 - Check statuses: `PASS`, `WARN`, `FAIL`, `NA`, `UNKNOWN`. Their total equals the
   number of check records; they are not a security score.
